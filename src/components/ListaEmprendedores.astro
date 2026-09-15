@@ -401,6 +401,14 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
       const lenis = obtenerScroll();
       if (!lenis) return;
 
+      /*
+       * Solo en desktop. En móvil el snap estorbaba: con una tarjeta por fila
+       * las paradas quedan muy juntas y el scroll con el dedo es de por sí
+       * corto y frecuente, así que cualquier ayuda automática se siente como
+       * que el teléfono te quita el control.
+       */
+      if (!window.matchMedia("(min-width: 768px)").matches) return;
+
 
       /*
        * En desktop cada fila son DOS retratos, y la columna derecha va
@@ -748,17 +756,28 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
      * en el hero, pero ambas animaciones escribían la misma propiedad y la
      * scrubbeada reimponía su valor en cada frame, así que el ciclo no se veía.
      *
-     * Arranca en el azul profundo de la marca y a partir de ahí toma el tono
-     * de cada emprendedor.
+     * Arranca en el magenta profundo (el rosa de marca bajado a L30% sin tocar
+     * su saturación) y a partir de ahí toma el tono de cada emprendedor.
      *
-     * El azul profundo es el único color de la paleta MÁS OSCURO que el fondo,
-     * así que bajo el titular y el párrafo del hero no resta contraste: lo
-     * sube. Texto hueso sobre él da 9.10 de ratio, frente a 5.41 sobre el azul
-     * plano y 1.44 que daba el cyan que había antes (AA pide 4.5).
+     * Aquí chocan dos exigencias, y el azul del fondo está justo en medio del
+     * rango de luminancia, así que ningún color las cumple las dos a la vez:
+     *
+     *   - Para que el titular se lea ENCIMA, el blob debe ser más oscuro que
+     *     el fondo. Este da 7.38 (AA pide 4.5).
+     *   - Pero todo lo bastante oscuro queda cerca del azul en luminancia: el
+     *     ratio contra el fondo es 1.36.
+     *
+     * Se resuelve por TONO, no por luminancia: un magenta sobre azul se
+     * distingue de sobra aunque el número sea bajo, porque el ratio WCAG mide
+     * legibilidad de texto, no si una forma se ve.
+     *
+     * Descartados: azul profundo (se perdía en el fondo, 1.68), tinta (se leía
+     * como negro) y las variantes mezcladas con gris (salían apagadas, porque
+     * mezclar con gris desatura en vez de solo oscurecer).
      */
     const raiz = getComputedStyle(document.documentElement);
     gsap.set(relleno, {
-      fill: raiz.getPropertyValue("--df-blue-deep").trim() || "#0731a5",
+      fill: raiz.getPropertyValue("--df-pink-hondo").trim() || "#91086b",
     });
 
     construir();

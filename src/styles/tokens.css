@@ -43,7 +43,7 @@
   --df-cyan-hondo: #386c6f;
   --df-green-hondo: #456f4d;
   --df-yellow-hondo: #756229;
-  --df-pink-hondo: #904e7e;
+  --df-pink-hondo: #91086b; /* magenta profundo: rosa de marca a L30%, satura 86% */
 
   --fuente: "General Sans", ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
