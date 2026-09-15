@@ -21,10 +21,16 @@
   --df-bone: #efeeed;
 
   /*
-   * VARIANTES PROFUNDAS — hoy SIN USO. Se conservan por si hace falta poner
-   * una forma de color detrás de texto en algún sitio.
+   * VARIANTES PROFUNDAS — los tonos con los que cicla el blob en el hero.
    *
-   * El blob viajero las usó un tiempo y se descartaron: salían apagadas.
+   * Cada una es su color de marca bajado a L28% CONSERVANDO LA SATURACIÓN.
+   * Un intento anterior las mezcló con gris y salieron apagadas: mezclar con
+   * gris desatura además de oscurecer. Bajar solo la luminosidad da tonos
+   * joya, que es lo que se busca.
+   *
+   * Todas dejan el texto hueso por encima de 4.4 (AA pide 4.5 para texto
+   * normal y 3.0 para grande). Si tocas un color de marca, recalcula la suya
+   * con la fórmula de luminancia relativa de WCAG 2, no a ojo.
    *
    * Los colores de marca son todos más claros que el azul del fondo, así que
    * al ponerlos bajo el texto hueso destruyen el contraste: a opacidad plena
@@ -40,10 +46,11 @@
    *
    * Si cambias un color de marca, recalcula su variante. No las ajustes a ojo.
    */
-  --df-cyan-hondo: #386c6f;
-  --df-green-hondo: #456f4d;
-  --df-yellow-hondo: #756229;
-  --df-pink-hondo: #91086b; /* magenta profundo: rosa de marca a L30%, satura 86% */
+  --df-cyan-hondo: #12787d;
+  --df-green-hondo: #127d27;
+  --df-yellow-hondo: #8b6904;
+  --df-pink-hondo: #840a63;
+  --df-blue-hondo: #04048a;
 
   --fuente: "General Sans", ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;

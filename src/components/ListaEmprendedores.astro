@@ -756,29 +756,38 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
      * en el hero, pero ambas animaciones escribían la misma propiedad y la
      * scrubbeada reimponía su valor en cada frame, así que el ciclo no se veía.
      *
-     * Arranca en el magenta profundo (el rosa de marca bajado a L30% sin tocar
-     * su saturación) y a partir de ahí toma el tono de cada emprendedor.
+     * El blob CICLA DE COLOR mientras está en el hero.
      *
-     * Aquí chocan dos exigencias, y el azul del fondo está justo en medio del
-     * rango de luminancia, así que ningún color las cumple las dos a la vez:
+     * Los tonos son los de marca bajados a L28% conservando su saturación
+     * (`--df-*-hondo`), así que son tonos joya y no barro, y todos dejan el
+     * texto de encima por encima de 4.4 de ratio.
      *
-     *   - Para que el titular se lea ENCIMA, el blob debe ser más oscuro que
-     *     el fondo. Este da 7.38 (AA pide 4.5).
-     *   - Pero todo lo bastante oscuro queda cerca del azul en luminancia: el
-     *     ratio contra el fondo es 1.36.
+     * Dos decisiones para que no parezca una bola de discoteca:
      *
-     * Se resuelve por TONO, no por luminancia: un magenta sobre azul se
-     * distingue de sobra aunque el número sea bajo, porque el ratio WCAG mide
-     * legibilidad de texto, no si una forma se ve.
+     *  - ORDEN POR TONO, no aleatorio: verde 132° → teal 183° → azul 240° →
+     *    magenta 317°. Cada paso es un salto corto en la rueda de color.
+     *  - YOYO: al llegar al final vuelve por el mismo camino en vez de saltar
+     *    del magenta al verde. Sin esto, ese salto pasaría por un gris sucio,
+     *    porque GSAP interpola en RGB.
      *
-     * Descartados: azul profundo (se perdía en el fondo, 1.68), tinta (se leía
-     * como negro) y las variantes mezcladas con gris (salían apagadas, porque
-     * mezclar con gris desatura en vez de solo oscurecer).
+     * Y tramos largos: 6s de transición más 2s quieto en cada tono.
      */
     const raiz = getComputedStyle(document.documentElement);
-    gsap.set(relleno, {
-      fill: raiz.getPropertyValue("--df-pink-hondo").trim() || "#91086b",
-    });
+    const leer = (v: string, respaldo: string) => raiz.getPropertyValue(v).trim() || respaldo;
+
+    const tonosHero = [
+      leer("--df-green-hondo", "#127d27"),
+      leer("--df-cyan-hondo", "#12787d"),
+      leer("--df-blue-hondo", "#04048a"),
+      leer("--df-pink-hondo", "#840a63"),
+    ];
+
+    gsap.set(relleno, { fill: tonosHero[0] });
+
+    const cicloHero = gsap.timeline({ repeat: -1, yoyo: true });
+    for (const tono of tonosHero.slice(1)) {
+      cicloHero.to(relleno, { fill: tono, duration: 6, ease: "sine.inOut" }, "+=2");
+    }
 
     construir();
     const trigger = sinMovimiento() ? null : ScrollTrigger.create({
@@ -787,6 +796,16 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
       end: () => Math.max(1, finalScroll),
       scrub: .8,
       onRefreshInit: construir,
+      /*
+       * `fill` tiene que tener un solo dueño en cada momento. Mientras el blob
+       * sigue en el hero manda el ciclo; en cuanto el recorrido arranca, el
+       * ciclo se para y el color pasa a ser el de cada emprendedor.
+       */
+      onUpdate: (self) => {
+        const enHero = self.progress <= 0.012;
+        if (enHero && cicloHero.paused()) cicloHero.play();
+        else if (!enHero && !cicloHero.paused()) cicloHero.pause();
+      },
     });
     const alCambiar = () => { obtenerScroll()?.resize(); ScrollTrigger.refresh(); };
     const observador = new ResizeObserver(alCambiar);
@@ -815,6 +834,7 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
     };
     soltarViajero = () => {
       activo = false;
+      cicloHero.kill();
       observador.disconnect();
       window.removeEventListener("resize", alRedimensionar);
       trigger?.kill();
