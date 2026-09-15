@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
 import ListaEmprendedores from "../components/ListaEmprendedores.astro";
+import ReelVideos from "../components/ReelVideos.astro";
 import { getEmprendedores } from "../lib/directorio";
 
 const emprendedores = await getEmprendedores();
@@ -41,6 +42,8 @@ const descripcion =
     </div>
     <p class="hero-lugar">Sabanilla & Los Lojas <span>Ideas locales. Nuevas oportunidades.</span></p>
   </section>
+
+  <ReelVideos emprendedores={emprendedores} />
 
   <ListaEmprendedores emprendedores={emprendedores} />
 

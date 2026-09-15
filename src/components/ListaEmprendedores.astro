@@ -287,7 +287,9 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
       const r = celda.getBoundingClientRect();
       const lado = retrato.offsetWidth;
       const top = r.top + window.scrollY + retrato.offsetTop;
-      return { celda, left: r.left + retrato.offsetLeft, top, lado, scroll: Math.max(1, top + lado / 2 - window.innerHeight / 2) };
+      // 0.46 y no 0.5: es la misma referencia que usa el snap. Si el blob y el
+      // snap encuadran distinto, el blob nunca cae donde el snap te deja.
+      return { celda, left: r.left + retrato.offsetLeft, top, lado, scroll: Math.max(1, top + lado / 2 - window.innerHeight * 0.46) };
     });
     if (escritorio) {
       /*
@@ -399,21 +401,6 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
       const lenis = obtenerScroll();
       if (!lenis) return;
 
-      const instancia = new Snap(lenis, {
-        type: "proximity",
-        /*
-         * 10% del viewport (90px) era demasiado estrecho para un paso de fila
-         * de ~870px: había que parar casi encima del punto para que enganchara,
-         * así que la mayoría de las veces no pasaba nada y parecía roto.
-         * Con 35% cubre buena parte del tramo y la fila se acomoda sola, pero
-         * sigue siendo `proximity`: si el usuario sigue haciendo scroll, manda él.
-         */
-        distanceThreshold: "35%",
-        duration: 1,
-        easing: t => t * t * (3 - 2 * t),
-        debounce: 400,
-      });
-      snap = instancia;
 
       /*
        * En desktop cada fila son DOS retratos, y la columna derecha va
@@ -442,6 +429,34 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
           scroll: Math.max(1, Math.round(centro - window.innerHeight * 0.46)),
         });
       }
+
+      if (paradasSnap.length === 0) return;
+
+      /*
+       * EL UMBRAL SALE DEL ESPACIADO, NO DEL VIEWPORT.
+       *
+       * Estaba fijo en un porcentaje de la altura de pantalla, y en móvil eso
+       * daba 284px para un paso entre paradas de 547px. Al ser mayor que medio
+       * paso, cualquier posición caía dentro del rango de DOS paradas a la vez:
+       * el snap se peleaba consigo mismo y llegaba a tirar hacia atrás.
+       *
+       * Con un tercio del paso más corto siempre queda una zona muerta entre
+       * paradas, que es lo que hace que se sienta como una ayuda y no como un
+       * tirón. Sirve igual para el paso de ~870px de desktop que para el de
+       * ~547px de móvil, sin tener que afinar dos números a mano.
+       */
+      const pasos = paradasSnap.slice(1).map((p, i) => p.scroll - paradasSnap[i]!.scroll);
+      const pasoMin = pasos.length ? Math.min(...pasos) : window.innerHeight;
+      const umbral = Math.max(60, Math.round(pasoMin / 3));
+
+      const instancia = new Snap(lenis, {
+        type: "proximity",
+        distanceThreshold: umbral,
+        duration: 1,
+        easing: t => t * t * (3 - 2 * t),
+        debounce: 400,
+      });
+      snap = instancia;
 
       celdas.forEach(c => c.removeAttribute("data-snap-scroll"));
       const quitar = paradasSnap.map(p => {
@@ -733,12 +748,17 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
      * en el hero, pero ambas animaciones escribían la misma propiedad y la
      * scrubbeada reimponía su valor en cada frame, así que el ciclo no se veía.
      *
-     * Arranca en cyan de marca y a partir de ahí toma el tono de cada
-     * emprendedor.
+     * Arranca en el azul profundo de la marca y a partir de ahí toma el tono
+     * de cada emprendedor.
+     *
+     * El azul profundo es el único color de la paleta MÁS OSCURO que el fondo,
+     * así que bajo el titular y el párrafo del hero no resta contraste: lo
+     * sube. Texto hueso sobre él da 9.10 de ratio, frente a 5.41 sobre el azul
+     * plano y 1.44 que daba el cyan que había antes (AA pide 4.5).
      */
     const raiz = getComputedStyle(document.documentElement);
     gsap.set(relleno, {
-      fill: raiz.getPropertyValue("--df-cyan").trim() || "#52dbe2",
+      fill: raiz.getPropertyValue("--df-blue-deep").trim() || "#0731a5",
     });
 
     construir();
@@ -760,10 +780,19 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
     void document.fonts.ready.then(() => { if (activo) { construir(); alCambiar(); } });
 
     // Al filtrar cambian las paradas: se reconstruye el recorrido entero.
+    /*
+     * Al filtrar cambian las paradas, así que el blob tiene que recolocarse.
+     * Pero hacerlo a la vista se leía como si se escapara: cruzaba la pantalla
+     * mientras las tarjetas reacomodaban. Se apaga, se recoloca de golpe y se
+     * enciende ya en su sitio: el cambio de filtro no debe parecer un viaje.
+     */
     viajeroRehacer = () => {
+      gsap.killTweensOf(viajero, "opacity");
+      gsap.set(viajero, { opacity: 0 });
       construir();
       trigger?.refresh();
       if (trigger) linea.progress(trigger.progress);
+      gsap.to(viajero, { opacity: 1, duration: 0.35, ease: "power1.out", delay: 0.05 });
     };
     soltarViajero = () => {
       activo = false;
