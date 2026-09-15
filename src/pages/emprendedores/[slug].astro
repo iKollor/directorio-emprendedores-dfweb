@@ -1,0 +1,197 @@
+---
+import Base from "../../layouts/Base.astro";
+import Blob from "../../components/Blob.astro";
+import BotonWhatsapp from "../../components/BotonWhatsapp.astro";
+import { categoria } from "../../data/taxonomia";
+import { getEmprendedores } from "../../lib/directorio";
+
+export async function getStaticPaths() {
+  const emprendedores = await getEmprendedores();
+  // Sin datos de negocio no hay ficha que mostrar: esas personas se listan en
+  // la home como "en preparación", pero no generan ruta propia.
+  return emprendedores
+    .filter((e) => !e.fichaPendiente)
+    .map((e) => ({ params: { slug: e.slug }, props: { emprendedor: e } }));
+}
+
+const { emprendedor: e } = Astro.props;
+const cat = categoria(e.categoria);
+
+const descripcion = `${e.emprendimiento} — ${e.nombre}, emprendedor de ${e.comunidad}, cantón Daule. Contáctale directamente por WhatsApp.`;
+
+const datosEstructurados = {
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  name: e.emprendimiento,
+  description: e.parrafos.join(" "),
+  founder: { "@type": "Person", name: e.nombre },
+  areaServed: { "@type": "Place", name: `${e.comunidad}, Daule, Ecuador` },
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: e.comunidad,
+    addressRegion: "Guayas",
+    addressCountry: "EC",
+  },
+  ...(e.telefono ? { telephone: e.telefono.replace(/\s/g, "") } : {}),
+};
+---
+
+<Base titulo={e.nombre} descripcion={descripcion} imagen={e.foto.src}>
+  <main class="ficha" style={`--acento:${cat.color}; --acento-texto:${cat.colorTexto};`}>
+    <nav class="volver">
+      <a href="/">
+        <span aria-hidden="true">←</span> Todos los emprendedores
+      </a>
+    </nav>
+
+    <div class="cuerpo" id="contenido">
+      <div class="retrato" transition:name={`retrato-${e.slug}`}>
+        <Blob
+          slug={e.slug}
+          foto={e.foto}
+          alt={`Retrato de ${e.nombre}`}
+          color={cat.color}
+          prioritaria
+          sizes="(max-width: 899px) 88vw, 42vw"
+          fotoPendiente={e.fotoPendiente}
+          video={e.video}
+          videoModo="auto"
+        />
+      </div>
+
+      <div class="texto">
+        <p class="etiquetas">
+          <span class="pildora comunidad">{e.comunidad}</span>
+          <span class="pildora categoria">{cat.etiqueta}</span>
+        </p>
+
+        <h1 transition:name={`nombre-${e.slug}`}>{e.nombre}</h1>
+        <p class="emprendimiento">{e.emprendimiento}</p>
+
+        <div class="descripcion">
+          {e.parrafos.map((p) => <p>{p}</p>)}
+        </div>
+
+        {
+          e.videoPendiente && (
+            <p class="aviso-video">
+              <span aria-hidden="true">⚠</span> El video es un ejemplo de stock,
+              todavía no es el de {e.nombre.split(" ")[0]}.
+            </p>
+          )
+        }
+
+        <BotonWhatsapp nombre={e.nombre} whatsapp={e.whatsapp} telefono={e.telefono} />
+      </div>
+    </div>
+  </main>
+
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(datosEstructurados)} />
+</Base>
+
+<style>
+  .ficha {
+    padding-block: clamp(1.5rem, 4vw, 3rem) clamp(4rem, 10vw, 8rem);
+    padding-inline: var(--gutter);
+  }
+
+  .volver {
+    margin-bottom: clamp(2rem, 6vw, 4rem);
+    font-size: var(--txt-s);
+    font-weight: 600;
+  }
+
+  .volver a {
+    text-decoration: none;
+    opacity: 0.85;
+  }
+
+  .volver a:hover {
+    opacity: 1;
+  }
+
+  /* Móvil: el retrato ocupa el ancho completo, igual que en el listado. */
+  .cuerpo {
+    display: grid;
+    gap: clamp(2rem, 6vw, 4rem);
+    align-items: start;
+  }
+
+  @media (min-width: 900px) {
+    .cuerpo {
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: clamp(3rem, 6vw, 6rem);
+    }
+
+    .retrato {
+      position: sticky;
+      top: 6vh;
+    }
+  }
+
+  .texto {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .etiquetas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .pildora {
+    padding: 0.3em 0.9em;
+    border-radius: var(--radio-pildora);
+    font-size: var(--txt-s);
+    font-weight: 500;
+  }
+
+  .comunidad {
+    border: 1.5px solid currentColor;
+  }
+
+  .categoria {
+    background: var(--acento);
+    color: var(--acento-texto);
+  }
+
+  h1 {
+    font-size: var(--txt-xl);
+    font-weight: 700;
+    line-height: 0.95;
+  }
+
+  .emprendimiento {
+    margin: 0;
+    font-size: var(--txt-l);
+    font-weight: 300;
+    line-height: 1.15;
+    color: var(--df-yellow);
+  }
+
+  .descripcion {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 58ch;
+    margin-block: 0.5rem 1.5rem;
+  }
+
+  .descripcion p {
+    margin: 0;
+  }
+
+  .aviso-video {
+    margin: 0 0 1rem;
+    padding: 0.5em 1em;
+    border-radius: var(--radio-pildora);
+    background: var(--df-yellow);
+    color: var(--df-ink);
+    font-size: var(--txt-s);
+    font-weight: 600;
+    width: fit-content;
+  }
+</style>

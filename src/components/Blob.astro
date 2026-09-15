@@ -1,0 +1,258 @@
+---
+/**
+ * El retrato del emprendedor: foto (o vídeo) recortada por una silueta viva,
+ * con un blob de color de su categoría detrás.
+ *
+ * El respaldo de color NO está aquí: hay uno solo para todo el listado, que
+ * va recorriendo a los emprendedores y cambiando de color (ver
+ * ListaEmprendedores.astro). Un respaldo por tarjeta llenaba la pantalla de
+ * formas; uno que viaja cuenta mejor el recorrido.
+ *
+ * El recorte usa `clip-path: url(#...)` sobre <img> y <video> reales, no
+ * <image> dentro del SVG: así Astro sigue generando AVIF/WebP y srcset, y el
+ * vídeo conserva sus propios controles de carga.
+ */
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import { construirPath, generarBlob } from "../lib/blob";
+
+type Props = {
+  slug: string;
+  foto: ImageMetadata;
+  alt: string;
+  color: string;
+  /** Las primeras imágenes cargan con prioridad; el resto queda perezoso. */
+  prioritaria?: boolean;
+  /** Ancho real en pantalla, para que el navegador elija bien del srcset. */
+  sizes?: string;
+  /** Marca visible cuando el retrato todavía no es el de esta persona. */
+  fotoPendiente?: boolean;
+  /** Ruta del vídeo. Sin esto el blob es solo foto. */
+  video?: string | null;
+  /**
+   * `auto` reproduce en bucle desde el principio (ficha individual).
+   * `hover` espera al puntero y no descarga nada hasta entonces (listado).
+   */
+  videoModo?: "auto" | "hover";
+};
+
+const {
+  slug,
+  foto,
+  alt,
+  color,
+  prioritaria = false,
+  sizes = "(max-width: 767px) 88vw, 42vw",
+  fotoPendiente = false,
+  video = null,
+  videoModo = "hover",
+} = Astro.props;
+
+const retrato = generarBlob(slug);
+const idRecorte = `recorte-${slug}`;
+
+// Desfase sembrado por el slug: dos vecinos nunca respiran a la vez.
+const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
+---
+
+<div
+  class="marco"
+  style={`--rot:${retrato.rotacion.toFixed(2)}deg; --esc:${retrato.escala.toFixed(3)}; --acento:${color};`}
+>
+  <div
+    class="blob"
+    data-blob
+    data-vertices={JSON.stringify(retrato.vertices)}
+    data-encaje={JSON.stringify(retrato.encaje)}
+    data-desfase={desfaseRetrato.toFixed(3)}
+  >
+    <svg class="definiciones" aria-hidden="true" focusable="false">
+      <defs>
+        <clipPath id={idRecorte} clipPathUnits="objectBoundingBox">
+          <path
+            data-path
+            d={construirPath(retrato.vertices, desfaseRetrato, null, retrato.encaje)}
+            transform="scale(0.01)"></path>
+        </clipPath>
+      </defs>
+    </svg>
+
+    <div class="recorte" style={`clip-path: url(#${idRecorte})`}>
+      <Image
+        src={foto}
+        alt={alt}
+        widths={[400, 700, 1000, 1400]}
+        sizes={sizes}
+        loading={prioritaria ? "eager" : "lazy"}
+        fetchpriority={prioritaria ? "high" : "auto"}
+        decoding="async"
+      />
+
+      {
+        video && (
+          <video
+            class="video"
+            data-video
+            data-video-modo={videoModo}
+            src={video}
+            muted
+            loop
+            playsinline
+            disablepictureinpicture
+            aria-hidden="true"
+            tabindex="-1"
+            preload={videoModo === "auto" ? "metadata" : "none"}
+          />
+        )
+      }
+    </div>
+  </div>
+
+  {
+    video && videoModo === "hover" && (
+      <p class="marca-video" aria-hidden="true">
+        <span class="triangulo" /> Ver video
+      </p>
+    )
+  }
+
+  {
+    fotoPendiente && (
+      <p class="aviso-foto">
+        <span aria-hidden="true">⚠</span> Foto pendiente
+        <span class="solo-lectores">
+          — la imagen mostrada no corresponde a esta persona
+        </span>
+      </p>
+    )
+  }
+</div>
+
+<script>
+  function sincronizarVideos() {
+    const reducir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.querySelectorAll<HTMLVideoElement>('[data-video-modo="auto"]').forEach(video => {
+      const blob = video.closest<HTMLElement>(".blob");
+      if (reducir) { video.pause(); blob?.removeAttribute("data-video-activo"); }
+      else void video.play().then(() => {
+        if (video.isConnected && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) blob?.setAttribute("data-video-activo", "");
+        else video.pause();
+      }, () => {});
+    });
+  }
+  document.addEventListener("astro:page-load", sincronizarVideos);
+  window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", sincronizarVideos);
+  document.addEventListener("astro:before-swap", () => document.querySelectorAll<HTMLVideoElement>("[data-video]").forEach(video => video.pause()));
+</script>
+
+<style>
+  .marco {
+    position: relative;
+    aspect-ratio: 1;
+    width: 100%;
+    rotate: var(--rot);
+    scale: var(--esc);
+  }
+
+  .definiciones {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .blob {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+  }
+
+  .definiciones {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  .recorte {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .recorte :global(img),
+  .video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    /* Las fuentes ya vienen recortadas a cuadrado por scripts/normalizar-fotos.mjs,
+       así que aquí no hace falta adivinar dónde está el rostro. */
+  }
+
+  .video {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.45s var(--ease-suave);
+  }
+
+  /*
+   * En la ficha el vídeo manda desde el principio y el blob ya nace marcado
+   * desde el servidor. En el listado la marca la pone el hover.
+   */
+  .blob[data-video-activo] .video {
+    opacity: 1;
+  }
+
+  .marca-video,
+  .aviso-foto {
+    position: absolute;
+    inset-inline: 0;
+    margin: 0 auto;
+    z-index: 2;
+    width: fit-content;
+    padding: 0.35em 0.9em;
+    border-radius: var(--radio-pildora);
+    font-size: var(--txt-s);
+    font-weight: 600;
+    rotate: calc(var(--rot) * -1);
+    pointer-events: none;
+  }
+
+  .marca-video {
+    bottom: 10%;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    background: var(--df-ink);
+    color: var(--df-bone);
+    transition:
+      opacity 0.3s var(--ease-suave),
+      translate 0.3s var(--ease-suave);
+  }
+
+  .triangulo {
+    width: 0;
+    height: 0;
+    border-left: 0.55em solid currentColor;
+    border-block: 0.35em solid transparent;
+  }
+
+  /* Mientras el vídeo corre, el cartel sobra. */
+  .marco:has([data-video-activo]) .marca-video {
+    opacity: 0;
+    translate: 0 0.5em;
+  }
+
+  .aviso-foto {
+    bottom: 10%;
+    background: var(--df-yellow);
+    color: var(--df-ink);
+  }
+
+  /* Si hay ambos, el aviso de foto sube para no pisar la marca de vídeo. */
+  .marca-video ~ .aviso-foto {
+    bottom: calc(10% + 2.6em);
+  }
+</style>

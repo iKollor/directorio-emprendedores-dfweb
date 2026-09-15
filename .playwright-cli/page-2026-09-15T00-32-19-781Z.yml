@@ -1,0 +1,285 @@
+- generic [active] [ref=f15e1]:
+  - link "Saltar al contenido" [ref=f15e2] [cursor=pointer]:
+    - /url: "#contenido"
+  - banner [ref=f15e3]:
+    - link "Diseña Futuro — inicio" [ref=f15e4] [cursor=pointer]:
+      - /url: /
+      - img "Diseña Futuro" [ref=f15e5]
+    - navigation "Navegación principal" [ref=f15e6]:
+      - link "Emprendedores" [ref=f15e7] [cursor=pointer]:
+        - /url: "#contenido"
+        - text: Emprendedores
+        - generic [aria-hidden] [ref=f15e8]: ↗
+  - main [ref=f15e9]:
+    - region [ref=f15e10]:
+      - generic [ref=f15e11]:
+        - paragraph [ref=f15e12]: Escuela de Emprendimiento · Diseña Futuro
+        - heading [level=1] [ref=f15e13]:
+          - text: Conoce a nuestros
+          - strong [ref=f15e14]: emprendedores
+        - generic [ref=f15e15]:
+          - paragraph [ref=f15e16]:
+            - text: Personas que decidieron apostar por sus ideas y convertir sus conocimientos y talentos en oportunidades para sus familias y sus comunidades. Aquí puedes conocer sus negocios y
+            - strong [ref=f15e17]: contactarlos directamente
+            - text: .
+          - paragraph [ref=f15e18]: Explora, conoce, conecta y apóyalos.
+        - link "¡Conoce a los emprendedores!" [ref=f15e19] [cursor=pointer]:
+          - /url: "#contenido"
+          - text: ¡Conoce a los emprendedores!
+          - generic [aria-hidden] [ref=f15e20]: ↓
+      - paragraph [ref=f15e21]:
+        - text: Sabanilla & Los Lojas
+        - generic [ref=f15e22]: Ideas locales. Nuevas oportunidades.
+    - region [ref=f15e23]:
+      - generic [ref=f15e24]:
+        - generic [ref=f15e25]:
+          - paragraph [ref=f15e26]: Talento de nuestras comunidades
+          - heading "Encuentra y conecta." [level=2] [ref=f15e27]
+        - paragraph [ref=f15e28]: Detrás de cada negocio,hay una historia por conocer.
+      - generic [ref=f15e29]:
+        - group "Comunidad" [ref=f15e30]:
+          - button "Todas" [pressed] [ref=f15e32] [cursor=pointer]
+          - button "Sabanilla" [ref=f15e33] [cursor=pointer]
+          - button "Los Lojas" [ref=f15e34] [cursor=pointer]
+        - group "Categoría" [ref=f15e35]:
+          - button "Todas" [pressed] [ref=f15e37] [cursor=pointer]
+          - button "Construcción y maquinaria" [ref=f15e38] [cursor=pointer]
+          - button "Confección y textil" [ref=f15e39] [cursor=pointer]
+          - button "Belleza" [ref=f15e40] [cursor=pointer]
+          - button "Comercio y servicios" [ref=f15e41] [cursor=pointer]
+          - button "Agropecuario" [ref=f15e42] [cursor=pointer]
+          - button "Ficha en preparación" [ref=f15e43] [cursor=pointer]
+      - status [ref=f15e45]: 14 emprendedores
+      - generic [ref=f15e46]:
+        - link "Jonathan Gordillo, Maestro de obra, comunidad Sabanilla Sabanilla Construcción y maquinaria Jonathan Gordillo Maestro de obra" [ref=f15e49] [cursor=pointer]:
+          - /url: /emprendedores/jonathan-gordillo/
+          - generic [ref=f15e51]:
+            - img "Jonathan Gordillo, Maestro de obra, comunidad Sabanilla" [ref=f15e54]
+            - paragraph [aria-hidden]: Ver video
+          - generic [ref=f15e56]:
+            - paragraph [ref=f15e57]:
+              - generic [ref=f15e58]: Sabanilla
+              - generic [ref=f15e59]: Construcción y maquinaria
+            - heading "Jonathan Gordillo" [level=3] [ref=f15e60]
+            - paragraph [ref=f15e61]: Maestro de obra
+            - paragraph [aria-hidden] [ref=f15e62]:
+              - text: ¡Conócele!
+              - generic [ref=f15e63]: →
+        - link "Alexandra Medina, Tienda de abarrotes y servicios virtuales, comunidad Sabanilla Sabanilla Comercio y servicios Alexandra Medina Tienda de abarrotes y servicios virtuales" [ref=f15e66] [cursor=pointer]:
+          - /url: /emprendedores/alexandra-medina/
+          - generic [ref=f15e68]:
+            - img "Alexandra Medina, Tienda de abarrotes y servicios virtuales, comunidad Sabanilla" [ref=f15e71]
+            - paragraph [aria-hidden]: Ver video
+          - generic [ref=f15e73]:
+            - paragraph [ref=f15e74]:
+              - generic [ref=f15e75]: Sabanilla
+              - generic [ref=f15e76]: Comercio y servicios
+            - heading "Alexandra Medina" [level=3] [ref=f15e77]
+            - paragraph [ref=f15e78]: Tienda de abarrotes y servicios virtuales
+            - paragraph [aria-hidden] [ref=f15e79]:
+              - text: ¡Conócele!
+              - generic [ref=f15e80]: →
+        - link "Kelly Cedillo, Maquilladora, peluquera y venta de articulos relacionados, comunidad Sabanilla Sabanilla Belleza Kelly Cedillo Maquilladora, peluquera y venta de articulos relacionados" [ref=f15e83] [cursor=pointer]:
+          - /url: /emprendedores/kelly-cedillo/
+          - generic [ref=f15e85]:
+            - img "Kelly Cedillo, Maquilladora, peluquera y venta de articulos relacionados, comunidad Sabanilla" [ref=f15e88]
+            - paragraph [aria-hidden]: Ver video
+          - generic [ref=f15e90]:
+            - paragraph [ref=f15e91]:
+              - generic [ref=f15e92]: Sabanilla
+              - generic [ref=f15e93]: Belleza
+            - heading "Kelly Cedillo" [level=3] [ref=f15e94]
+            - paragraph [ref=f15e95]: Maquilladora, peluquera y venta de articulos relacionados
+            - paragraph [aria-hidden] [ref=f15e96]:
+              - text: ¡Conócele!
+              - generic [ref=f15e97]: →
+        - link "Jairon Marcel Espinoza Ronquillo, Corte, confección y bordado, comunidad Los Lojas Foto pendiente — la imagen mostrada no corresponde a esta persona Los Lojas Confección y textil Jairon Marcel Espinoza Ronquillo Corte, confección y bordado" [ref=f15e100] [cursor=pointer]:
+          - /url: /emprendedores/jairon-espinoza/
+          - generic [ref=f15e102]:
+            - img "Jairon Marcel Espinoza Ronquillo, Corte, confección y bordado, comunidad Los Lojas" [ref=f15e105]
+            - paragraph [aria-hidden]: Ver video
+            - paragraph:
+              - text: ⚠ Foto pendiente
+              - generic: — la imagen mostrada no corresponde a esta persona
+          - generic [ref=f15e107]:
+            - paragraph [ref=f15e108]:
+              - generic [ref=f15e109]: Los Lojas
+              - generic [ref=f15e110]: Confección y textil
+            - heading "Jairon Marcel Espinoza Ronquillo" [level=3] [ref=f15e111]
+            - paragraph [ref=f15e112]: Corte, confección y bordado
+            - paragraph [aria-hidden] [ref=f15e113]:
+              - text: ¡Conócele!
+              - generic [ref=f15e114]: →
+        - link "Kerly Verónica Huacón Castro, Alquiler de moldes para hacer pilares de hormigon, comunidad Los Lojas Foto pendiente — la imagen mostrada no corresponde a esta persona Los Lojas Construcción y maquinaria Kerly Verónica Huacón Castro Alquiler de moldes para hacer pilares de hormigon" [ref=f15e117] [cursor=pointer]:
+          - /url: /emprendedores/kerly-huacon/
+          - generic [ref=f15e119]:
+            - img "Kerly Verónica Huacón Castro, Alquiler de moldes para hacer pilares de hormigon, comunidad Los Lojas" [ref=f15e122]
+            - paragraph [aria-hidden]: Ver video
+            - paragraph:
+              - text: ⚠ Foto pendiente
+              - generic: — la imagen mostrada no corresponde a esta persona
+          - generic [ref=f15e124]:
+            - paragraph [ref=f15e125]:
+              - generic [ref=f15e126]: Los Lojas
+              - generic [ref=f15e127]: Construcción y maquinaria
+            - heading "Kerly Verónica Huacón Castro" [level=3] [ref=f15e128]
+            - paragraph [ref=f15e129]: Alquiler de moldes para hacer pilares de hormigon
+            - paragraph [aria-hidden] [ref=f15e130]:
+              - text: ¡Conócele!
+              - generic [ref=f15e131]: →
+        - link "Miriam Elizabeth Correa Alvarado, Confección y costura, comunidad Los Lojas Foto pendiente — la imagen mostrada no corresponde a esta persona Los Lojas Confección y textil Miriam Elizabeth Correa Alvarado Confección y costura" [ref=f15e134] [cursor=pointer]:
+          - /url: /emprendedores/miriam-correa/
+          - generic [ref=f15e136]:
+            - img "Miriam Elizabeth Correa Alvarado, Confección y costura, comunidad Los Lojas" [ref=f15e139]
+            - paragraph [aria-hidden]: Ver video
+            - paragraph:
+              - text: ⚠ Foto pendiente
+              - generic: — la imagen mostrada no corresponde a esta persona
+          - generic [ref=f15e141]:
+            - paragraph [ref=f15e142]:
+              - generic [ref=f15e143]: Los Lojas
+              - generic [ref=f15e144]: Confección y textil
+            - heading "Miriam Elizabeth Correa Alvarado" [level=3] [ref=f15e145]
+            - paragraph [ref=f15e146]: Confección y costura
+            - paragraph [aria-hidden] [ref=f15e147]:
+              - text: ¡Conócele!
+              - generic [ref=f15e148]: →
+        - link "Celia María Morán Alvarado, Cria y vende pollos y cerdos, comunidad Los Lojas Foto pendiente — la imagen mostrada no corresponde a esta persona Los Lojas Agropecuario Celia María Morán Alvarado Cria y vende pollos y cerdos" [ref=f15e151] [cursor=pointer]:
+          - /url: /emprendedores/celia-moran/
+          - generic [ref=f15e153]:
+            - img "Celia María Morán Alvarado, Cria y vende pollos y cerdos, comunidad Los Lojas" [ref=f15e156]
+            - paragraph [aria-hidden]: Ver video
+            - paragraph:
+              - text: ⚠ Foto pendiente
+              - generic: — la imagen mostrada no corresponde a esta persona
+          - generic [ref=f15e158]:
+            - paragraph [ref=f15e159]:
+              - generic [ref=f15e160]: Los Lojas
+              - generic [ref=f15e161]: Agropecuario
+            - heading "Celia María Morán Alvarado" [level=3] [ref=f15e162]
+            - paragraph [ref=f15e163]: Cria y vende pollos y cerdos
+            - paragraph [aria-hidden] [ref=f15e164]:
+              - text: ¡Conócele!
+              - generic [ref=f15e165]: →
+        - link "Linda Inés Romero Loy, Siembra y cosecha arroz, comunidad Los Lojas Foto pendiente — la imagen mostrada no corresponde a esta persona Los Lojas Agropecuario Linda Inés Romero Loy Siembra y cosecha arroz" [ref=f15e168] [cursor=pointer]:
+          - /url: /emprendedores/linda-romero/
+          - generic [ref=f15e170]:
+            - img "Linda Inés Romero Loy, Siembra y cosecha arroz, comunidad Los Lojas" [ref=f15e173]
+            - paragraph [aria-hidden]: Ver video
+            - paragraph:
+              - text: ⚠ Foto pendiente
+              - generic: — la imagen mostrada no corresponde a esta persona
+          - generic [ref=f15e175]:
+            - paragraph [ref=f15e176]:
+              - generic [ref=f15e177]: Los Lojas
+              - generic [ref=f15e178]: Agropecuario
+            - heading "Linda Inés Romero Loy" [level=3] [ref=f15e179]
+            - paragraph [ref=f15e180]: Siembra y cosecha arroz
+            - paragraph [aria-hidden] [ref=f15e181]:
+              - text: ¡Conócele!
+              - generic [ref=f15e182]: →
+        - generic [ref=f15e185]:
+          - generic [ref=f15e187]:
+            - img "Retrato de Jenny Janina Correa Plua" [ref=f15e190]
+            - paragraph:
+              - text: ⚠ Foto pendiente
+              - generic: — la imagen mostrada no corresponde a esta persona
+          - generic [ref=f15e191]:
+            - paragraph [ref=f15e192]:
+              - generic [ref=f15e193]: Los Lojas
+              - generic [ref=f15e194]: Ficha en preparación
+            - heading "Jenny Janina Correa Plua" [level=3] [ref=f15e195]
+            - paragraph [ref=f15e196]: Su ficha estará disponible pronto.
+        - generic [ref=f15e199]:
+          - generic [ref=f15e201]:
+            - img "Retrato de Apolonia Lourdes Huacon Maruri" [ref=f15e204]
+            - paragraph:
+              - text: ⚠ Foto pendiente
+              - generic: — la imagen mostrada no corresponde a esta persona
+          - generic [ref=f15e205]:
+            - paragraph [ref=f15e206]:
+              - generic [ref=f15e207]: Los Lojas
+              - generic [ref=f15e208]: Ficha en preparación
+            - heading "Apolonia Lourdes Huacon Maruri" [level=3] [ref=f15e209]
+            - paragraph [ref=f15e210]: Su ficha estará disponible pronto.
+        - generic [ref=f15e213]:
+          - generic [ref=f15e215]:
+            - img "Retrato de Brenda Dalila Ruiz Ruiz" [ref=f15e218]
+            - paragraph:
+              - text: ⚠ Foto pendiente
+              - generic: — la imagen mostrada no corresponde a esta persona
+          - generic [ref=f15e219]:
+            - paragraph [ref=f15e220]:
+              - generic [ref=f15e221]: Los Lojas
+              - generic [ref=f15e222]: Ficha en preparación
+            - heading "Brenda Dalila Ruiz Ruiz" [level=3] [ref=f15e223]
+            - paragraph [ref=f15e224]: Su ficha estará disponible pronto.
+        - generic [ref=f15e227]:
+          - generic [ref=f15e229]:
+            - img "Retrato de Jacinto Vicente Mera Alvarado" [ref=f15e232]
+            - paragraph:
+              - text: ⚠ Foto pendiente
+              - generic: — la imagen mostrada no corresponde a esta persona
+          - generic [ref=f15e233]:
+            - paragraph [ref=f15e234]:
+              - generic [ref=f15e235]: Los Lojas
+              - generic [ref=f15e236]: Ficha en preparación
+            - heading "Jacinto Vicente Mera Alvarado" [level=3] [ref=f15e237]
+            - paragraph [ref=f15e238]: Su ficha estará disponible pronto.
+        - generic [ref=f15e241]:
+          - generic [ref=f15e243]:
+            - img "Retrato de Marjorie Nicol Mera Correa" [ref=f15e246]
+            - paragraph:
+              - text: ⚠ Foto pendiente
+              - generic: — la imagen mostrada no corresponde a esta persona
+          - generic [ref=f15e247]:
+            - paragraph [ref=f15e248]:
+              - generic [ref=f15e249]: Los Lojas
+              - generic [ref=f15e250]: Ficha en preparación
+            - heading "Marjorie Nicol Mera Correa" [level=3] [ref=f15e251]
+            - paragraph [ref=f15e252]: Su ficha estará disponible pronto.
+        - generic [ref=f15e255]:
+          - generic [ref=f15e257]:
+            - img "Retrato de Silvia Janeth Morán Huacón" [ref=f15e260]
+            - paragraph:
+              - text: ⚠ Foto pendiente
+              - generic: — la imagen mostrada no corresponde a esta persona
+          - generic [ref=f15e261]:
+            - paragraph [ref=f15e262]:
+              - generic [ref=f15e263]: Los Lojas
+              - generic [ref=f15e264]: Ficha en preparación
+            - heading "Silvia Janeth Morán Huacón" [level=3] [ref=f15e265]
+            - paragraph [ref=f15e266]: Su ficha estará disponible pronto.
+  - contentinfo [ref=f15e267]:
+    - generic [ref=f15e268]:
+      - generic [ref=f15e269]:
+        - link "Diseña Futuro — inicio" [ref=f15e270] [cursor=pointer]:
+          - /url: /
+          - img "Diseña Futuro" [ref=f15e271]
+        - paragraph [ref=f15e272]: Las oportunidades crecencuando nos conectamos.
+      - generic [ref=f15e273]:
+        - heading "Ideas que construyen futuro." [level=2] [ref=f15e274]
+        - paragraph [ref=f15e275]: Los emprendedores de esta plataforma culminaron su proceso de formación y microcrédito con la Escuela de Emprendimiento de Diseña Futuro.
+        - link "Conoce Diseña Futuro (abre en otra pestaña)" [ref=f15e276] [cursor=pointer]:
+          - /url: https://disenafuturo.com/
+          - text: Conoce Diseña Futuro ↗
+          - generic [ref=f15e277]: (abre en otra pestaña)
+      - navigation "Redes sociales de Diseña Futuro" [ref=f15e278]:
+        - heading "Sigamos conectados" [level=2] [ref=f15e279]
+        - link "Instagram (abre en otra pestaña)" [ref=f15e280] [cursor=pointer]:
+          - /url: https://www.instagram.com/disenafuturo/
+          - text: Instagram
+          - generic [aria-hidden] [ref=f15e285]: ↗
+          - generic [ref=f15e286]: (abre en otra pestaña)
+        - link "LinkedIn (abre en otra pestaña)" [ref=f15e287] [cursor=pointer]:
+          - /url: https://www.linkedin.com/company/disenafuturo
+          - text: LinkedIn
+          - generic [aria-hidden] [ref=f15e290]: ↗
+          - generic [ref=f15e291]: (abre en otra pestaña)
+    - generic [ref=f15e292]:
+      - paragraph [ref=f15e293]: © 2026 Diseña Futuro
+      - paragraph [ref=f15e294]: Sabanilla y Los Lojas · Daule, Ecuador
+      - link "Volver arriba" [ref=f15e295] [cursor=pointer]:
+        - /url: "#inicio"
+        - text: Volver arriba
+        - generic [aria-hidden] [ref=f15e296]: ↑

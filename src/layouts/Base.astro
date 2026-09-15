@@ -1,0 +1,184 @@
+---
+import { ClientRouter } from "astro:transitions";
+import "../styles/tokens.css";
+import Marca from "../components/Marca.astro";
+import Pie from "../components/Pie.astro";
+
+type Props = {
+  titulo: string;
+  descripcion: string;
+  imagen?: string;
+};
+
+const { titulo, descripcion, imagen } = Astro.props;
+
+const SITIO = "Emprendedores · Diseña Futuro";
+const tituloCompleto = titulo === SITIO ? titulo : `${titulo} · ${SITIO}`;
+const canonica = new URL(Astro.url.pathname, Astro.site ?? "https://emprendedores.disenafuturo.com");
+const og = imagen ? new URL(imagen, canonica).href : undefined;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{tituloCompleto}</title>
+    <meta name="description" content={descripcion} />
+    <link rel="canonical" href={canonica.href} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_EC" />
+    <meta property="og:site_name" content={SITIO} />
+    <meta property="og:title" content={tituloCompleto} />
+    <meta property="og:description" content={descripcion} />
+    <meta property="og:url" content={canonica.href} />
+    {og && <meta property="og:image" content={og} />}
+    <meta name="twitter:card" content={og ? "summary_large_image" : "summary"} />
+
+    <meta name="theme-color" content="#4141F9" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+
+    <link rel="preload" href="/fonts/general-sans-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/general-sans-700.woff2" as="font" type="font/woff2" crossorigin />
+
+    <ClientRouter />
+  </head>
+
+  <body>
+    <a class="saltar" href="#contenido">Saltar al contenido</a>
+    <header class="cabecera" id="inicio">
+      <Marca />
+      <nav aria-label="Navegación principal">
+        <a href={Astro.url.pathname === "/" ? "#contenido" : "/#contenido"}>Emprendedores <span aria-hidden="true">↗</span></a>
+        <a href="#sobre-la-escuela">La escuela</a>
+      </nav>
+    </header>
+    <slot />
+    <Pie />
+
+    <script>
+      import { gsap } from "gsap";
+      import { ScrollTrigger } from "gsap/ScrollTrigger";
+      import {
+        conectarReloj,
+        detenerScroll,
+        iniciarScroll,
+        obtenerScroll,
+        sinMovimiento,
+      } from "../lib/scroll";
+      import { animarBlobs, type ControlBlobs } from "../lib/blobRuntime";
+
+      gsap.registerPlugin(ScrollTrigger);
+
+      async function arrancar() {
+        if (iniciarScroll()) await conectarReloj();
+      }
+
+      /**
+       * Lenis secuestra el scroll, así que un enlace ancla nativo mueve la
+       * página sin que Lenis ni ScrollTrigger se enteren: las animaciones de
+       * entrada no disparan y las tarjetas se quedan invisibles. Hay que pasar
+       * los anclas por Lenis.
+       */
+      document.addEventListener("click", evento => {
+        const objetivo = evento.target as HTMLElement | null;
+        const enlace = objetivo?.closest<HTMLAnchorElement>('a[href^="#"]');
+        if (!enlace) return;
+
+        const id = enlace.getAttribute("href")!.slice(1);
+        const destino = id ? document.getElementById(id) : null;
+        if (!destino) return;
+
+        evento.preventDefault();
+
+        const lenis = obtenerScroll();
+        if (lenis) {
+          lenis.scrollTo(destino, { offset: -16 });
+        } else {
+          // Sin Lenis (movimiento reducido) el scroll nativo es el correcto.
+          destino.scrollIntoView({ behavior: "auto", block: "start" });
+        }
+
+        // Que el foco siga al destino: si no, el teclado se queda arriba.
+        destino.setAttribute("tabindex", "-1");
+        destino.focus({ preventScroll: true });
+        history.replaceState(null, "", `#${id}`);
+      });
+
+      /**
+       * El motor de siluetas se registra aquí, una sola vez y sobre todo el
+       * documento: las hay en el fondo, en el listado y en la ficha individual.
+       * Hacerlo desde cada componente dejaba sin animar los blobs de las
+       * páginas donde ese componente no existe.
+       */
+      let blobs: ControlBlobs | null = null;
+
+      function montarBlobs() {
+        blobs?.destruir();
+        blobs = animarBlobs(document);
+      }
+
+      void arrancar();
+
+      // Los scripts empaquetados no se reejecutan tras una transición de vista,
+      // así que el ciclo de vida hay que engancharlo explícitamente.
+      document.addEventListener("astro:after-swap", () => {
+        window.scrollTo(0, 0);
+        ScrollTrigger.refresh();
+      });
+
+      document.addEventListener("astro:before-preparation", () => {
+        obtenerScroll()?.stop();
+      });
+
+      document.addEventListener("astro:page-load", () => {
+        obtenerScroll()?.start();
+        montarBlobs();
+        ScrollTrigger.refresh();
+      });
+
+      document.addEventListener("astro:before-swap", () => {
+        blobs?.destruir();
+        blobs = null;
+      });
+
+      window
+        .matchMedia("(prefers-reduced-motion: reduce)")
+        .addEventListener("change", () => {
+          if (sinMovimiento()) detenerScroll();
+          else void arrancar();
+          montarBlobs();
+        });
+    </script>
+
+    <style>
+      .cabecera { position: relative; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.5rem var(--gutter); }
+      .cabecera nav { display: flex; align-items: center; gap: clamp(1rem, 3vw, 2.5rem); }
+      .cabecera nav a { display: inline-flex; align-items: center; gap: .6rem; min-height: 44px; font-size: var(--txt-s); font-weight: 500; text-decoration: none; }
+      .cabecera nav a:hover { color: var(--df-yellow); }
+      @media (max-width: 480px) { .cabecera nav a:last-child { display: none; } }
+      .saltar {
+        position: absolute;
+        top: -100px;
+        left: var(--gutter);
+        z-index: 100;
+        padding: 0.75em 1.25em;
+        border-radius: var(--radio-pildora);
+        background: var(--df-yellow);
+        color: var(--df-blue-deep);
+        font-weight: 600;
+        text-decoration: none;
+        transition: top var(--dur-rapida) var(--ease-suave);
+      }
+
+      .saltar:focus-visible {
+        top: 1rem;
+      }
+    </style>
+  </body>
+</html>

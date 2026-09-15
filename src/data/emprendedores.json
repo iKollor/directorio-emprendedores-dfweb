@@ -1,0 +1,234 @@
+[
+  {
+    "slug": "jonathan-gordillo",
+    "nombre": "Jonathan Gordillo",
+    "comunidad": "Sabanilla",
+    "categoria": "construccion",
+    "emprendimiento": "Maestro de obra",
+    "parrafos": [
+      "Emprendedor de la comunidad Sabanilla, ubicada en el cantón Daule. Tiene su negocio en dicha comunidad desde donde presta servicios de: construccion, remodelacion, cubiertas metalicas y soldaduras varias. Así mismo, presta servicio de alquiler de encofrado para columnas de 20x20, compactador, concretera, generador electrico y servicio de transporte."
+    ],
+    "fotoDriveId": "1iUhUexNcM7YarkVkeyky6GUAHhSbM2d7",
+    "foto": "jonathan-gordillo.jpg",
+    "telefono": "+593 99 538 2184",
+    "whatsapp": "https://wa.me/593995382184",
+    "publicado": true,
+    "fotoPendiente": false,
+    "fichaPendiente": false
+  },
+  {
+    "slug": "alexandra-medina",
+    "nombre": "Alexandra Medina",
+    "comunidad": "Sabanilla",
+    "categoria": "comercio",
+    "emprendimiento": "Tienda de abarrotes y servicios virtuales",
+    "parrafos": [
+      "Emprendedora de la comunidad Sabanilla, ubicada en el cantón Daule. Está casada y tiene dos hijos.",
+      "Desde hace 9 años atiende a los clientes desde su local, los cuales prefieren sus servicios por la cercanía y variedad de productos. Alexandra resuelve sus necesidades al vender viveres de primera de necesidad, varios productos de papelería y repuestos para motos, un medio de transporte utilizado en la zona. Así mismo vende dulces y helados. En cuanto a servicios, Alexandra ofrece recargas telefónicas, tarjetas de operadora claro y realiza transacciones bancarias y pagos de servicios básicos en línea."
+    ],
+    "fotoDriveId": "1aO_t0JQ70wNUYiYbB4zHX7pGGTAbV8dd",
+    "foto": "alexandra-medina.jpg",
+    "telefono": "+593 99 619 7626",
+    "whatsapp": "https://wa.me/593996197626",
+    "publicado": true,
+    "fotoPendiente": false,
+    "fichaPendiente": false
+  },
+  {
+    "slug": "kelly-cedillo",
+    "nombre": "Kelly Cedillo",
+    "comunidad": "Sabanilla",
+    "categoria": "belleza",
+    "emprendimiento": "Maquilladora, peluquera y venta de articulos relacionados",
+    "parrafos": [
+      "Emprendedora de la comunidad Sabanilla, ubicada en el cantón Daule. Está casada y tiene tres hijos.",
+      "Con 8 años de experiencia, Kelly presta servicios de belleza desde su local, ubicado en el noroeste de Guayaquil, como tambien lo hace a domicilio. Entre sus servicios destaca maquillaje, peinados, manicura, pedicura, diseño de cejas, cejas semipermanentes, aplicación de pestañas, tratamientos capilares etc."
+    ],
+    "fotoDriveId": "123Boy3K1yIf8whMk-QM9eh3lnMl6gSmW",
+    "foto": "kelly-cedillo.jpg",
+    "telefono": "+593 99 653 8146",
+    "whatsapp": "https://wa.me/593996538146",
+    "publicado": true,
+    "fotoPendiente": false,
+    "fichaPendiente": false
+  },
+  {
+    "slug": "jairon-espinoza",
+    "nombre": "Jairon Marcel Espinoza Ronquillo",
+    "comunidad": "Los Lojas",
+    "categoria": "confeccion",
+    "emprendimiento": "Corte, confección y bordado",
+    "parrafos": [
+      "Emprendedor de la comunidad Los Lojas, ubicada en el cantón Daule. Está casado y tiene dos hermosos hijos.",
+      "Jairo tiene un negocio de corte y confección donde se elaboran vestidos y camiseta al gusto, como tambien se diseña y produce camisetas y demas prendas sublimadas. Entre esto se destaca las camisetas polos con sellos o logos y uniformes de escuelas o iglesias Cristianas."
+    ],
+    "fotoDriveId": "1edHIrHkZzlkehLz6ON1Xd4Pcb-epaTti",
+    "foto": "jairon-espinoza.placeholder.jpg",
+    "telefono": "+593 99 938 1077",
+    "whatsapp": "https://wa.me/593999381077",
+    "publicado": true,
+    "fotoPendiente": true,
+    "fichaPendiente": false
+  },
+  {
+    "slug": "kerly-huacon",
+    "nombre": "Kerly Verónica Huacón Castro",
+    "comunidad": "Los Lojas",
+    "categoria": "construccion",
+    "emprendimiento": "Alquiler de moldes para hacer pilares de hormigon",
+    "parrafos": [
+      "Emprendedora de la comunidad Los Lojas, ubicada en el cantón Daule. Está casada, y tiene 3 hijos. Ellos fueron su mayor motivo y pilar para poder empezar a trabajar. Adicional, desde su negocio, aporta a que las demas personas puedan construir su futuro.",
+      "Su emprendimiento es de alquiler de maquinaria de construcción (encofrado de pilares, concretera, compactador etc)"
+    ],
+    "fotoDriveId": "1klp-rjOskY0nTgvDSUh-l-8GBnleHWp2",
+    "foto": "kerly-huacon.placeholder.jpg",
+    "telefono": "+593 96 110 8156",
+    "whatsapp": "https://wa.me/593961108156",
+    "publicado": true,
+    "fotoPendiente": true,
+    "fichaPendiente": false
+  },
+  {
+    "slug": "miriam-correa",
+    "nombre": "Miriam Elizabeth Correa Alvarado",
+    "comunidad": "Los Lojas",
+    "categoria": "confeccion",
+    "emprendimiento": "Confección y costura",
+    "parrafos": [
+      "Emprendedora de la comunidad Los Lojas, ubicada en el cantón Daule. Está casada, y tiene 5 hijos. Trabajó en una empresa privada por cuatro años y luego tomó la decisión de retirarsse y empezar a construir su propio taller en casa, el cual ya tiene cinco años.",
+      "Desde su taller confecciona ropa para distintas marcas como RM, DEPRATI, RIO STORE, y tambien entrega uniformes deportivos personalizados en sublimación DTF."
+    ],
+    "fotoDriveId": "101CfSnlylBrT2MARiURdbYKR9AywiP6a",
+    "foto": "miriam-correa.placeholder.jpg",
+    "telefono": "+593 98 961 4203",
+    "whatsapp": "https://wa.me/593989614203",
+    "publicado": true,
+    "fotoPendiente": true,
+    "fichaPendiente": false
+  },
+  {
+    "slug": "celia-moran",
+    "nombre": "Celia María Morán Alvarado",
+    "comunidad": "Los Lojas",
+    "categoria": "agropecuario",
+    "emprendimiento": "Cria y vende pollos y cerdos",
+    "parrafos": [
+      "Emprendedora de la comunidad de Los Lojas, ubicada en el cantón Daule.",
+      "Tiene mas de 8 años de experiencia en la cría y la venta de pollos y cerdos, a lo que se dedica a tiempo completo."
+    ],
+    "fotoDriveId": "1GlkpvWdtN6yNkhF0kre-KZ580WB05oxm",
+    "foto": "celia-moran.placeholder.jpg",
+    "telefono": "+593 98 924 6544",
+    "whatsapp": "https://wa.me/593989246544",
+    "publicado": true,
+    "fotoPendiente": true,
+    "fichaPendiente": false
+  },
+  {
+    "slug": "linda-romero",
+    "nombre": "Linda Inés Romero Loy",
+    "comunidad": "Los Lojas",
+    "categoria": "agropecuario",
+    "emprendimiento": "Siembra y cosecha arroz",
+    "parrafos": [
+      "Emprendedor de la segunda edición"
+    ],
+    "fotoDriveId": "1NLsYMDu0z_hK0GgleEjpFCmDVJIJB2DA",
+    "foto": "linda-romero.placeholder.jpg",
+    "telefono": null,
+    "whatsapp": null,
+    "publicado": true,
+    "fotoPendiente": true,
+    "fichaPendiente": false
+  },
+  {
+    "slug": "jenny-correa",
+    "nombre": "Jenny Janina Correa Plua",
+    "comunidad": "Los Lojas",
+    "categoria": "pendiente",
+    "emprendimiento": null,
+    "parrafos": [],
+    "fotoDriveId": null,
+    "foto": "jenny-correa.placeholder.jpg",
+    "telefono": null,
+    "whatsapp": null,
+    "publicado": true,
+    "fotoPendiente": true,
+    "fichaPendiente": true
+  },
+  {
+    "slug": "apolonia-huacon",
+    "nombre": "Apolonia Lourdes Huacon Maruri",
+    "comunidad": "Los Lojas",
+    "categoria": "pendiente",
+    "emprendimiento": null,
+    "parrafos": [],
+    "fotoDriveId": null,
+    "foto": "apolonia-huacon.placeholder.jpg",
+    "telefono": null,
+    "whatsapp": null,
+    "publicado": true,
+    "fotoPendiente": true,
+    "fichaPendiente": true
+  },
+  {
+    "slug": "brenda-ruiz",
+    "nombre": "Brenda Dalila Ruiz Ruiz",
+    "comunidad": "Los Lojas",
+    "categoria": "pendiente",
+    "emprendimiento": null,
+    "parrafos": [],
+    "fotoDriveId": null,
+    "foto": "brenda-ruiz.placeholder.jpg",
+    "telefono": null,
+    "whatsapp": null,
+    "publicado": true,
+    "fotoPendiente": true,
+    "fichaPendiente": true
+  },
+  {
+    "slug": "jacinto-mera",
+    "nombre": "Jacinto Vicente Mera Alvarado",
+    "comunidad": "Los Lojas",
+    "categoria": "pendiente",
+    "emprendimiento": null,
+    "parrafos": [],
+    "fotoDriveId": null,
+    "foto": "jacinto-mera.placeholder.jpg",
+    "telefono": null,
+    "whatsapp": null,
+    "publicado": true,
+    "fotoPendiente": true,
+    "fichaPendiente": true
+  },
+  {
+    "slug": "marjorie-mera",
+    "nombre": "Marjorie Nicol Mera Correa",
+    "comunidad": "Los Lojas",
+    "categoria": "pendiente",
+    "emprendimiento": null,
+    "parrafos": [],
+    "fotoDriveId": null,
+    "foto": "marjorie-mera.placeholder.jpg",
+    "telefono": null,
+    "whatsapp": null,
+    "publicado": true,
+    "fotoPendiente": true,
+    "fichaPendiente": true
+  },
+  {
+    "slug": "silvia-moran",
+    "nombre": "Silvia Janeth Morán Huacón",
+    "comunidad": "Los Lojas",
+    "categoria": "pendiente",
+    "emprendimiento": null,
+    "parrafos": [],
+    "fotoDriveId": null,
+    "foto": "silvia-moran.placeholder.jpg",
+    "telefono": null,
+    "whatsapp": null,
+    "publicado": true,
+    "fotoPendiente": true,
+    "fichaPendiente": true
+  }
+]

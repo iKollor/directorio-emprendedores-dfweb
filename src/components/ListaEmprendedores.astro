@@ -1,0 +1,796 @@
+---
+/**
+ * El listado: 1 blob por fila a todo el ancho en móvil, 2 por fila en desktop.
+ *
+ * Es una grilla de dos columnas, pero no se lee como tabla: la columna derecha
+ * arranca desfasada, cada blob trae rotación y escala propias sembradas por su
+ * slug, y las columnas avanzan con parallax a velocidades distintas.
+ *
+ * La anidación .celda > .flota > .tarjeta no es decorativa: cada nivel tiene un
+ * solo dueño. Flip mueve la celda y la animación de entrada mueve la tarjeta.
+ * Cuando dos efectos compartían nodo se pisaban el transform y las tarjetas se
+ * descolocaban al filtrar.
+ *
+ * Detrás de todas ellas va UN SOLO blob de color que recorre el listado: nace
+ * ocupando el bloque de texto del hero y baja visitando a cada emprendedor,
+ * tomando su color de categoría.
+ */
+import TarjetaEmprendedor from "./TarjetaEmprendedor.astro";
+import { construirPath, generarBlob } from "../lib/blob";
+import { CLAVES_CATEGORIA, COMUNIDADES, categoria } from "../data/taxonomia";
+import type { Emprendedor } from "../lib/directorio";
+
+type Props = { emprendedores: Emprendedor[] };
+const { emprendedores } = Astro.props;
+
+// Solo se ofrecen filtros de lo que realmente hay en el listado.
+const categoriasPresentes = CLAVES_CATEGORIA.filter((c) =>
+  emprendedores.some((e) => e.categoria === c),
+);
+const comunidadesPresentes = COMUNIDADES.filter((c) =>
+  emprendedores.some((e) => e.comunidad === c),
+);
+
+// Un único respaldo para todo el listado. Recorre a los emprendedores y va
+// tomando el color de cada uno.
+const viajero = generarBlob("viajero", { lados: 8, irregularidad: 0.13, radio: 38 });
+const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
+---
+
+<section class="listado" id="contenido" aria-labelledby="titulo-listado">
+  <div class="listado-cabecera">
+    <div><p class="antetitulo">Talento de nuestras comunidades</p><h2 id="titulo-listado">Encuentra y conecta.</h2></div>
+    <p>Detrás de cada negocio,<br />hay una historia por conocer.</p>
+  </div>
+
+  <div class="filtros" data-filtros>
+    <fieldset>
+      <legend>Comunidad</legend>
+      <button type="button" data-filtro="comunidad" data-valor="todas" aria-pressed="true">
+        Todas
+      </button>
+      {
+        comunidadesPresentes.map((c) => (
+          <button type="button" data-filtro="comunidad" data-valor={c} aria-pressed="false">
+            {c}
+          </button>
+        ))
+      }
+    </fieldset>
+
+    <fieldset>
+      <legend>Categoría</legend>
+      <button type="button" data-filtro="categoria" data-valor="todas" aria-pressed="true">
+        Todas
+      </button>
+      {
+        categoriasPresentes.map((c) => (
+          <button
+            type="button"
+            data-filtro="categoria"
+            data-valor={c}
+            aria-pressed="false"
+            style={`--acento:${categoria(c).color}; --acento-texto:${categoria(c).colorTexto};`}
+          >
+            {categoria(c).etiqueta}
+          </button>
+        ))
+      }
+    </fieldset>
+  </div>
+
+  <div class="resultados">
+  <p class="conteo" data-conteo role="status" aria-live="polite" aria-atomic="true">
+    {emprendedores.length} emprendedores
+  </p>
+  <button class="limpiar-filtros" type="button" data-limpiar hidden>Limpiar filtros <span aria-hidden="true">↺</span></button>
+  </div>
+
+  <div class="grid" data-grid>
+    <span
+      class="viajero"
+      data-viajero
+      data-blob
+      data-vertices={JSON.stringify(viajero.vertices)}
+      data-encaje={JSON.stringify(viajero.encaje)}
+      data-desfase="0"
+      aria-hidden="true"
+    >
+      <svg viewBox={viajero.viewBox} preserveAspectRatio="none"><path data-path d={pathViajero}></path></svg>
+    </span>
+    {
+      emprendedores.map((e, i) => (
+        <div class="celda" data-columna={i % 2 === 0 ? "izq" : "der"}>
+          <div class="flota">
+            <TarjetaEmprendedor emprendedor={e} indice={i} />
+          </div>
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="vacio" data-vacio hidden>
+    <h3>Aún no hay coincidencias.</h3>
+    <p>Prueba otra comunidad o categoría para conocer más negocios.</p>
+    <button class="pildora-cta" type="button" data-restablecer>Ver todos los emprendedores <span aria-hidden="true">↗</span></button>
+  </div>
+</section>
+
+<style>
+  .listado {
+    position: relative;
+    z-index: 1;
+    padding-block: clamp(2rem, 5vw, 4rem) clamp(5rem, 10vw, 9rem);
+    padding-inline: var(--gutter);
+  }
+
+  .listado-cabecera { position: relative; z-index: 2; display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2.5rem; }
+  .antetitulo { margin: 0 0 .75rem; font-size: var(--txt-s); }
+  .listado-cabecera h2 { font-size: var(--txt-xl); }
+  .listado-cabecera > p { margin: 0; font-size: var(--txt-s); }
+
+  .filtros {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(1rem, 3vw, 2.5rem);
+    margin-bottom: 1.5rem;
+    padding-block: 1.5rem;
+    border-block: 1px solid rgb(239 238 237 / .3);
+  }
+
+  fieldset {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  legend {
+    float: left;
+    width: 100%;
+    margin-bottom: 0.6rem;
+    font-size: var(--txt-s);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    opacity: 0.9;
+  }
+
+  .filtros button {
+    min-height: 44px;
+    padding: 0.45em 1.1em;
+    border: 1.5px solid var(--df-bone);
+    border-radius: var(--radio-pildora);
+    background: transparent;
+    color: var(--df-bone);
+    font: inherit;
+    font-size: var(--txt-s);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background var(--dur-rapida) var(--ease-suave),
+      color var(--dur-rapida) var(--ease-suave);
+  }
+
+  .filtros button:hover { background: rgb(239 238 237 / .15); }
+
+  .filtros button[aria-pressed="true"] {
+    background: var(--acento, var(--df-bone));
+    border-color: var(--acento, var(--df-bone));
+    color: var(--acento-texto, var(--df-blue-deep));
+  }
+
+  .conteo {
+    margin: 0;
+    font-size: var(--txt-s);
+    opacity: 0.9;
+  }
+  .resultados { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 44px; margin-bottom: clamp(1.5rem, 4vw, 3rem); }
+  .limpiar-filtros { min-height: 44px; padding: .5rem 0; background: none; border: 0; color: var(--df-yellow); font: inherit; font-size: var(--txt-s); cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+
+  /*
+   * `position: relative` es obligatorio, no cosmético: Flip pasa las celdas a
+   * `position:absolute` mientras las anima, y sin un ancestro posicionado se
+   * colocan respecto al viewport y salen disparadas hacia el hero.
+   */
+  .grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(3rem, 9vw, 7rem) clamp(2rem, 6vw, 5rem);
+  }
+
+  @media (min-width: 768px) {
+    .grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* El desfase es lo que impide que se lea como tabla. */
+    .celda[data-columna="der"] {
+      margin-block-start: 12vh;
+    }
+  }
+
+  /*
+   * El blob viajero vive DENTRO de la grilla, en coordenadas del documento.
+   * Por eso sus destinos son fijos: el scroll solo interpola entre ellos y no
+   * hay nada que perseguir. Si estuviera en una capa `fixed` habría que
+   * recalcular su objetivo en cada frame, que es justo lo que antes producía
+   * blobs cruzando la pantalla.
+   */
+  .viajero {
+    visibility: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    /* Caja base de 100px y origen en la esquina: posición y tamaño se resuelven
+       enteros con `x/y/scaleX/scaleY`, sin tocar layout en ningún frame. */
+    width: 100px;
+    height: 100px;
+    transform-origin: 0 0;
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  .viajero svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .viajero path {
+    fill: var(--df-cyan);
+  }
+
+  /* Las tarjetas por encima del viajero: él es el respaldo, no la portada. */
+  .celda {
+    min-width: 0;
+    align-self: start;
+    position: relative;
+    z-index: 1;
+  }
+
+  .celda.oculta {
+    display: none;
+  }
+
+  .vacio {
+    padding: clamp(2rem, 5vw, 4rem) 1rem;
+    background: rgb(7 49 165 / .35);
+    border-radius: 2rem;
+    text-align: center;
+  }
+  .vacio h3 { font-size: var(--txt-l); line-height: 1.2; }
+  .vacio p { margin: 1rem auto 1.5rem; max-width: 42ch; }
+</style>
+
+<script>
+  import { gsap } from "gsap";
+  import { Flip } from "gsap/Flip";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+  import Snap from "lenis/snap";
+  import { obtenerScroll, sinMovimiento } from "../lib/scroll";
+
+  gsap.registerPlugin(Flip, ScrollTrigger);
+
+  /** Un mismo mapa para el viajero y el snap, independiente de las entradas. */
+  function medirRetratos(celdas: HTMLElement[]) {
+    const escritorio = window.matchMedia("(min-width: 768px)").matches;
+    const retratos = celdas.filter(c => !c.classList.contains("oculta")).map(celda => {
+      const retrato = celda.querySelector<HTMLElement>(".retrato")!;
+      const r = celda.getBoundingClientRect();
+      const lado = retrato.offsetWidth;
+      const top = r.top + window.scrollY + retrato.offsetTop;
+      return { celda, left: r.left + retrato.offsetLeft, top, lado, scroll: Math.max(1, top + lado / 2 - window.innerHeight / 2) };
+    });
+    if (escritorio) {
+      // Las columnas solo se separan 12vh en el layout, insuficiente para
+      // cruzar todo el ancho. Repartir cada fila en dos tramos de scroll.
+      for (let i = 1; i < retratos.length; i += 2) {
+        const izquierda = retratos[i - 1]!;
+        const siguiente = retratos[i + 1];
+        const intervalo = siguiente
+          ? siguiente.scroll - izquierda.scroll
+          : i > 1 ? izquierda.scroll - retratos[i - 3]!.scroll
+          : Math.max(izquierda.lado, window.innerHeight * .8);
+        retratos[i]!.scroll = izquierda.scroll + intervalo / 2;
+      }
+    }
+    return retratos;
+  }
+
+  /**
+   * Todo lo de GSAP vive dentro de un context para revertirlo entero al navegar.
+   * Sin esto, cada transición de vista acumula otra capa de tweens sobre los
+   * mismos elementos y los `from` acaban dejándolos en opacity 0.
+   */
+  let contexto: gsap.Context | null = null;
+  let snap: Snap | null = null;
+  let soltarSnap: (() => void) | null = null;
+  /** Reconstruye el recorrido del blob cuando los filtros cambian las paradas. */
+  let viajeroRehacer: (() => void) | null = null;
+  let soltarEventos: AbortController | null = null;
+  let soltarViajero: (() => void) | null = null;
+  let filtroAnimacion: gsap.core.Timeline | null = null;
+  let ajusteAltura: gsap.core.Tween | null = null;
+
+  function limpiar() {
+    snap?.stop();
+    soltarEventos?.abort();
+    soltarEventos = null;
+    filtroAnimacion?.kill();
+    filtroAnimacion = null;
+    ajusteAltura?.kill();
+    ajusteAltura = null;
+    soltarViajero?.();
+    soltarViajero = null;
+    soltarSnap?.();
+    soltarSnap = null;
+    snap?.destroy();
+    snap = null;
+    viajeroRehacer = null;
+    contexto?.revert();
+    contexto = null;
+  }
+
+  function iniciar() {
+    limpiar();
+    contexto = gsap.context(montar);
+  }
+
+  function montar() {
+    const seccion = document.querySelector<HTMLElement>(".listado");
+    const grid = seccion?.querySelector<HTMLElement>("[data-grid]");
+    if (!seccion || !grid) return;
+
+    const celdas = [...grid.querySelectorAll<HTMLElement>(".celda")];
+    const vacio = seccion.querySelector<HTMLElement>("[data-vacio]");
+    const conteo = seccion.querySelector<HTMLElement>("[data-conteo]");
+    soltarEventos = new AbortController();
+    const { signal } = soltarEventos;
+    const limpiarBoton = seccion.querySelector<HTMLButtonElement>("[data-limpiar]");
+
+    montarVideos(grid, signal);
+
+    // ---- Anclaje por filas ----------------------------------------------
+    // `proximity`, no `mandatory`: acomoda la fila cuando el usuario se detiene
+    // cerca, pero nunca le arrebata el scroll a medio camino. Un snap
+    // obligatorio en una página larga se siente como pelearse con ella.
+    function montarSnap() {
+      snap?.stop();
+      soltarSnap?.();
+      soltarSnap = null;
+      snap?.destroy();
+      snap = null;
+
+      const lenis = obtenerScroll();
+      if (!lenis) return;
+
+      const instancia = new Snap(lenis, {
+        type: "proximity",
+        distanceThreshold: "10%",
+        duration: 1.2,
+        easing: t => t * t * (3 - 2 * t),
+        debounce: 550,
+      });
+      snap = instancia;
+
+      /*
+       * En desktop cada fila son DOS retratos, y la columna derecha va
+       * desfasada 12vh. Anclar a un retrato suelto dejaba a su pareja a medio
+       * salir de pantalla. La parada se calcula sobre la caja que ocupan los
+       * dos juntos, para que la fila entera quede encuadrada.
+       *
+       * El centro se coloca al 46% de la altura y no al 50%: así queda algo
+       * más de aire abajo, que es donde van el nombre y el emprendimiento.
+       */
+      const dosColumnas = window.matchMedia("(min-width: 768px)").matches;
+      const retratos = medirRetratos(celdas);
+      const porFila = dosColumnas ? 2 : 1;
+
+      const paradasSnap: { celda: HTMLElement; scroll: number }[] = [];
+      for (let i = 0; i < retratos.length; i += porFila) {
+        const fila = retratos.slice(i, i + porFila);
+        if (fila.length === 0) continue;
+
+        const arriba = Math.min(...fila.map((p) => p.top));
+        const abajo = Math.max(...fila.map((p) => p.top + p.lado));
+        const centro = (arriba + abajo) / 2;
+
+        paradasSnap.push({
+          celda: fila[0]!.celda,
+          scroll: Math.max(1, Math.round(centro - window.innerHeight * 0.46)),
+        });
+      }
+
+      celdas.forEach(c => c.removeAttribute("data-snap-scroll"));
+      const quitar = paradasSnap.map(p => {
+        p.celda.dataset.snapScroll = String(p.scroll);
+        return instancia.add(p.scroll);
+      });
+      soltarSnap = () => quitar.forEach((f) => f());
+    }
+
+    // ---- Filtros ---------------------------------------------------------
+    const activos = {
+      comunidad: seccion.querySelector<HTMLElement>('[data-filtro="comunidad"][aria-pressed="true"]')?.dataset.valor ?? "todas",
+      categoria: seccion.querySelector<HTMLElement>('[data-filtro="categoria"][aria-pressed="true"]')?.dataset.valor ?? "todas",
+    };
+
+    const coincide = (celda: HTMLElement) => {
+      const t = celda.querySelector<HTMLElement>("[data-tarjeta]");
+      if (!t) return false;
+      return (
+        (activos.comunidad === "todas" || t.dataset.comunidad === activos.comunidad) &&
+        (activos.categoria === "todas" || t.dataset.categoria === activos.categoria)
+      );
+    };
+
+    function aplicarFiltros() {
+      // Resolver el estado anterior antes de medir otro clic rápido.
+      filtroAnimacion?.progress(1);
+      ajusteAltura?.progress(1);
+      filtroAnimacion = null;
+      ajusteAltura = null;
+      // El snap se calla durante el reacomodo: si no, intenta anclar a
+      // posiciones que están cambiando y da tirones.
+      snap?.stop();
+      const viajero = grid!.querySelector<HTMLElement>("[data-viajero]");
+      if (viajero) viajero.style.visibility = "hidden";
+
+      const alturaAntes = grid!.offsetHeight;
+      const estado = Flip.getState(celdas);
+      let visibles = 0;
+
+      for (const celda of celdas) {
+        const ok = coincide(celda);
+        celda.classList.toggle("oculta", !ok);
+        if (ok) {
+          celda.dataset.columna = visibles % 2 === 0 ? "izq" : "der";
+          visibles++;
+          const tarjeta = celda.querySelector<HTMLElement>("[data-tarjeta]");
+          gsap.killTweensOf(tarjeta);
+          gsap.set(tarjeta, { clearProps: "opacity,transform" });
+        } else {
+          celda.querySelectorAll<HTMLVideoElement>("video").forEach(video => video.pause());
+          celda.querySelector("[data-video-activo]")?.removeAttribute("data-video-activo");
+        }
+      }
+
+      if (conteo) {
+        conteo.textContent =
+          visibles === 1 ? "1 emprendedor" : `${visibles} emprendedores`;
+      }
+      vacio?.toggleAttribute("hidden", visibles > 0);
+      limpiarBoton?.toggleAttribute("hidden", activos.comunidad === "todas" && activos.categoria === "todas");
+
+      const rematar = () => {
+        grid!.style.removeProperty("height");
+        gsap.set(celdas, { clearProps: "opacity,transform" });
+        obtenerScroll()?.resize();
+        viajeroRehacer?.();
+        ScrollTrigger.refresh();
+        montarSnap();
+      };
+
+      if (sinMovimiento()) {
+        rematar();
+        return;
+      }
+
+      // Reservar toda la altura mientras salen las tarjetas: el footer nunca
+      // puede ocupar el espacio de una celda que todavía está pintándose.
+      const alturaDespues = grid!.offsetHeight;
+      grid!.style.height = `${Math.max(alturaAntes, alturaDespues)}px`;
+      filtroAnimacion = Flip.from(estado, {
+        duration: 0.55,
+        ease: "power2.inOut",
+        absolute: true,
+        nested: true,
+        onEnter: (els) =>
+          gsap.fromTo(
+            els,
+            { scale: 0.8 },
+            { scale: 1, duration: 0.4, ease: "power2.out" },
+          ),
+        onLeave: (els) => gsap.to(els, { scale: 0.8, duration: 0.25 }),
+        onComplete: () => {
+          ajusteAltura = gsap.to(grid!, { height: alturaDespues, duration: 0.25, ease: "power2.out", onComplete: rematar });
+        },
+      });
+    }
+
+    seccion.querySelectorAll<HTMLButtonElement>("[data-filtro]").forEach((boton) => {
+      boton.addEventListener("click", () => {
+        const grupo = boton.dataset.filtro as "comunidad" | "categoria";
+        const valor = boton.dataset.valor ?? "todas";
+        if (activos[grupo] === valor) return;
+
+        activos[grupo] = valor;
+        seccion
+          .querySelectorAll<HTMLButtonElement>("[data-filtro=" + JSON.stringify(grupo) + "]")
+          .forEach((b) => b.setAttribute("aria-pressed", String(b === boton)));
+
+        contexto?.add(aplicarFiltros);
+      }, { signal });
+    });
+
+    seccion.querySelectorAll<HTMLButtonElement>("[data-limpiar], [data-restablecer]").forEach(boton => {
+      boton.addEventListener("click", () => {
+        activos.comunidad = activos.categoria = "todas";
+        seccion.querySelectorAll<HTMLButtonElement>("[data-filtro]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.valor === "todas")));
+        contexto?.add(aplicarFiltros);
+      }, { signal });
+    });
+
+    montarViajero(celdas);
+    if (sinMovimiento()) return;
+    montarSnap();
+    ScrollTrigger.addEventListener("refresh", montarSnap);
+    signal.addEventListener("abort", () => ScrollTrigger.removeEventListener("refresh", montarSnap), { once: true });
+    const columnas = window.matchMedia("(min-width: 768px)");
+    columnas.addEventListener("change", montarSnap, { signal });
+
+    // ---- Entrada y parallax ----------------------------------------------
+    for (const celda of celdas) {
+      const tarjeta = celda.querySelector<HTMLElement>("[data-tarjeta]");
+
+      if (tarjeta) {
+        // Entrada por desplazamiento: los retratos permanecen opacos.
+        if (celda.classList.contains("oculta")) continue;
+        gsap.set(tarjeta, { y: 30 });
+
+        ScrollTrigger.create({
+          trigger: celda,
+          start: "top 92%",
+          once: true,
+          onEnter: () =>
+            gsap.to(tarjeta, { y: 0, duration: 0.7, ease: "power3.out", clearProps: "transform" }),
+        });
+      }
+
+    }
+  }
+
+  /**
+   * El recorrido del blob de color.
+   *
+   * Una única línea de tiempo atada al scroll con `scrub`. Los destinos se
+   * miden una vez por refresh en coordenadas de la grilla —no del viewport—
+   * así que no cambian al hacer scroll y no hay nada que perseguir. El primer
+   * fotograma es la caja del texto del hero; los siguientes, cada tarjeta.
+   *
+   * Las duraciones son proporcionales a la distancia real entre destinos, que
+   * es lo que hace que el blob llegue a cada emprendedor justo cuando esa
+   * tarjeta pasa por el centro de la pantalla.
+   */
+  function montarViajero(celdas: HTMLElement[]) {
+    const grid = document.querySelector<HTMLElement>("[data-grid]");
+    const viajero = grid?.querySelector<HTMLElement>("[data-viajero]");
+    const relleno = viajero?.querySelector<SVGPathElement>("path");
+    if (!grid || !viajero || !relleno) return;
+
+    type Parada = { x: number; y: number; w: number; h: number; color: string; giro: number; scroll: number };
+    const svg = viajero.querySelector("svg")!;
+    const cajaPath = relleno.getBBox();
+
+    const paradas = (): Parada[] => {
+      const g = grid.getBoundingClientRect();
+      const lista: Parada[] = [];
+
+      // Medir la silueta visible, no solo el SVG: los márgenes del viewBox
+      // reducían el blob aunque su elemento tuviera el tamaño del texto.
+      const hero = document.querySelector<HTMLElement>("[data-hero-texto]");
+      if (hero) {
+        const r = hero.getBoundingClientRect();
+        const w = r.width * 1.14 * 100 / cajaPath.width;
+        const h = r.height * 1.22 * 100 / cajaPath.height;
+        lista.push({
+          x: r.left - g.left - r.width * .07 - cajaPath.x * w / 100,
+          y: r.top - g.top - r.height * .11 - cajaPath.y * h / 100,
+          w,
+          h,
+          giro: 0,
+          scroll: 0,
+          // El hero arranca con la variante profunda del cyan; se fija una vez
+          // fuera de este mapa, porque aquí no hay tarjeta de la que leerlo.
+          color: "",
+        });
+      }
+
+      // Después, una parada por emprendedor visible.
+      for (const punto of medirRetratos(celdas)) {
+        const { celda, lado } = punto;
+        const tarjeta = celda.querySelector<HTMLElement>("[data-tarjeta]");
+        if (!tarjeta) continue;
+
+        // La celda y offsetTop excluyen la entrada animada y el hover.
+        // Medir el marco transformado guardaba un destino pasajero para siempre.
+        const derecha = window.matchMedia("(min-width: 768px)").matches && celda.dataset.columna === "der";
+        const y = punto.top - window.scrollY - g.top;
+        lista.push({
+          x: punto.left - g.left + (derecha ? .07 : -.07) * lado,
+          y: y + lado * .04,
+          w: lado,
+          h: lado,
+          giro: derecha ? 4 : -4,
+          scroll: punto.scroll,
+          // Tono profundo, no el vivo: el viajero pasa por detrás del nombre y
+          // del emprendimiento. Los colores de marca son más claros que el
+          // fondo y ahí dejarían el texto entre 1.39 y 2.22 de ratio; estas
+          // variantes conservan el tono y superan 5.0 (AA pide 4.5).
+          color: getComputedStyle(tarjeta).getPropertyValue("--acento-hondo").trim(),
+        });
+      }
+
+      return lista;
+    };
+
+    const linea = gsap.timeline({ paused: true });
+    let finalScroll = 1;
+
+    const construir = () => {
+      linea.clear();
+      const lista = paradas();
+      if (!lista.length) return;
+
+      const primera = lista[0]!;
+      viajero.style.visibility = lista.length > 1 ? "visible" : "hidden";
+      gsap.set(viajero, {
+        x: primera.x,
+        y: primera.y,
+        scaleX: primera.w / 100,
+        scaleY: primera.h / 100,
+        opacity: 1,
+      });
+      // El blur se aplica al SVG antes de escalarlo: 4 unidades producen un
+      // borde amplio en el hero, sin reducir la opacidad del color.
+      gsap.set(svg, { rotation: 0, filter: "blur(4px)", transformOrigin: "50% 50%" });
+      finalScroll = lista.at(-1)!.scroll || 1;
+      if (sinMovimiento()) return;
+
+      let anteriorScroll = 0;
+      for (let i = 1; i < lista.length; i++) {
+        const p = lista[i]!;
+        // Duración en píxeles verticales de scroll: la diagonal entre columnas
+        // no debe retrasar las siguientes llegadas. Pausa breve en cada destino.
+        const llegada = Math.max(anteriorScroll + 1, p.scroll);
+        const duracion = llegada - anteriorScroll;
+        const inicio = anteriorScroll;
+
+        linea.to(
+          viajero,
+          {
+            x: p.x,
+            y: p.y,
+            scaleX: p.w / 100,
+            scaleY: p.h / 100,
+            duration: duracion,
+            ease: "sine.inOut",
+          },
+          inicio,
+        );
+        // El color entra algo más tarde que el movimiento en el primer tramo:
+        // el blob empieza a bajar del hero antes de virar hacia el primer
+        // emprendedor, y así el cambio se lee como consecuencia del viaje.
+        const inicioColor = i === 1 ? inicio + duracion * 0.3 : inicio;
+        linea.to(
+          relleno,
+          { fill: p.color, duration: llegada - inicioColor, ease: "none" },
+          inicioColor,
+        );
+        linea.to(svg, { rotation: p.giro, duration: duracion, ease: "sine.inOut" }, inicio);
+        if (i === 1) linea.to(svg, { filter: "blur(0px)", duration: duracion, ease: "power1.out" }, inicio);
+        anteriorScroll = llegada;
+      }
+      finalScroll = anteriorScroll;
+    };
+
+    /*
+     * El color del viajero lo lleva SIEMPRE la línea de tiempo del recorrido:
+     * un solo dueño para `fill`. Hubo un intento de añadir un ciclo por tiempo
+     * en el hero, pero ambas animaciones escribían la misma propiedad y la
+     * scrubbeada reimponía su valor en cada frame, así que el ciclo no se veía.
+     *
+     * El hero arranca con la variante profunda del cyan y a partir de ahí el
+     * blob va tomando el tono de cada emprendedor.
+     */
+    const raiz = getComputedStyle(document.documentElement);
+    gsap.set(relleno, {
+      fill: raiz.getPropertyValue("--df-cyan-hondo").trim() || "#386c6f",
+    });
+
+    construir();
+    const trigger = sinMovimiento() ? null : ScrollTrigger.create({
+      animation: linea,
+      start: 0,
+      end: () => Math.max(1, finalScroll),
+      scrub: .8,
+      onRefreshInit: construir,
+    });
+    const alCambiar = () => { obtenerScroll()?.resize(); ScrollTrigger.refresh(); };
+    const observador = new ResizeObserver(alCambiar);
+    const hero = document.querySelector<HTMLElement>("[data-hero-texto]");
+    if (hero) observador.observe(hero);
+    // En movimiento reducido no hay ScrollTrigger que haga el refresh.
+    const alRedimensionar = () => { if (sinMovimiento()) construir(); };
+    window.addEventListener("resize", alRedimensionar);
+    let activo = true;
+    void document.fonts.ready.then(() => { if (activo) { construir(); alCambiar(); } });
+
+    // Al filtrar cambian las paradas: se reconstruye el recorrido entero.
+    viajeroRehacer = () => {
+      construir();
+      trigger?.refresh();
+      if (trigger) linea.progress(trigger.progress);
+    };
+    soltarViajero = () => {
+      activo = false;
+      observador.disconnect();
+      window.removeEventListener("resize", alRedimensionar);
+      trigger?.kill();
+      linea.kill();
+    };
+  }
+
+  /**
+   * El vídeo entra al pasar el puntero y también al enfocar con teclado. En
+   * móvil no se toca: sin hover no hay intención, y catorce vídeos
+   * reproduciéndose solos en una conexión lenta sería un abuso.
+   */
+  function montarVideos(raiz: ParentNode, signal: AbortSignal) {
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (sinMovimiento()) return;
+
+    raiz.querySelectorAll<HTMLElement>("[data-tarjeta]").forEach((tarjeta) => {
+      // `.blob` explícito, no `[data-blob]`: el respaldo de color también lleva
+      // ese atributo y va antes en el DOM, así que la marca caía en él y el
+      // vídeo nunca llegaba a mostrarse.
+      const blob = tarjeta.querySelector<HTMLElement>(".blob");
+      const video = tarjeta.querySelector<HTMLVideoElement>("[data-video]");
+      if (!blob || !video) return;
+
+      let interesado = false;
+      const entrar = () => {
+        interesado = true;
+        // Con `preload="none"` el archivo no se pide hasta este momento.
+        void video.play().then(
+          () => {
+            if (interesado && !signal.aborted && tarjeta.getClientRects().length) blob.setAttribute("data-video-activo", "");
+            else video.pause();
+          },
+          // Un play() rechazado (política de autoplay, ahorro de datos) no
+          // debe romper nada: se queda la foto.
+          () => {},
+        );
+      };
+
+      const salir = () => {
+        interesado = false;
+        blob.removeAttribute("data-video-activo");
+        video.pause();
+      };
+
+      tarjeta.addEventListener("pointerenter", entrar, { signal });
+      tarjeta.addEventListener("pointerleave", salir, { signal });
+      tarjeta.addEventListener("focusin", entrar, { signal });
+      tarjeta.addEventListener("focusout", salir, { signal });
+      signal.addEventListener("abort", salir, { once: true });
+    });
+  }
+
+  // `astro:page-load` dispara también en la primera carga, así que llamarlo
+  // además directamente duplicaría cada animación.
+  document.addEventListener("astro:page-load", iniciar);
+  document.addEventListener("astro:before-swap", limpiar);
+  window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", () => {
+    // Revertir también los tweens de entrada y los handlers, conservando filtros.
+    iniciar();
+  });
+</script>

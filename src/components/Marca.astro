@@ -1,0 +1,14 @@
+---
+type Props = { grande?: boolean };
+const { grande = false } = Astro.props;
+---
+
+<a class:list={["marca", { grande }]} href="/" aria-label="Diseña Futuro — inicio">
+  <img src="/brand/disena-futuro.webp" alt="Diseña Futuro" width="304" height="104" />
+</a>
+
+<style>
+  .marca { display: inline-flex; flex-shrink: 0; }
+  .marca img { display: block; width: clamp(136px, 14vw, 184px); height: auto; }
+  .grande img { width: clamp(190px, 22vw, 280px); }
+</style>

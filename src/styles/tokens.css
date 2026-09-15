@@ -1,0 +1,168 @@
+/*
+ * Paleta medida sobre disenafuturo.com, no estimada.
+ * El rosa es la única excepción: se dedujo de captura y hay que confirmarlo
+ * contra el manual de marca.
+ */
+
+@font-face { font-family: "General Sans"; src: url("/fonts/general-sans-300.woff2") format("woff2"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "General Sans"; src: url("/fonts/general-sans-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "General Sans"; src: url("/fonts/general-sans-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "General Sans"; src: url("/fonts/general-sans-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "General Sans"; src: url("/fonts/general-sans-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+
+:root {
+  --df-blue: #4141f9;
+  --df-blue-deep: #0731a5;
+  --df-cyan: #52dbe2;
+  --df-green: #70d985;
+  --df-yellow: #f9c52c;
+  --df-pink: #f472d0; /* ⚠️ provisional */
+  --df-ink: #282828; /* su negro real, no #000 */
+  --df-bone: #efeeed;
+
+  /*
+   * VARIANTES PROFUNDAS — para cuando una forma de color queda DETRÁS DE TEXTO.
+   *
+   * Los colores de marca son todos más claros que el azul del fondo, así que
+   * al ponerlos bajo el texto hueso destruyen el contraste: a opacidad plena
+   * dan entre 1.39 y 2.22 de ratio, cuando AA pide 4.5 para texto normal.
+   *
+   * Estas variantes conservan el tono y bajan la luminosidad mezclando con
+   * tinta hasta superar 5.0 contra --df-bone (margen sobre el 4.5 de AA).
+   * Medidos con la fórmula de luminancia relativa de WCAG 2:
+   *
+   *   cyan   #386c6f -> 5.12    yellow #756229 -> 5.11
+   *   green  #456f4d -> 5.00    pink   #904e7e -> 5.08
+   *   (--df-blue-deep ya cumple de serie: 9.10)
+   *
+   * Si cambias un color de marca, recalcula su variante. No las ajustes a ojo.
+   */
+  --df-cyan-hondo: #386c6f;
+  --df-green-hondo: #456f4d;
+  --df-yellow-hondo: #756229;
+  --df-pink-hondo: #904e7e;
+
+  --fuente: "General Sans", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+
+  /* Escala fluida: un solo valor sirve de 375px a 1440px sin breakpoints. */
+  --txt-s: clamp(0.82rem, 0.78rem + 0.2vw, 0.95rem);
+  --txt-m: clamp(1rem, 0.95rem + 0.3vw, 1.15rem);
+  --txt-l: clamp(1.35rem, 1.1rem + 1.1vw, 2rem);
+  --txt-xl: clamp(2.2rem, 1.4rem + 3.4vw, 4.75rem);
+  /* El límite lo pone "emprendedores": 13 letras que tienen que caber entre
+     los gutters a 375px sin partirse. Calculado para rozar el borde, no más. */
+  --txt-xxl: clamp(2.6rem, 1.2rem + 6.5vw, 7.5rem);
+
+  --gutter: clamp(1.25rem, 5vw, 5rem);
+  --radio-pildora: 999px;
+
+  /* Un único ritmo de animación para todo el sitio. */
+  --ease-suave: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --dur-rapida: 0.25s;
+  --dur-media: 0.5s;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: clip;
+  /* Lenis toma el control del scroll; sin esto pelean entre sí. */
+  scroll-behavior: auto;
+}
+
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--df-blue);
+  color: var(--df-bone);
+  font-family: var(--fuente);
+  font-size: var(--txt-m);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  /* El listado es una columna larga: nunca debe haber scroll horizontal. */
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+:where(a, button, [tabindex]):focus-visible {
+  outline: 3px solid var(--df-yellow);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/*
+ * Botón píldora amarilla con texto azul: el CTA exacto de Diseña Futuro.
+ */
+.pildora-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.85em 1.6em;
+  border: 0;
+  border-radius: var(--radio-pildora);
+  background: var(--df-yellow);
+  color: var(--df-blue-deep);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--dur-rapida) var(--ease-suave);
+}
+
+.pildora-cta:hover {
+  transform: scale(1.04);
+}
+
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * El sitio tiene que verse deliberado sin movimiento, no roto: los blobs ya
+ * traen siluetas distintas entre sí, así que quietos siguen leyéndose bien.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

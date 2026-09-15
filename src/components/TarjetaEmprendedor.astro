@@ -1,0 +1,172 @@
+---
+/**
+ * Una fila del listado: el blob grande, y el nombre fuera de él.
+ *
+ * Quien todavía no entregó los datos de su negocio se lista igual —es parte
+ * del programa— pero sin enlace y sin contacto: no se manda a nadie a un
+ * negocio que no podemos describir.
+ */
+import Blob from "./Blob.astro";
+import { categoria } from "../data/taxonomia";
+import type { Emprendedor } from "../lib/directorio";
+
+type Props = {
+  emprendedor: Emprendedor;
+  indice: number;
+};
+
+const { emprendedor: e, indice } = Astro.props;
+const cat = categoria(e.categoria);
+
+const Envoltura = e.fichaPendiente ? "div" : "a";
+const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
+---
+
+<Envoltura
+  {...props}
+  class:list={["tarjeta", { pendiente: e.fichaPendiente }]}
+  data-tarjeta
+  data-comunidad={e.comunidad}
+  data-categoria={e.categoria}
+  style={`--acento:${cat.color}; --acento-texto:${cat.colorTexto}; --acento-hondo:${cat.colorHondo};`}
+>
+  <div class="retrato" transition:name={`retrato-${e.slug}`}>
+    <Blob
+      slug={e.slug}
+      foto={e.foto}
+      alt={e.fichaPendiente
+        ? `Retrato de ${e.nombre}`
+        : `${e.nombre}, ${e.emprendimiento}, comunidad ${e.comunidad}`}
+      color={cat.color}
+      prioritaria={indice < 2}
+      sizes="(max-width: 767px) 100vw, 42vw"
+      fotoPendiente={e.fotoPendiente}
+      video={e.fichaPendiente ? null : e.video}
+      videoModo="hover"
+    />
+  </div>
+
+  <div class="texto">
+    <p class="etiquetas">
+      <span class="pildora comunidad">{e.comunidad}</span>
+      <span class="pildora categoria">{cat.etiqueta}</span>
+    </p>
+
+    <h3 class="nombre" transition:name={`nombre-${e.slug}`}>{e.nombre}</h3>
+
+    {e.emprendimiento && <p class="emprendimiento">{e.emprendimiento}</p>}
+
+    {
+      e.fichaPendiente ? (
+        <p class="nota">Su ficha estará disponible pronto.</p>
+      ) : (
+        <p class="ver" aria-hidden="true">
+          ¡Conócele! <span class="flecha">→</span>
+        </p>
+      )
+    }
+  </div>
+</Envoltura>
+
+<style>
+  .tarjeta {
+    display: flex;
+    flex-direction: column;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .retrato {
+    width: 100%;
+    transition: translate .45s var(--ease-suave);
+  }
+
+  /*
+   * El blob se dibuja dentro de una caja cuadrada pero a escala 0.9-1, así que
+   * deja aire por abajo que no es del diseño sino de su propia caja. El margen
+   * negativo compensa ese aire; se añade 1rem para separar la información.
+   */
+  .texto {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-block-start: calc(clamp(-2.5rem, -4vw, -1rem) + 1rem);
+  }
+
+  @media (max-width: 767px) {
+    .retrato {
+      width: calc(100% + var(--gutter) * 2);
+      margin-inline: calc(var(--gutter) * -1);
+    }
+
+    .retrato :global(.marco) {
+      scale: 1;
+    }
+  }
+
+  .etiquetas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0 0 0.25rem;
+  }
+
+  .pildora {
+    padding: 0.3em 0.9em;
+    border-radius: var(--radio-pildora);
+    font-size: var(--txt-s);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .comunidad {
+    border: 1.5px solid currentColor;
+    color: var(--df-bone);
+  }
+
+  .categoria {
+    background: var(--acento);
+    color: var(--acento-texto);
+  }
+
+  .nombre {
+    text-wrap: pretty;
+    font-size: var(--txt-l);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .emprendimiento {
+    margin: 0;
+    color: var(--df-bone);
+    opacity: 0.85;
+  }
+
+  .nota,
+  .ver {
+    margin: 0.15rem 0 0;
+    font-weight: 600;
+    color: var(--df-yellow);
+  }
+
+  .nota {
+    color: var(--df-bone);
+    opacity: 0.6;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .flecha {
+    display: inline-block;
+    transition: translate var(--dur-rapida) var(--ease-suave);
+  }
+
+  .tarjeta:hover .flecha,
+  .tarjeta:focus-visible .flecha {
+    translate: 0.4em 0;
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    a.tarjeta:hover .retrato, a.tarjeta:focus-visible .retrato { translate: 0 -.6rem; }
+  }
+</style>

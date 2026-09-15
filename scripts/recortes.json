@@ -1,0 +1,14 @@
+{
+  "_comentario": [
+    "Ajuste manual del recorte cuadrado, por slug.",
+    "El recorte automático usa saliencia (sharp attention) y acierta en la mayoría,",
+    "pero estas son fotos de clase —no retratos— y a veces hay más de una persona",
+    "en cuadro. Cuando el recorte automático elija mal, se fija el punto focal aquí.",
+    "",
+    "Formato:  \"slug\": { \"x\": 0.5, \"y\": 0.3 }",
+    "x e y van de 0 a 1 sobre la foto original: x=0 izquierda, y=0 arriba.",
+    "Para un rostro, y suele estar entre 0.2 y 0.4.",
+    "",
+    "Tras editar:  npm run fotos:normalizar --force"
+  ]
+}

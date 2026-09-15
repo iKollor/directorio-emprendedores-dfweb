@@ -1,0 +1,47 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - article [ref=e5]
+    - generic:
+      - generic [ref=e10] [cursor=pointer]
+      - generic:
+        - generic:
+          - link "Programas":
+            - /url: /programas/
+      - generic:
+        - generic:
+          - link "Impacto":
+            - /url: /impacto/
+      - generic:
+        - generic:
+          - link "Equipo":
+            - /url: /equipo/
+      - generic:
+        - generic:
+          - link "Inicio":
+            - /url: /nosotros/
+      - generic [ref=e11] [cursor=pointer]
+      - generic: Programas
+      - generic: Impacto
+      - generic: Equipo
+      - generic: Inicio
+      - generic:
+        - link:
+          - /url: /nosotros/
+          - generic [ref=e14] [cursor=pointer]
+      - generic [ref=e16] [cursor=pointer]
+      - paragraph [ref=e23]:
+        - generic [ref=e24]:
+          - link "ES" [ref=e25] [cursor=pointer]:
+            - /url: http://www.disenafuturo.com
+          - text: "|"
+          - link "EN" [ref=e26] [cursor=pointer]:
+            - /url: https://readymag.website/u3922158394/eng/
+      - generic [ref=e27] [cursor=pointer]
+      - paragraph [ref=e34]:
+        - generic [ref=e35]:
+          - link "ES" [ref=e36] [cursor=pointer]:
+            - /url: http://www.disenafuturo.com
+          - text: "|"
+          - link "EN" [ref=e37] [cursor=pointer]:
+            - /url: https://readymag.website/u3922158394/eng/
+  - button "Share" [ref=e38] [cursor=pointer]
