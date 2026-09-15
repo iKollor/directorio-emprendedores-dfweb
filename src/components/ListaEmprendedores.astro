@@ -290,16 +290,43 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
       return { celda, left: r.left + retrato.offsetLeft, top, lado, scroll: Math.max(1, top + lado / 2 - window.innerHeight / 2) };
     });
     if (escritorio) {
-      // Las columnas solo se separan 12vh en el layout, insuficiente para
-      // cruzar todo el ancho. Repartir cada fila en dos tramos de scroll.
-      for (let i = 1; i < retratos.length; i += 2) {
-        const izquierda = retratos[i - 1]!;
-        const siguiente = retratos[i + 1];
-        const intervalo = siguiente
-          ? siguiente.scroll - izquierda.scroll
-          : i > 1 ? izquierda.scroll - retratos[i - 3]!.scroll
-          : Math.max(izquierda.lado, window.innerHeight * .8);
-        retratos[i]!.scroll = izquierda.scroll + intervalo / 2;
+      /*
+       * Las llegadas se reparten ALREDEDOR DE LA PARADA DE CADA FILA, no según
+       * el centro de cada retrato por separado.
+       *
+       * Antes el de la columna derecha llegaba a mitad de camino de la fila
+       * siguiente: con un paso de ~870px eso son ~345px después de la parada,
+       * y para entonces su tarjeta ya había subido media pantalla. Se veía a
+       * medias y el blob saltaba al siguiente.
+       *
+       * La fórmula de la parada es la misma que usa el snap, a propósito: si
+       * las dos divergen, el blob nunca coincide con lo que el snap encuadra.
+       */
+      const vh = window.innerHeight;
+      const paradaDeFila = (a: typeof retratos[number], b?: typeof retratos[number]) => {
+        const arriba = Math.min(a.top, b ? b.top : a.top);
+        const abajo = Math.max(a.top + a.lado, b ? b.top + b.lado : a.top + a.lado);
+        return (arriba + abajo) / 2 - vh * 0.46;
+      };
+
+      const filas: { izq: typeof retratos[number]; der?: typeof retratos[number]; parada: number }[] = [];
+      for (let i = 0; i < retratos.length; i += 2) {
+        filas.push({ izq: retratos[i]!, der: retratos[i + 1], parada: paradaDeFila(retratos[i]!, retratos[i + 1]) });
+      }
+
+      for (let k = 0; k < filas.length; k++) {
+        const f = filas[k]!;
+        const paso = filas[k + 1]
+          ? filas[k + 1]!.parada - f.parada
+          : filas[k - 1]
+            ? f.parada - filas[k - 1]!.parada
+            : vh * 0.9;
+
+        // La izquierda justo antes de que la fila se asiente y la derecha justo
+        // después: las dos se ven con la fila encuadrada, y el viaje entre
+        // columnas ocupa el tramo en que el snap ya te tiene parado ahí.
+        f.izq.scroll = Math.max(1, Math.round(f.parada - paso * 0.16));
+        if (f.der) f.der.scroll = Math.max(f.izq.scroll + 1, Math.round(f.parada + paso * 0.16));
       }
     }
     return retratos;
@@ -374,10 +401,17 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
 
       const instancia = new Snap(lenis, {
         type: "proximity",
-        distanceThreshold: "10%",
-        duration: 1.2,
+        /*
+         * 10% del viewport (90px) era demasiado estrecho para un paso de fila
+         * de ~870px: había que parar casi encima del punto para que enganchara,
+         * así que la mayoría de las veces no pasaba nada y parecía roto.
+         * Con 35% cubre buena parte del tramo y la fila se acomoda sola, pero
+         * sigue siendo `proximity`: si el usuario sigue haciendo scroll, manda él.
+         */
+        distanceThreshold: "35%",
+        duration: 1,
         easing: t => t * t * (3 - 2 * t),
-        debounce: 550,
+        debounce: 400,
       });
       snap = instancia;
 
@@ -621,11 +655,12 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
           h: lado,
           giro: derecha ? 4 : -4,
           scroll: punto.scroll,
-          // Tono profundo, no el vivo: el viajero pasa por detrás del nombre y
-          // del emprendimiento. Los colores de marca son más claros que el
-          // fondo y ahí dejarían el texto entre 1.39 y 2.22 de ratio; estas
-          // variantes conservan el tono y superan 5.0 (AA pide 4.5).
-          color: getComputedStyle(tarjeta).getPropertyValue("--acento-hondo").trim(),
+          // Color vivo de la categoría. Hubo una versión con variantes
+          // oscurecidas para respetar el contraste del texto que pasa por
+          // encima, pero salían apagadas y sucias. Decisión de diseño: manda
+          // el color de marca. Las variantes siguen en tokens.css como
+          // `--df-*-hondo` si alguna vez se quiere volver.
+          color: getComputedStyle(tarjeta).getPropertyValue("--acento").trim(),
         });
       }
 
@@ -698,12 +733,12 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
      * en el hero, pero ambas animaciones escribían la misma propiedad y la
      * scrubbeada reimponía su valor en cada frame, así que el ciclo no se veía.
      *
-     * El hero arranca con la variante profunda del cyan y a partir de ahí el
-     * blob va tomando el tono de cada emprendedor.
+     * Arranca en cyan de marca y a partir de ahí toma el tono de cada
+     * emprendedor.
      */
     const raiz = getComputedStyle(document.documentElement);
     gsap.set(relleno, {
-      fill: raiz.getPropertyValue("--df-cyan-hondo").trim() || "#386c6f",
+      fill: raiz.getPropertyValue("--df-cyan").trim() || "#52dbe2",
     });
 
     construir();

@@ -148,6 +148,26 @@ Por orden de impacto frente a esfuerzo:
 5. **Cursor personalizado en desktop** sobre las tarjetas ("ver ficha"), que es
    lenguaje habitual en sitios de este nivel.
 
+### Contraste del texto sobre el blob viajero — deuda conocida y aceptada
+
+Los colores de marca son **todos más claros que el azul del fondo**, así que
+donde el blob viajero pasa por detrás de texto hueso el contraste cae a entre
+1.39 y 2.22 de ratio, cuando AA pide 4.5 para texto normal y 3.0 para texto
+grande. Afecta sobre todo al titular y al párrafo del hero.
+
+Se probó una versión con variantes oscurecidas (`--df-*-hondo` en `tokens.css`
+y `colorHondo` en `taxonomia.ts`, todas por encima de 5.0), pero **el cliente
+las descartó por criterio visual: salían apagadas y sucias**. Se optó por el
+color de marca. Los tokens siguen ahí y volver es cambiar una línea en
+`montarViajero` (`--acento` por `--acento-hondo`).
+
+Si más adelante hay que cerrar esto sin perder viveza, las salidas razonables
+son: bajar la opacidad del blob solo mientras está en el hero, moverlo para que
+no quede bajo el párrafo, o darle al texto del hero su propio fondo.
+
+Y si cambias un color de marca y quieres regenerar su variante, hazlo con la
+**fórmula de luminancia relativa de WCAG 2**, no a ojo.
+
 ### P4 — Accesibilidad y rendimiento *(sin verificar todavía)*
 
 - **`prefers-reduced-motion` no se ha probado en ejecución.** El código lo

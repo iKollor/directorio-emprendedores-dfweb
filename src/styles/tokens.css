@@ -21,7 +21,10 @@
   --df-bone: #efeeed;
 
   /*
-   * VARIANTES PROFUNDAS — para cuando una forma de color queda DETRÁS DE TEXTO.
+   * VARIANTES PROFUNDAS — hoy SIN USO. Se conservan por si hace falta poner
+   * una forma de color detrás de texto en algún sitio.
+   *
+   * El blob viajero las usó un tiempo y se descartaron: salían apagadas.
    *
    * Los colores de marca son todos más claros que el azul del fondo, así que
    * al ponerlos bajo el texto hueso destruyen el contraste: a opacidad plena
