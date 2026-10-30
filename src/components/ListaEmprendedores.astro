@@ -11,30 +11,31 @@
  * Cuando dos efectos compartían nodo se pisaban el transform y las tarjetas se
  * descolocaban al filtrar.
  *
- * Detrás de todas ellas va UN SOLO blob de color que recorre el listado: nace
- * ocupando el bloque de texto del hero y baja visitando a cada emprendedor,
- * tomando su color de categoría.
+ * Hubo un blob de color que recorría el listado siguiendo el scroll. Se
+ * retiró a pedido de Diseña Futuro: se leía como una mancha que perseguía a
+ * quien navegaba.
  */
 import TarjetaEmprendedor from "./TarjetaEmprendedor.astro";
-import { construirPath, generarBlob } from "../lib/blob";
-import { CLAVES_CATEGORIA, COMUNIDADES, categoria } from "../data/taxonomia";
+import {
+  CLAVES_CATEGORIA_REALES,
+  COMUNIDADES,
+  MOSTRAR_COMUNIDAD,
+  categoria,
+} from "../data/taxonomia";
 import type { Emprendedor } from "../lib/directorio";
 
 type Props = { emprendedores: Emprendedor[] };
 const { emprendedores } = Astro.props;
 
-// Solo se ofrecen filtros de lo que realmente hay en el listado.
-const categoriasPresentes = CLAVES_CATEGORIA.filter((c) =>
+// Solo se ofrecen filtros de lo que realmente hay en el listado. "Próximamente"
+// es un estado, no una categoría de negocio: no lleva botón propio.
+const categoriasPresentes = CLAVES_CATEGORIA_REALES.filter((c) =>
   emprendedores.some((e) => e.categoria === c),
 );
-const comunidadesPresentes = COMUNIDADES.filter((c) =>
-  emprendedores.some((e) => e.comunidad === c),
-);
+const comunidadesPresentes = MOSTRAR_COMUNIDAD
+  ? COMUNIDADES.filter((c) => emprendedores.some((e) => e.comunidad === c))
+  : [];
 
-// Un único respaldo para todo el listado. Recorre a los emprendedores y va
-// tomando el color de cada uno.
-const viajero = generarBlob("viajero", { lados: 8, irregularidad: 0.13, radio: 38 });
-const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
 ---
 
 <section class="listado" id="contenido" aria-labelledby="titulo-listado">
@@ -44,6 +45,7 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
   </div>
 
   <div class="filtros" data-filtros>
+    {comunidadesPresentes.length > 0 && (
     <fieldset>
       <legend>Comunidad</legend>
       <button type="button" data-filtro="comunidad" data-valor="todas" aria-pressed="true">
@@ -57,6 +59,7 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
         ))
       }
     </fieldset>
+    )}
 
     <fieldset>
       <legend>Categoría</legend>
@@ -87,17 +90,6 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
   </div>
 
   <div class="grid" data-grid>
-    <span
-      class="viajero"
-      data-viajero
-      data-blob
-      data-vertices={JSON.stringify(viajero.vertices)}
-      data-encaje={JSON.stringify(viajero.encaje)}
-      data-desfase="0"
-      aria-hidden="true"
-    >
-      <svg viewBox={viajero.viewBox} preserveAspectRatio="none"><path data-path d={pathViajero}></path></svg>
-    </span>
     {
       emprendedores.map((e, i) => (
         <div class="celda" data-columna={i % 2 === 0 ? "izq" : "der"}>
@@ -215,40 +207,6 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
     }
   }
 
-  /*
-   * El blob viajero vive DENTRO de la grilla, en coordenadas del documento.
-   * Por eso sus destinos son fijos: el scroll solo interpola entre ellos y no
-   * hay nada que perseguir. Si estuviera en una capa `fixed` habría que
-   * recalcular su objetivo en cada frame, que es justo lo que antes producía
-   * blobs cruzando la pantalla.
-   */
-  .viajero {
-    visibility: hidden;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 0;
-    /* Caja base de 100px y origen en la esquina: posición y tamaño se resuelven
-       enteros con `x/y/scaleX/scaleY`, sin tocar layout en ningún frame. */
-    width: 100px;
-    height: 100px;
-    transform-origin: 0 0;
-    pointer-events: none;
-    will-change: transform;
-  }
-
-  .viajero svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-  }
-
-  .viajero path {
-    fill: var(--df-cyan);
-  }
-
-  /* Las tarjetas por encima del viajero: él es el respaldo, no la portada. */
   .celda {
     min-width: 0;
     align-self: start;
@@ -279,58 +237,15 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
 
   gsap.registerPlugin(Flip, ScrollTrigger);
 
-  /** Un mismo mapa para el viajero y el snap, independiente de las entradas. */
+  /** Posición de cada retrato visible, independiente de las entradas. */
   function medirRetratos(celdas: HTMLElement[]) {
-    const escritorio = window.matchMedia("(min-width: 768px)").matches;
     const retratos = celdas.filter(c => !c.classList.contains("oculta")).map(celda => {
       const retrato = celda.querySelector<HTMLElement>(".retrato")!;
       const r = celda.getBoundingClientRect();
       const lado = retrato.offsetWidth;
       const top = r.top + window.scrollY + retrato.offsetTop;
-      // 0.46 y no 0.5: es la misma referencia que usa el snap. Si el blob y el
-      // snap encuadran distinto, el blob nunca cae donde el snap te deja.
-      return { celda, left: r.left + retrato.offsetLeft, top, lado, scroll: Math.max(1, top + lado / 2 - window.innerHeight * 0.46) };
+      return { celda, top, lado };
     });
-    if (escritorio) {
-      /*
-       * Las llegadas se reparten ALREDEDOR DE LA PARADA DE CADA FILA, no según
-       * el centro de cada retrato por separado.
-       *
-       * Antes el de la columna derecha llegaba a mitad de camino de la fila
-       * siguiente: con un paso de ~870px eso son ~345px después de la parada,
-       * y para entonces su tarjeta ya había subido media pantalla. Se veía a
-       * medias y el blob saltaba al siguiente.
-       *
-       * La fórmula de la parada es la misma que usa el snap, a propósito: si
-       * las dos divergen, el blob nunca coincide con lo que el snap encuadra.
-       */
-      const vh = window.innerHeight;
-      const paradaDeFila = (a: typeof retratos[number], b?: typeof retratos[number]) => {
-        const arriba = Math.min(a.top, b ? b.top : a.top);
-        const abajo = Math.max(a.top + a.lado, b ? b.top + b.lado : a.top + a.lado);
-        return (arriba + abajo) / 2 - vh * 0.46;
-      };
-
-      const filas: { izq: typeof retratos[number]; der?: typeof retratos[number]; parada: number }[] = [];
-      for (let i = 0; i < retratos.length; i += 2) {
-        filas.push({ izq: retratos[i]!, der: retratos[i + 1], parada: paradaDeFila(retratos[i]!, retratos[i + 1]) });
-      }
-
-      for (let k = 0; k < filas.length; k++) {
-        const f = filas[k]!;
-        const paso = filas[k + 1]
-          ? filas[k + 1]!.parada - f.parada
-          : filas[k - 1]
-            ? f.parada - filas[k - 1]!.parada
-            : vh * 0.9;
-
-        // La izquierda justo antes de que la fila se asiente y la derecha justo
-        // después: las dos se ven con la fila encuadrada, y el viaje entre
-        // columnas ocupa el tramo en que el snap ya te tiene parado ahí.
-        f.izq.scroll = Math.max(1, Math.round(f.parada - paso * 0.16));
-        if (f.der) f.der.scroll = Math.max(f.izq.scroll + 1, Math.round(f.parada + paso * 0.16));
-      }
-    }
     return retratos;
   }
 
@@ -342,10 +257,7 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
   let contexto: gsap.Context | null = null;
   let snap: Snap | null = null;
   let soltarSnap: (() => void) | null = null;
-  /** Reconstruye el recorrido del blob cuando los filtros cambian las paradas. */
-  let viajeroRehacer: (() => void) | null = null;
   let soltarEventos: AbortController | null = null;
-  let soltarViajero: (() => void) | null = null;
   let filtroAnimacion: gsap.core.Timeline | null = null;
   let ajusteAltura: gsap.core.Tween | null = null;
 
@@ -357,13 +269,10 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
     filtroAnimacion = null;
     ajusteAltura?.kill();
     ajusteAltura = null;
-    soltarViajero?.();
-    soltarViajero = null;
     soltarSnap?.();
     soltarSnap = null;
     snap?.destroy();
     snap = null;
-    viajeroRehacer = null;
     contexto?.revert();
     contexto = null;
   }
@@ -498,8 +407,6 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
       // El snap se calla durante el reacomodo: si no, intenta anclar a
       // posiciones que están cambiando y da tirones.
       snap?.stop();
-      const viajero = grid!.querySelector<HTMLElement>("[data-viajero]");
-      if (viajero) viajero.style.visibility = "hidden";
 
       const alturaAntes = grid!.offsetHeight;
       const estado = Flip.getState(celdas);
@@ -531,7 +438,6 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
         grid!.style.removeProperty("height");
         gsap.set(celdas, { clearProps: "opacity,transform" });
         obtenerScroll()?.resize();
-        viajeroRehacer?.();
         ScrollTrigger.refresh();
         montarSnap();
       };
@@ -586,7 +492,6 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
       }, { signal });
     });
 
-    montarViajero(celdas);
     if (sinMovimiento()) return;
     montarSnap();
     ScrollTrigger.addEventListener("refresh", montarSnap);
@@ -613,233 +518,6 @@ const pathViajero = construirPath(viajero.vertices, 0, null, viajero.encaje);
       }
 
     }
-  }
-
-  /**
-   * El recorrido del blob de color.
-   *
-   * Una única línea de tiempo atada al scroll con `scrub`. Los destinos se
-   * miden una vez por refresh en coordenadas de la grilla —no del viewport—
-   * así que no cambian al hacer scroll y no hay nada que perseguir. El primer
-   * fotograma es la caja del texto del hero; los siguientes, cada tarjeta.
-   *
-   * Las duraciones son proporcionales a la distancia real entre destinos, que
-   * es lo que hace que el blob llegue a cada emprendedor justo cuando esa
-   * tarjeta pasa por el centro de la pantalla.
-   */
-  function montarViajero(celdas: HTMLElement[]) {
-    const grid = document.querySelector<HTMLElement>("[data-grid]");
-    const viajero = grid?.querySelector<HTMLElement>("[data-viajero]");
-    const relleno = viajero?.querySelector<SVGPathElement>("path");
-    if (!grid || !viajero || !relleno) return;
-
-    type Parada = { x: number; y: number; w: number; h: number; color: string; giro: number; scroll: number };
-    const svg = viajero.querySelector("svg")!;
-    const cajaPath = relleno.getBBox();
-
-    const paradas = (): Parada[] => {
-      const g = grid.getBoundingClientRect();
-      const lista: Parada[] = [];
-
-      // Medir la silueta visible, no solo el SVG: los márgenes del viewBox
-      // reducían el blob aunque su elemento tuviera el tamaño del texto.
-      const hero = document.querySelector<HTMLElement>("[data-hero-texto]");
-      if (hero) {
-        const r = hero.getBoundingClientRect();
-        const w = r.width * 1.14 * 100 / cajaPath.width;
-        const h = r.height * 1.22 * 100 / cajaPath.height;
-        lista.push({
-          x: r.left - g.left - r.width * .07 - cajaPath.x * w / 100,
-          y: r.top - g.top - r.height * .11 - cajaPath.y * h / 100,
-          w,
-          h,
-          giro: 0,
-          scroll: 0,
-          // El hero arranca con la variante profunda del cyan; se fija una vez
-          // fuera de este mapa, porque aquí no hay tarjeta de la que leerlo.
-          color: "",
-        });
-      }
-
-      // Después, una parada por emprendedor visible.
-      for (const punto of medirRetratos(celdas)) {
-        const { celda, lado } = punto;
-        const tarjeta = celda.querySelector<HTMLElement>("[data-tarjeta]");
-        if (!tarjeta) continue;
-
-        // La celda y offsetTop excluyen la entrada animada y el hover.
-        // Medir el marco transformado guardaba un destino pasajero para siempre.
-        const derecha = window.matchMedia("(min-width: 768px)").matches && celda.dataset.columna === "der";
-        const y = punto.top - window.scrollY - g.top;
-        lista.push({
-          x: punto.left - g.left + (derecha ? .07 : -.07) * lado,
-          y: y + lado * .04,
-          w: lado,
-          h: lado,
-          giro: derecha ? 4 : -4,
-          scroll: punto.scroll,
-          // Color vivo de la categoría. Hubo una versión con variantes
-          // oscurecidas para respetar el contraste del texto que pasa por
-          // encima, pero salían apagadas y sucias. Decisión de diseño: manda
-          // el color de marca. Las variantes siguen en tokens.css como
-          // `--df-*-hondo` si alguna vez se quiere volver.
-          color: getComputedStyle(tarjeta).getPropertyValue("--acento").trim(),
-        });
-      }
-
-      return lista;
-    };
-
-    const linea = gsap.timeline({ paused: true });
-    let finalScroll = 1;
-
-    const construir = () => {
-      linea.clear();
-      const lista = paradas();
-      if (!lista.length) return;
-
-      const primera = lista[0]!;
-      viajero.style.visibility = lista.length > 1 ? "visible" : "hidden";
-      gsap.set(viajero, {
-        x: primera.x,
-        y: primera.y,
-        scaleX: primera.w / 100,
-        scaleY: primera.h / 100,
-        opacity: 1,
-      });
-      // El blur se aplica al SVG antes de escalarlo: 4 unidades producen un
-      // borde amplio en el hero, sin reducir la opacidad del color.
-      gsap.set(svg, { rotation: 0, filter: "blur(4px)", transformOrigin: "50% 50%" });
-      finalScroll = lista.at(-1)!.scroll || 1;
-      if (sinMovimiento()) return;
-
-      let anteriorScroll = 0;
-      for (let i = 1; i < lista.length; i++) {
-        const p = lista[i]!;
-        // Duración en píxeles verticales de scroll: la diagonal entre columnas
-        // no debe retrasar las siguientes llegadas. Pausa breve en cada destino.
-        const llegada = Math.max(anteriorScroll + 1, p.scroll);
-        const duracion = llegada - anteriorScroll;
-        const inicio = anteriorScroll;
-
-        linea.to(
-          viajero,
-          {
-            x: p.x,
-            y: p.y,
-            scaleX: p.w / 100,
-            scaleY: p.h / 100,
-            duration: duracion,
-            ease: "sine.inOut",
-          },
-          inicio,
-        );
-        // El color entra algo más tarde que el movimiento en el primer tramo:
-        // el blob empieza a bajar del hero antes de virar hacia el primer
-        // emprendedor, y así el cambio se lee como consecuencia del viaje.
-        const inicioColor = i === 1 ? inicio + duracion * 0.3 : inicio;
-        linea.to(
-          relleno,
-          { fill: p.color, duration: llegada - inicioColor, ease: "none" },
-          inicioColor,
-        );
-        linea.to(svg, { rotation: p.giro, duration: duracion, ease: "sine.inOut" }, inicio);
-        if (i === 1) linea.to(svg, { filter: "blur(0px)", duration: duracion, ease: "power1.out" }, inicio);
-        anteriorScroll = llegada;
-      }
-      finalScroll = anteriorScroll;
-    };
-
-    /*
-     * El color del viajero lo lleva SIEMPRE la línea de tiempo del recorrido:
-     * un solo dueño para `fill`. Hubo un intento de añadir un ciclo por tiempo
-     * en el hero, pero ambas animaciones escribían la misma propiedad y la
-     * scrubbeada reimponía su valor en cada frame, así que el ciclo no se veía.
-     *
-     * El blob CICLA DE COLOR mientras está en el hero.
-     *
-     * Los tonos son los de marca bajados a L28% conservando su saturación
-     * (`--df-*-hondo`), así que son tonos joya y no barro, y todos dejan el
-     * texto de encima por encima de 4.4 de ratio.
-     *
-     * Dos decisiones para que no parezca una bola de discoteca:
-     *
-     *  - ORDEN POR TONO, no aleatorio: verde 132° → teal 183° → azul 240° →
-     *    magenta 317°. Cada paso es un salto corto en la rueda de color.
-     *  - YOYO: al llegar al final vuelve por el mismo camino en vez de saltar
-     *    del magenta al verde. Sin esto, ese salto pasaría por un gris sucio,
-     *    porque GSAP interpola en RGB.
-     *
-     * Y tramos largos: 6s de transición más 2s quieto en cada tono.
-     */
-    const raiz = getComputedStyle(document.documentElement);
-    const leer = (v: string, respaldo: string) => raiz.getPropertyValue(v).trim() || respaldo;
-
-    const tonosHero = [
-      leer("--df-green-hondo", "#127d27"),
-      leer("--df-cyan-hondo", "#12787d"),
-      leer("--df-blue-hondo", "#04048a"),
-      leer("--df-pink-hondo", "#840a63"),
-    ];
-
-    gsap.set(relleno, { fill: tonosHero[0] });
-
-    const cicloHero = gsap.timeline({ repeat: -1, yoyo: true });
-    for (const tono of tonosHero.slice(1)) {
-      cicloHero.to(relleno, { fill: tono, duration: 6, ease: "sine.inOut" }, "+=2");
-    }
-
-    construir();
-    const trigger = sinMovimiento() ? null : ScrollTrigger.create({
-      animation: linea,
-      start: 0,
-      end: () => Math.max(1, finalScroll),
-      scrub: .8,
-      onRefreshInit: construir,
-      /*
-       * `fill` tiene que tener un solo dueño en cada momento. Mientras el blob
-       * sigue en el hero manda el ciclo; en cuanto el recorrido arranca, el
-       * ciclo se para y el color pasa a ser el de cada emprendedor.
-       */
-      onUpdate: (self) => {
-        const enHero = self.progress <= 0.012;
-        if (enHero && cicloHero.paused()) cicloHero.play();
-        else if (!enHero && !cicloHero.paused()) cicloHero.pause();
-      },
-    });
-    const alCambiar = () => { obtenerScroll()?.resize(); ScrollTrigger.refresh(); };
-    const observador = new ResizeObserver(alCambiar);
-    const hero = document.querySelector<HTMLElement>("[data-hero-texto]");
-    if (hero) observador.observe(hero);
-    // En movimiento reducido no hay ScrollTrigger que haga el refresh.
-    const alRedimensionar = () => { if (sinMovimiento()) construir(); };
-    window.addEventListener("resize", alRedimensionar);
-    let activo = true;
-    void document.fonts.ready.then(() => { if (activo) { construir(); alCambiar(); } });
-
-    // Al filtrar cambian las paradas: se reconstruye el recorrido entero.
-    /*
-     * Al filtrar cambian las paradas, así que el blob tiene que recolocarse.
-     * Pero hacerlo a la vista se leía como si se escapara: cruzaba la pantalla
-     * mientras las tarjetas reacomodaban. Se apaga, se recoloca de golpe y se
-     * enciende ya en su sitio: el cambio de filtro no debe parecer un viaje.
-     */
-    viajeroRehacer = () => {
-      gsap.killTweensOf(viajero, "opacity");
-      gsap.set(viajero, { opacity: 0 });
-      construir();
-      trigger?.refresh();
-      if (trigger) linea.progress(trigger.progress);
-      gsap.to(viajero, { opacity: 1, duration: 0.35, ease: "power1.out", delay: 0.05 });
-    };
-    soltarViajero = () => {
-      activo = false;
-      cicloHero.kill();
-      observador.disconnect();
-      window.removeEventListener("resize", alRedimensionar);
-      trigger?.kill();
-      linea.kill();
-    };
   }
 
   /**

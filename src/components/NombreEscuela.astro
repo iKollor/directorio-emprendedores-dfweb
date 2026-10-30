@@ -1,0 +1,33 @@
+---
+/**
+ * "Escuela de Emprendimiento" con el tratamiento del logo de Diseña Futuro:
+ * minúsculas, peso medio, dos líneas apretadas.
+ *
+ * Es una propuesta para verla en contexto. Si se confirma y llega el archivo
+ * de la tipografía del logo, basta con declararla en tokens.css y apuntar
+ * `--fuente-logo` a ella; este componente no cambia.
+ */
+type Props = { tamano?: "hero" | "pie" };
+const { tamano = "hero" } = Astro.props;
+---
+
+<p class:list={["escuela", tamano]}>
+  <span>escuela de</span>
+  <span>emprendimiento</span>
+</p>
+
+<style>
+  .escuela {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    font-family: var(--fuente-logo, var(--fuente));
+    font-weight: 500;
+    line-height: 0.88;
+    letter-spacing: -0.035em;
+    text-transform: lowercase;
+  }
+
+  .hero { margin-block-end: clamp(0.25rem, 1vw, 0.75rem); font-size: clamp(1.6rem, 1.2rem + 2vw, 2.75rem); }
+  .pie { font-size: clamp(1.4rem, 1.1rem + 1.4vw, 2.1rem); }
+</style>

@@ -39,20 +39,31 @@ desde el Excel del cliente.
 reescribe **únicamente** `src/lib/directorio.ts`: ningún componente lee datos
 por su cuenta, así que la UI no se toca. Ver "Adaptador" abajo.
 
-### ⚠️ Pendientes bloqueantes antes de desplegar
+### ⚠️ Pendientes antes de desplegar
 
-1. **11 de 14 fichas muestran la foto de otra persona.** Es un estado de
-   maqueta (ver "Fotos"). El build avisa mientras quede alguna. **No desplegar
-   así**: son personas reales identificadas con nombre y apellido.
-2. **Confirmar autorización de uso de imagen** de los emprendedores con Diseña
+Ver también [`COMENTARIOS-OCTUBRE.md`](COMENTARIOS-OCTUBRE.md): estado de los
+comentarios de Diseña Futuro de octubre de 2026.
+
+1. **Logo de Intervalores.** Guardarlo en `public/brand/intervalores.svg` (o
+   `.webp`/`.png`, versión clara). Mientras falte se muestra el nombre en texto
+   y el build avisa.
+2. **Fotos.** 12 de 14 muestran una silueta neutra porque falta su foto. Ya no
+   se presta la foto de otra persona. Revisar que en ninguna aparezcan menores
+   de edad (la de Alexandra Medina se retiró por eso: `fotoRetirada` en el JSON).
+3. **Videos y fotos de productos:** ver `src/assets/videos/LEEME.md` y
+   `src/assets/productos/LEEME.md`. Basta con dejar los archivos con el slug.
+4. **Confirmar autorización de uso de imagen** de los emprendedores con Diseña
    Futuro.
-3. **Pedir el logo en SVG y el manual de marca.** Ya se usa el logo oficial en WebP y el favicon del sitio; falta el original vectorial. El
-   rosa (`--df-pink`) está deducido de una captura y la tipografía es un
-   sustituto (ver "Marca").
-4. **6 emprendedores sin datos de negocio** aparecen como "Ficha en
-   preparación". Hay que pedir su información.
-5. Definir el dominio (propuesto: `emprendedores.disenafuturo.com`) y fijarlo
+5. **6 emprendedores sin datos de negocio** aparecen como "Próximamente". Hay
+   que pedir su información.
+6. Definir el dominio (propuesto: `emprendedores.disenafuturo.com`) y fijarlo
    en `site` dentro de `astro.config.mjs`.
+
+**Privacidad:** la comunidad de cada emprendedor no se publica
+(`MOSTRAR_COMUNIDAD` en `src/data/taxonomia.ts`) y solo se muestra un nombre y
+un apellido (`nombrePublico` en `src/lib/directorio.ts`, con excepción manual
+en el JSON). Los resúmenes cortos viven en los campos `resumen` y `oficio` del
+JSON; `importar_excel.py` los conserva entre importaciones.
 
 ---
 
@@ -114,15 +125,16 @@ Cuando se equivoque, **no hay que tocar código**: se fija el punto focal en
 npm run fotos:recortar
 ```
 
-### El estado de maqueta
+### Sin foto todavía
 
-`npm run placeholders` presta fotos existentes a quien aún no tiene la suya,
-para poder maquetar con los 14. Marca esos registros con `fotoPendiente`, y el
-sitio los muestra con una insignia **"⚠ Foto pendiente"** visible. El build
-imprime un aviso mientras quede alguno.
+Quien no tiene foto propia muestra una **silueta neutra** en colores de marca
+(`src/assets/marca/foto-pendiente.jpg`). Lo decide el adaptador en cada build:
+en cuanto `npm run fotos` traiga la real, la silueta desaparece sola.
 
-Es temporal. En cuanto `npm run fotos` traiga la foto real, el placeholder se
-borra solo en la siguiente corrida.
+Antes se prestaba la foto de otra persona para maquetar. Se abandonó: ponía la
+cara de alguien real junto al nombre de otra persona, y una de esas fotos tenía
+a una niña. `npm run placeholders` ya solo marca las fichas sin datos de
+negocio y borra las copias que quedaran.
 
 ---
 
@@ -144,15 +156,16 @@ Paleta **medida en vivo** sobre disenafuturo.com, no estimada
 
 Gramática heredada de su sitio: elipses gigantes sangradas fuera del canvas,
 botones píldora amarilla con texto azul, titulares que mezclan light y bold en
-la misma frase, y CTAs con exclamación de apertura ("¡Conócele!").
+la misma frase, y CTAs con exclamación de apertura ("¡Conócelo!").
 
 **Tipografía:** su sitio sirve fuentes ofuscadas y sin nombre, así que no se
 pueden reutilizar. Se usa **General Sans** (Fontshare) como sustituto del mismo
 género. Confirmar con el manual de marca.
 
 Desde el 14 de septiembre de 2026, los WOFF2 se sirven localmente desde
-`public/fonts/`. El encabezado y el footer comparten `Marca.astro` y el footer
-incluye Instagram y LinkedIn verificados en el sitio oficial. Procedencia de
+`public/fonts/`. El encabezado y el footer comparten `Marca.astro`, con los
+logos de Diseña Futuro e Intervalores. El footer enlaza solo a las webs de
+ambas, no a redes sociales. Procedencia de
 los recursos en `public/brand/FUENTES.md` y `public/fonts/FUENTES.md`.
 
 Revisión de diseño y pruebas recientes: [MEJORAS-APLICADAS.md](MEJORAS-APLICADAS.md).
@@ -184,10 +197,9 @@ son múltiplos entre sí, el ciclo no se repite de forma perceptible: se lee com
 líquido. (La primera versión interpolaba entre tres formas fijas y se notaba
 mecánica, siempre el mismo latido de ida y vuelta.)
 
-En desktop **reaccionan al ratón**: los vértices cercanos al puntero salen
-hacia fuera con una caída gaussiana, así que la silueta se abulta hacia el
-cursor en vez de desplazarse entera. El empuje persigue a su objetivo con
-inercia, que es lo que lo hace sentir líquido y no pegado al ratón.
+**Ya no reaccionan al ratón.** Hubo un abultamiento hacia el cursor y un blob
+de color que recorría el listado con el scroll; Diseña Futuro pidió quitarlos
+porque se leían como una mancha que perseguía a quien navegaba.
 
 Dos reglas mandan sobre el generador:
 
@@ -207,35 +219,11 @@ tweens activos, y estas animaciones tienen que correr también con la página
 quieta. Van sobre `requestAnimationFrame` propio, uno solo para todos los blobs,
 y solo se evalúan los que un IntersectionObserver marca como visibles.
 
-### Un solo blob de color recorre el listado
-
-Detrás de las tarjetas viaja **una única forma de color**. Nace ocupando
-exactamente la caja del texto del hero y, al bajar, va visitando a cada
-emprendedor y tomando su color de categoría. Un respaldo por tarjeta llenaba la
-pantalla de formas; uno que viaja cuenta el recorrido.
-
-**Vive dentro de `.grid`, en coordenadas del documento.** Ese es el detalle que
-lo hace estable: sus destinos se miden una vez por refresh y no cambian al
-hacer scroll, así que una sola línea de tiempo con `scrub` los interpola y no
-hay nada que perseguir.
-
-Hubo dos intentos previos con blobs en una capa `fixed` que decidían en cada
-frame a quién acompañaban según la distancia al centro de la pantalla. Al hacer
-scroll ese orden cambiaba sin parar: las piezas se reasignaban, cruzaban la
-pantalla y perseguían objetivos en movimiento. **Si algo tiene que acompañar a
-un elemento del documento, ponlo en el documento.**
-
-Las duraciones de cada tramo son proporcionales a la distancia real entre
-paradas, que es lo que hace que el blob llegue a cada emprendedor justo cuando
-esa tarjeta cruza el centro de la pantalla. Al filtrar, el recorrido se
-reconstruye con las paradas que quedan.
-
 ### El vídeo
 
-Cada emprendedor tendrá el suyo. Hoy todos comparten un placeholder de stock
-(Big Buck Bunny, Blender Foundation, CC-BY) recortado a cuadrado y sin audio,
-en `public/video/`. Es deliberadamente obvio que no es material real, igual que
-las fotos prestadas, y la ficha lo avisa.
+Cada emprendedor puede tener el suyo en `src/assets/videos/<slug>.mp4`. Sin
+archivo no hay vídeo, y si nadie tiene, la franja "En sus propias palabras" no
+aparece. Ya no hay placeholder de stock.
 
 - **En el listado**: entra al pasar el puntero o al enfocar con teclado. Con
   `preload="none"` el archivo no se pide hasta ese momento. En móvil no se
@@ -243,13 +231,8 @@ las fotos prestadas, y la ficha lo avisa.
   una conexión lenta sería un abuso.
 - **En la ficha**: manda desde el principio, en bucle y sin sonido.
 
-Al ser un único archivo compartido, se descarga una vez y vale para los catorce.
-
-### Contraste en el hero
-
-El blob viajero arranca detrás del titular, así que su opacidad ahí baja a 0.32:
-el texto blanco tiene que mantener el contraste contra el azul. En cuanto pasa a
-hacer de respaldo de un retrato sube a 1.
+Las fotos de productos o servicios van en `src/assets/productos/<slug>/` y se
+muestran en la ficha bajo "Su trabajo".
 
 ### El listado
 
@@ -296,12 +279,13 @@ deliberado. **Pendiente de verificar a mano** en DevTools > Rendering.
 ## Verificado
 
 - `npm run build` y `npm run check`: sin errores. 9 páginas, `dist/` de 2 MB.
-- Filtro por comunidad: 11 resultados, todos de Los Lojas, contador correcto.
+- Octubre 2026: iPhone 13, Pixel 5 y 320px sin scroll horizontal ni errores
+  de JavaScript; el HTML generado no contiene comunidades, cantón ni nombres
+  completos.
 - WhatsApp de Celia (derivado del teléfono) abre con mensaje prellenado.
 - Linda, sin contacto: CTA alternativo, ningún enlace `wa.me`.
 - Móvil 375px: 1 columna de 335px, sin scroll horizontal.
 - Desktop 1440px: 2 columnas de 601px con la derecha desfasada ~100px.
-- Morph de blobs activo y reactivo al ratón en desktop.
+- Morph de blobs activo, sin reacción al ratón.
 - Filtros: ninguna tarjeta se sale de la grilla durante la animación de Flip.
 - Vídeo: entra en hover, se pausa al salir; en la ficha arranca solo.
-- El blob viajero recorre el listado cambiando de color, sin deriva.

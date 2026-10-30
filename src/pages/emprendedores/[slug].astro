@@ -2,7 +2,8 @@
 import Base from "../../layouts/Base.astro";
 import Blob from "../../components/Blob.astro";
 import BotonWhatsapp from "../../components/BotonWhatsapp.astro";
-import { categoria } from "../../data/taxonomia";
+import { Image } from "astro:assets";
+import { MOSTRAR_COMUNIDAD, categoria } from "../../data/taxonomia";
 import { getEmprendedores } from "../../lib/directorio";
 
 export async function getStaticPaths() {
@@ -17,21 +18,26 @@ export async function getStaticPaths() {
 const { emprendedor: e } = Astro.props;
 const cat = categoria(e.categoria);
 
-const descripcion = `${e.emprendimiento} — ${e.nombre}, emprendedor de ${e.comunidad}, cantón Daule. Contáctale directamente por WhatsApp.`;
+const descripcion = `${e.emprendimiento} — ${e.nombre}, certificado por la Escuela de Emprendimiento de Diseña Futuro. Escríbele directamente por WhatsApp.`;
 
+// Sin dirección ni zona mientras la comunidad no se publique: los datos
+// estructurados también los leen buscadores y terceros.
 const datosEstructurados = {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
   name: e.emprendimiento,
   description: e.parrafos.join(" "),
   founder: { "@type": "Person", name: e.nombre },
-  areaServed: { "@type": "Place", name: `${e.comunidad}, Daule, Ecuador` },
-  address: {
-    "@type": "PostalAddress",
-    addressLocality: e.comunidad,
-    addressRegion: "Guayas",
-    addressCountry: "EC",
-  },
+  ...(MOSTRAR_COMUNIDAD
+    ? {
+        address: {
+          "@type": "PostalAddress",
+          addressLocality: e.comunidad,
+          addressRegion: "Guayas",
+          addressCountry: "EC",
+        },
+      }
+    : {}),
   ...(e.telefono ? { telephone: e.telefono.replace(/\s/g, "") } : {}),
 };
 ---
@@ -49,11 +55,10 @@ const datosEstructurados = {
         <Blob
           slug={e.slug}
           foto={e.foto}
-          alt={`Retrato de ${e.nombre}`}
+          alt={e.fotoPendiente ? `Silueta: todavía no hay foto de ${e.nombre}` : `Retrato de ${e.nombre}`}
           color={cat.color}
           prioritaria
           sizes="(max-width: 899px) 88vw, 42vw"
-          fotoPendiente={e.fotoPendiente}
           video={e.video}
           videoModo="auto"
         />
@@ -61,7 +66,7 @@ const datosEstructurados = {
 
       <div class="texto">
         <p class="etiquetas">
-          <span class="pildora comunidad">{e.comunidad}</span>
+          {MOSTRAR_COMUNIDAD && <span class="pildora comunidad">{e.comunidad}</span>}
           <span class="pildora categoria">{cat.etiqueta}</span>
         </p>
 
@@ -72,18 +77,31 @@ const datosEstructurados = {
           {e.parrafos.map((p) => <p>{p}</p>)}
         </div>
 
-        {
-          e.videoPendiente && (
-            <p class="aviso-video">
-              <span aria-hidden="true">⚠</span> El video es un ejemplo de stock,
-              todavía no es el de {e.nombre.split(" ")[0]}.
-            </p>
-          )
-        }
-
         <BotonWhatsapp nombre={e.nombre} whatsapp={e.whatsapp} telefono={e.telefono} />
       </div>
     </div>
+
+    {
+      e.galeria.length > 0 && (
+        <section class="galeria" aria-labelledby="titulo-galeria">
+          <h2 id="titulo-galeria">Su trabajo</h2>
+          <ul>
+            {e.galeria.map((foto, i) => (
+              <li>
+                <Image
+                  src={foto}
+                  alt={`Trabajo de ${e.nombre}, foto ${i + 1} de ${e.galeria.length}`}
+                  widths={[400, 700, 1000]}
+                  sizes="(max-width: 599px) 88vw, (max-width: 899px) 44vw, 30vw"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
   </main>
 
   <script is:inline type="application/ld+json" set:html={JSON.stringify(datosEstructurados)} />
@@ -184,14 +202,32 @@ const datosEstructurados = {
     margin: 0;
   }
 
-  .aviso-video {
-    margin: 0 0 1rem;
-    padding: 0.5em 1em;
-    border-radius: var(--radio-pildora);
-    background: var(--df-yellow);
-    color: var(--df-ink);
-    font-size: var(--txt-s);
-    font-weight: 600;
-    width: fit-content;
+  .galeria {
+    margin-block-start: clamp(3rem, 8vw, 6rem);
+  }
+
+  .galeria h2 {
+    margin-bottom: clamp(1.25rem, 3vw, 2rem);
+    font-size: var(--txt-l);
+    font-weight: 700;
+  }
+
+  .galeria ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+    gap: clamp(0.75rem, 2vw, 1.25rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .galeria :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border-radius: clamp(14px, 3vw, 22px);
+    background: var(--df-blue-deep);
   }
 </style>

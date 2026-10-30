@@ -105,6 +105,22 @@ def en_parrafos(texto: str | None) -> list[str]:
     return [re.sub(r"\s*\n\s*", " ", b).strip() for b in bloques if b.strip()]
 
 
+# Campos que no vienen del Excel sino de la edición del equipo: el resumen
+# corto, el oficio reescrito, el nombre público y las fotos retiradas (p. ej.
+# porque sale un menor). Se conservan entre importaciones, por slug.
+CAMPOS_EDITORIALES = ("resumen", "oficio", "nombrePublico", "fotoRetirada")
+
+
+def leer_editoriales() -> dict[str, dict]:
+    if not SALIDA.exists():
+        return {}
+    previos = json.loads(SALIDA.read_text(encoding="utf-8"))
+    return {
+        r["slug"]: {c: r[c] for c in CAMPOS_EDITORIALES if c in r}
+        for r in previos
+    }
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__)
@@ -117,6 +133,7 @@ def main() -> int:
 
     hoja = openpyxl.load_workbook(ruta_excel, data_only=True).worksheets[0]
 
+    editoriales = leer_editoriales()
     registros: list[dict] = []
     slugs_usados: set[str] = set()
 
@@ -170,7 +187,11 @@ def main() -> int:
             "telefono": telefono,
             "whatsapp": whatsapp,
             "publicado": publicado,
+            **editoriales.get(slug, {}),
         })
+        if registros[-1].get("fotoRetirada"):
+            registros[-1]["fotoDriveId"] = None
+            registros[-1]["foto"] = None
 
     SALIDA.parent.mkdir(parents=True, exist_ok=True)
     SALIDA.write_text(

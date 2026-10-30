@@ -16,35 +16,27 @@
  *   layout, nada de estilos: solo el atributo de dos <path>.
  */
 
-import { construirPath, type Deformacion, type Encaje, type Vertice } from "./blob";
+import { construirPath, type Encaje, type Vertice } from "./blob";
 
+/*
+ * Los blobs ya NO reaccionan al puntero. El abultamiento hacia el cursor se
+ * leía como una mancha que perseguía a quien navegaba, y se retiró a pedido
+ * de Diseña Futuro. Solo queda la respiración lenta de la silueta.
+ */
 type BlobVivo = {
   elemento: HTMLElement;
-  /** El respaldo de color no persigue al puntero; solo lo hace el retrato. */
-  reactivo: boolean;
   vertices: Vertice[];
   encaje: Encaje;
   paths: SVGPathElement[];
   /** Desfase temporal para que dos vecinos nunca respiren a la vez. */
   desfase: number;
   visible: boolean;
-  /** Empuje actual y objetivo del cursor; se interpolan para que no salte. */
-  actual: Deformacion;
-  objetivo: Deformacion;
 };
-
-/** Cuánto se abulta la silueta hacia el puntero, en unidades del viewBox 0-100. */
-const FUERZA_CURSOR = 9;
-const ALCANCE_CURSOR = 42;
-/** Suavizado del seguimiento: bajo = líquido y perezoso, alto = pegado al ratón. */
-const SUAVIZADO = 0.12;
 
 export type ControlBlobs = { destruir: () => void };
 
 export function animarBlobs(raiz: ParentNode = document): ControlBlobs {
   const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)");
-  // Sin puntero fino (móvil, tablet) la reactividad al ratón no aplica.
-  const punteroFino = window.matchMedia("(hover: hover) and (pointer: fine)");
 
   const nodos = [...raiz.querySelectorAll<HTMLElement>("[data-blob]")];
   const vivos: BlobVivo[] = [];
@@ -68,18 +60,13 @@ export function animarBlobs(raiz: ParentNode = document): ControlBlobs {
     ];
     if (paths.length === 0) continue;
 
-    const cero = (): Deformacion => ({ x: 50, y: 50, fuerza: 0, alcance: ALCANCE_CURSOR });
-
     vivos.push({
       elemento,
       vertices,
       encaje,
       paths,
-      reactivo: !elemento.hasAttribute("data-sin-cursor"),
       desfase: Number(elemento.dataset.desfase ?? 0),
       visible: false,
-      actual: cero(),
-      objetivo: cero(),
     });
   }
 
@@ -99,55 +86,12 @@ export function animarBlobs(raiz: ParentNode = document): ControlBlobs {
   );
   for (const v of vivos) observador.observe(v.elemento);
 
-  // --- Cursor -----------------------------------------------------------
-  const alMover = (evento: PointerEvent) => {
-    for (const vivo of vivos) {
-      if (!vivo.visible || !vivo.reactivo) continue;
-
-      const r = vivo.elemento.getBoundingClientRect();
-      if (r.width === 0) continue;
-
-      const dentro =
-        evento.clientX >= r.left &&
-        evento.clientX <= r.right &&
-        evento.clientY >= r.top &&
-        evento.clientY <= r.bottom;
-
-      if (dentro) {
-        // A coordenadas locales del viewBox (0-100).
-        vivo.objetivo.x = ((evento.clientX - r.left) / r.width) * 100;
-        vivo.objetivo.y = ((evento.clientY - r.top) / r.height) * 100;
-        vivo.objetivo.fuerza = FUERZA_CURSOR;
-      } else {
-        vivo.objetivo.fuerza = 0;
-      }
-    }
-  };
-
-  const escuchaCursor = punteroFino.matches && !sinMovimiento.matches;
-  if (escuchaCursor) {
-    window.addEventListener("pointermove", alMover, { passive: true });
-  }
-
   // --- Bucle ------------------------------------------------------------
   const pintar = (tiempo: number) => {
     for (const vivo of vivos) {
       if (!vivo.visible) continue;
 
-      // El empuje persigue a su objetivo en vez de saltar: el borde se
-      // deforma con inercia, que es lo que lo hace sentir líquido.
-      const a = vivo.actual;
-      const o = vivo.objetivo;
-      a.x += (o.x - a.x) * SUAVIZADO;
-      a.y += (o.y - a.y) * SUAVIZADO;
-      a.fuerza += (o.fuerza - a.fuerza) * SUAVIZADO;
-
-      const d = construirPath(
-        vivo.vertices,
-        tiempo + vivo.desfase,
-        a.fuerza > 0.05 ? a : null,
-        vivo.encaje,
-      );
+      const d = construirPath(vivo.vertices, tiempo + vivo.desfase, null, vivo.encaje);
 
       for (const p of vivo.paths) p.setAttribute("d", d);
     }
@@ -170,7 +114,6 @@ export function animarBlobs(raiz: ParentNode = document): ControlBlobs {
       activo = false;
       cancelAnimationFrame(cuadro);
       observador.disconnect();
-      if (escuchaCursor) window.removeEventListener("pointermove", alMover);
     },
   };
 }

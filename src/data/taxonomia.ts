@@ -51,7 +51,7 @@ export const CATEGORIAS = {
   pendiente: {
     /* Variante para el blob viajero, que pasa por detrás de texto. */
     colorHondo: "var(--df-blue-deep)",
-    etiqueta: "Ficha en preparación",
+    etiqueta: "Próximamente",
     color: "var(--df-bone)",
     colorTexto: "var(--df-ink)",
   },
@@ -60,6 +60,15 @@ export const CATEGORIAS = {
 export type ClaveCategoria = keyof typeof CATEGORIAS;
 
 export const COMUNIDADES = ["Sabanilla", "Los Lojas"] as const;
+
+/**
+ * La comunidad de cada emprendedor NO se publica por ahora: dar la ubicación
+ * los expone a extorsión ("vacunas"). El dato se conserva y la lógica de
+ * filtros sigue intacta; para volver a mostrarla basta con poner `true`.
+ * Con `false` no sale ni en el HTML: ni píldoras, ni filtros, ni atributos,
+ * ni datos estructurados.
+ */
+export const MOSTRAR_COMUNIDAD = false;
 export type Comunidad = (typeof COMUNIDADES)[number];
 
 export const esClaveCategoria = (v: unknown): v is ClaveCategoria =>

@@ -25,8 +25,6 @@ type Props = {
   prioritaria?: boolean;
   /** Ancho real en pantalla, para que el navegador elija bien del srcset. */
   sizes?: string;
-  /** Marca visible cuando el retrato todavía no es el de esta persona. */
-  fotoPendiente?: boolean;
   /** Ruta del vídeo. Sin esto el blob es solo foto. */
   video?: string | null;
   /**
@@ -43,7 +41,6 @@ const {
   color,
   prioritaria = false,
   sizes = "(max-width: 767px) 88vw, 42vw",
-  fotoPendiente = false,
   video = null,
   videoModo = "hover",
 } = Astro.props;
@@ -116,16 +113,6 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
     )
   }
 
-  {
-    fotoPendiente && (
-      <p class="aviso-foto">
-        <span aria-hidden="true">⚠</span> Foto pendiente
-        <span class="solo-lectores">
-          — la imagen mostrada no corresponde a esta persona
-        </span>
-      </p>
-    )
-  }
 </div>
 
 <script>
@@ -205,8 +192,7 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
     opacity: 1;
   }
 
-  .marca-video,
-  .aviso-foto {
+  .marca-video {
     position: absolute;
     inset-inline: 0;
     margin: 0 auto;
@@ -245,14 +231,4 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
     translate: 0 0.5em;
   }
 
-  .aviso-foto {
-    bottom: 10%;
-    background: var(--df-yellow);
-    color: var(--df-ink);
-  }
-
-  /* Si hay ambos, el aviso de foto sube para no pisar la marca de vídeo. */
-  .marca-video ~ .aviso-foto {
-    bottom: calc(10% + 2.6em);
-  }
 </style>

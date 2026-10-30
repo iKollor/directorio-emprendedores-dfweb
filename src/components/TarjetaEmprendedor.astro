@@ -7,7 +7,7 @@
  * negocio que no podemos describir.
  */
 import Blob from "./Blob.astro";
-import { categoria } from "../data/taxonomia";
+import { MOSTRAR_COMUNIDAD, categoria } from "../data/taxonomia";
 import type { Emprendedor } from "../lib/directorio";
 
 type Props = {
@@ -26,7 +26,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
   {...props}
   class:list={["tarjeta", { pendiente: e.fichaPendiente }]}
   data-tarjeta
-  data-comunidad={e.comunidad}
+  data-comunidad={MOSTRAR_COMUNIDAD ? e.comunidad : undefined}
   data-categoria={e.categoria}
   style={`--acento:${cat.color}; --acento-texto:${cat.colorTexto}; --acento-hondo:${cat.colorHondo};`}
 >
@@ -34,13 +34,14 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
     <Blob
       slug={e.slug}
       foto={e.foto}
-      alt={e.fichaPendiente
-        ? `Retrato de ${e.nombre}`
-        : `${e.nombre}, ${e.emprendimiento}, comunidad ${e.comunidad}`}
+      alt={e.fotoPendiente
+        ? `Silueta: todavía no hay foto de ${e.nombre}`
+        : e.fichaPendiente
+          ? `Retrato de ${e.nombre}`
+          : `${e.nombre}, ${e.emprendimiento}`}
       color={cat.color}
       prioritaria={indice < 2}
       sizes="(max-width: 767px) 100vw, 42vw"
-      fotoPendiente={e.fotoPendiente}
       video={e.fichaPendiente ? null : e.video}
       videoModo="hover"
     />
@@ -48,7 +49,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
 
   <div class="texto">
     <p class="etiquetas">
-      <span class="pildora comunidad">{e.comunidad}</span>
+      {MOSTRAR_COMUNIDAD && <span class="pildora comunidad">{e.comunidad}</span>}
       <span class="pildora categoria">{cat.etiqueta}</span>
     </p>
 
@@ -61,7 +62,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
         <p class="nota">Su ficha estará disponible pronto.</p>
       ) : (
         <p class="ver" aria-hidden="true">
-          ¡Conócele! <span class="flecha">→</span>
+          ¡Conócelo! <span class="flecha">→</span>
         </p>
       )
     }

@@ -157,11 +157,15 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
     </script>
 
     <style>
-      .cabecera { position: relative; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.5rem var(--gutter); }
+      .cabecera { position: relative; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: clamp(1rem, 3vw, 1.5rem) var(--gutter); }
       .cabecera nav { display: flex; align-items: center; gap: clamp(1rem, 3vw, 2.5rem); }
       .cabecera nav a { display: inline-flex; align-items: center; gap: .6rem; min-height: 44px; font-size: var(--txt-s); font-weight: 500; text-decoration: none; }
       .cabecera nav a:hover { color: var(--df-yellow); }
-      @media (max-width: 480px) { .cabecera nav a:last-child { display: none; } }
+      /*
+       * En móvil la cabecera es solo la marca compartida: con dos logos no
+       * queda sitio para el menú, y el hero ya trae su botón al listado.
+       */
+      @media (max-width: 640px) { .cabecera nav { display: none; } }
       .saltar {
         position: absolute;
         top: -100px;

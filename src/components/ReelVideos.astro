@@ -17,7 +17,8 @@ import type { Emprendedor } from "../lib/directorio";
 type Props = { emprendedores: Emprendedor[] };
 const { emprendedores } = Astro.props;
 
-// Solo quien tiene ficha: el reel lleva a su página.
+// Solo quien tiene ficha y vídeo propio: el reel lleva a su página. Sin
+// ningún vídeo todavía, la sección entera no se muestra.
 const conVideo = emprendedores.filter((e) => !e.fichaPendiente && e.video);
 
 // Dos copias para el bucle. La segunda es decorativa: los lectores de pantalla
@@ -75,11 +76,6 @@ const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
           </ul>
         ))}
       </div>
-
-      <p class="aviso">
-        <span aria-hidden="true">⚠</span> Los videos son un ejemplo de stock:
-        todavía no son los de cada emprendedor.
-      </p>
     </section>
   )
 }
@@ -182,13 +178,6 @@ const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
   .enlace:focus-visible .marco {
     outline: 3px solid var(--df-yellow);
     outline-offset: 3px;
-  }
-
-  .aviso {
-    margin: clamp(1.25rem, 3vw, 2rem) 0 0;
-    padding-inline: var(--gutter);
-    font-size: var(--txt-s);
-    opacity: 0.7;
   }
 
   /*

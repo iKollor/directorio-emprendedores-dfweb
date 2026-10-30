@@ -1,5 +1,15 @@
 ---
 import Marca from "./Marca.astro";
+import NombreEscuela from "./NombreEscuela.astro";
+
+/*
+ * Solo las webs institucionales, sin redes sociales: el pie lleva a quien
+ * quiera saber más, no a perfiles que mezclan otra actividad.
+ */
+const SITIOS = [
+  { nombre: "Diseña Futuro", url: "https://disenafuturo.com/" },
+  { nombre: "Intervalores", url: "https://www.intervalores.com.ec/" },
+];
 ---
 
 <footer class="pie" id="sobre-la-escuela">
@@ -9,25 +19,23 @@ import Marca from "./Marca.astro";
       <p>Las oportunidades crecen<br />cuando nos conectamos.</p>
     </div>
     <div class="pie-escuela">
-      <h2>Ideas que construyen futuro.</h2>
-      <p>Los emprendedores de esta plataforma culminaron su proceso de formación y microcrédito con la Escuela de Emprendimiento de Diseña Futuro.</p>
-      <a class="enlace-sitio" href="https://disenafuturo.com/" target="_blank" rel="noopener noreferrer">Conoce Diseña Futuro <span aria-hidden="true">↗</span><span class="solo-lectores"> (abre en otra pestaña)</span></a>
+      <NombreEscuela tamano="pie" />
+      <p>Los emprendedores de esta plataforma se certificaron en el programa de la Escuela de Emprendimiento de Diseña Futuro, luego de culminar un proceso de fortalecimiento de conocimientos y desarrollo de habilidades blandas.</p>
     </div>
-    <nav class="redes" aria-label="Redes sociales de Diseña Futuro">
-      <h2>Sigamos conectados</h2>
-      <a href="https://www.instagram.com/disenafuturo/" target="_blank" rel="noopener noreferrer">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
-        Instagram <span class="salida" aria-hidden="true">↗</span><span class="solo-lectores"> (abre en otra pestaña)</span>
-      </a>
-      <a href="https://www.linkedin.com/company/disenafuturo" target="_blank" rel="noopener noreferrer">
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM3.5 9h3v12h-3V9Zm5.5 0h3v1.6c.8-1.2 1.9-1.9 3.5-1.9 3 0 4.5 1.9 4.5 5.3v7h-3v-6.5c0-2-.6-3-2.2-3-1.8 0-2.8 1.2-2.8 3.4V21H9V9Z"/></svg>
-        LinkedIn <span class="salida" aria-hidden="true">↗</span><span class="solo-lectores"> (abre en otra pestaña)</span>
-      </a>
+    <nav class="sitios" aria-label="Sitios web de las organizaciones">
+      <h2>Conoce más</h2>
+      {
+        SITIOS.map((s) => (
+          <a href={s.url} target="_blank" rel="noopener noreferrer">
+            {s.nombre} <span class="salida" aria-hidden="true">↗</span>
+            <span class="solo-lectores"> (abre en otra pestaña)</span>
+          </a>
+        ))
+      }
     </nav>
   </div>
   <div class="pie-base">
-    <p>© {new Date().getFullYear()} Diseña Futuro</p>
-    <p>Sabanilla y Los Lojas · Daule, Ecuador</p>
+    <p>© {new Date().getFullYear()} Diseña Futuro · Intervalores</p>
     <a href="#inicio">Volver arriba <span aria-hidden="true">↑</span></a>
   </div>
 </footer>
@@ -36,14 +44,11 @@ import Marca from "./Marca.astro";
   .pie { position: relative; z-index: 2; background: var(--df-blue-deep); border-radius: clamp(2rem, 5vw, 4rem) clamp(2rem, 5vw, 4rem) 0 0; padding: clamp(3rem, 6vw, 6rem) var(--gutter) 1.5rem; }
   .pie-principal { display: grid; grid-template-columns: 1fr 1.3fr 0.8fr; gap: clamp(2rem, 5vw, 5rem); padding-bottom: 4rem; }
   .pie-marca p { margin: 1.4rem 0 0; font-size: var(--txt-s); }
-  .pie-escuela h2 { font-size: var(--txt-l); line-height: 1.15; }
-  .pie-escuela p { max-width: 44ch; font-size: var(--txt-s); margin: 1rem 0 1.5rem; }
-  .enlace-sitio { color: var(--df-yellow); font-weight: 600; text-underline-offset: 5px; }
-  .redes h2 { font-size: var(--txt-s); font-weight: 500; letter-spacing: 0; margin-bottom: 1rem; line-height: 1.5; }
-  .redes a { display: flex; align-items: center; gap: .7rem; min-height: 48px; border-bottom: 1px solid rgb(239 238 237 / .25); text-decoration: none; }
-  .redes svg { width: 20px; height: 20px; }
+  .pie-escuela p { max-width: 44ch; font-size: var(--txt-s); margin: 1.25rem 0 0; }
+  .sitios h2 { font-size: var(--txt-s); font-weight: 500; letter-spacing: 0; margin-bottom: 1rem; line-height: 1.5; }
+  .sitios a { display: flex; align-items: center; gap: .7rem; min-height: 48px; border-bottom: 1px solid rgb(239 238 237 / .25); font-weight: 600; text-decoration: none; }
   .salida { margin-left: auto; }
-  .redes a:hover, .pie-base a:hover { color: var(--df-yellow); }
+  .sitios a:hover, .pie-base a:hover { color: var(--df-yellow); }
   .pie-base { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem 2rem; border-top: 1px solid rgb(239 238 237 / .25); padding-top: 1.5rem; font-size: var(--txt-s); }
   .pie-base p { margin: 0; }
   .pie-base a { display: inline-flex; gap: 1rem; align-items: center; min-height: 44px; text-decoration: none; }

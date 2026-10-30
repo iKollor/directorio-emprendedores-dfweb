@@ -2,22 +2,23 @@
 import Base from "../layouts/Base.astro";
 import ListaEmprendedores from "../components/ListaEmprendedores.astro";
 import ReelVideos from "../components/ReelVideos.astro";
+import NombreEscuela from "../components/NombreEscuela.astro";
 import { getEmprendedores } from "../lib/directorio";
 
 const emprendedores = await getEmprendedores();
 
 // El texto sale del PDF de introducción a la plataforma, no es inventado.
+// Sin nombres de comunidades: la ubicación no se publica por seguridad.
 const descripcion =
   "Conoce a los emprendedores de la Escuela de Emprendimiento de Diseña Futuro. " +
-  "Descubre sus negocios en Sabanilla y Los Lojas, cantón Daule, y contáctalos directamente.";
+  "Descubre sus negocios y contáctalos directamente.";
 ---
 
 <Base titulo="Emprendedores · Diseña Futuro" descripcion={descripcion}>
   <main>
   <section class="hero" aria-labelledby="titulo-hero">
-    <!-- El bloque medido: el blob viajero arranca ocupando exactamente esta caja. -->
-    <div class="hero-texto" data-hero-texto>
-      <p class="kicker">Escuela de Emprendimiento · Diseña Futuro</p>
+    <div class="hero-texto">
+      <NombreEscuela />
 
       <h1 id="titulo-hero">Conoce a nuestros <strong>emprendedores</strong></h1>
 
@@ -40,7 +41,7 @@ const descripcion =
         <span aria-hidden="true">↓</span>
       </a>
     </div>
-    <p class="hero-lugar">Sabanilla & Los Lojas <span>Ideas locales. Nuevas oportunidades.</span></p>
+    <p class="hero-lugar">Ideas locales. Nuevas oportunidades.</p>
   </section>
 
   <ReelVideos emprendedores={emprendedores} />
@@ -55,11 +56,6 @@ const descripcion =
    * El hero ocupa una pantalla, pero el contenido se reparte por el centro.
    * Antes el bloque de texto se empujaba al fondo con `margin-block-start:auto`
    * y dejaba un agujero enorme entre el titular y la introducción.
-   */
-  /*
-   * El hero se apila por encima del listado. Los respaldos que arrancan aquí
-   * pertenecen a tarjetas que van después en el DOM, así que sin esto pintarían
-   * sobre el titular y lo dejarían lavado.
    */
   .hero {
     position: relative;
@@ -81,30 +77,11 @@ const descripcion =
     gap: clamp(0.9rem, 2vw, 1.6rem);
   }
 
-  /*
-   * La palabra acento iba en amarillo de marca y desaparecía cuando el blob
-   * del hero pasaba por su tono amarillo: amarillo sobre amarillo.
-   *
-   * Ahora va en hueso, como el resto del texto, y destaca por peso y por un
-   * subrayado amarillo grueso. El subrayado sí puede ser de marca porque es
-   * una forma, no texto que haya que leer: aunque pierda contraste contra un
-   * tono concreto del ciclo, la palabra sigue siendo legible.
-   *
-   * Peor caso del hueso contra el ciclo y el fondo: 4.52 (AA pide 4.5).
-   */
+  /* La palabra acento destaca por peso y por un subrayado amarillo grueso. */
   .resalte {
     color: inherit;
     font-weight: 700;
     box-shadow: inset 0 -0.14em 0 var(--df-yellow);
-  }
-
-  .kicker {
-    margin: 0;
-    font-size: var(--txt-s);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    opacity: 0.9;
   }
 
   h1 {
@@ -142,6 +119,5 @@ const descripcion =
     line-height: 1.15;
   }
 
-  .hero-lugar { margin: 2.5rem 0 0; display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; font-size: var(--txt-s); }
-  .hero-lugar span { opacity: .8; }
+  .hero-lugar { margin: 2.5rem 0 0; font-size: var(--txt-s); opacity: .8; }
 </style>
