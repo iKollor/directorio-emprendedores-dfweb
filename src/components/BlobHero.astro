@@ -3,10 +3,14 @@
  * El escenario del hero: un blob grande que va pasando por los emprendedores.
  *
  * Cada escena es una persona: su vídeo si lo tiene y, si no, su foto con un
- * zoom lento. Detrás respira otro blob que toma el color de su categoría y
- * gira al cambiar de escena. Abajo, una etiqueta con su nombre que lleva a su
- * ficha, y barras de progreso al estilo "historias" que también sirven para
- * saltar a otra persona.
+ * zoom lento. Abajo, una etiqueta con su nombre que lleva a su ficha, y
+ * barras de progreso al estilo "historias" que también sirven para saltar a
+ * otra persona.
+ *
+ * UN SOLO BLOB, fijo en su sitio. Hubo una versión con un segundo blob de
+ * color detrás que giraba y cambiaba de tono, y otra con el blob rebotando al
+ * cambiar de escena: las dos recordaban a la "mancha" que Diseña Futuro pidió
+ * quitar. Aquí solo cambia lo que hay dentro.
  *
  * Solo entra quien tiene foto o vídeo propio: una silueta neutra en el hero
  * no le dice nada a nadie. Primero van quienes tienen vídeo.
@@ -31,25 +35,11 @@ const escenas = emprendedores
   .map((e) => ({ e, cat: categoria(e.categoria) }));
 
 const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, radio: 38, lado: 92 });
-const fondo = generarBlob("hero-fondo", { lados: 7, irregularidad: 0.15, radio: 40, lado: 98 });
 ---
 
 {
   escenas.length > 0 && (
     <div class="escenario" data-escenario data-anim="pop" data-anim-retraso="0.2">
-      <div
-        class="fondo"
-        data-blob
-        data-vertices={JSON.stringify(fondo.vertices)}
-        data-encaje={JSON.stringify(fondo.encaje)}
-        data-desfase="11"
-        aria-hidden="true"
-      >
-        <svg viewBox={fondo.viewBox} preserveAspectRatio="none">
-          <path data-path data-fondo d={construirPath(fondo.vertices, 11, null, fondo.encaje)} style={`fill:${escenas[0]!.cat.color}`} />
-        </svg>
-      </div>
-
       <div class="marco" data-marco>
         <div
           class="blob"
@@ -67,8 +57,8 @@ const fondo = generarBlob("hero-fondo", { lados: 7, irregularidad: 0.15, radio: 
           </svg>
 
           <div class="recorte" style="clip-path: url(#recorte-escenario)">
-            {escenas.map(({ e, cat }, i) => (
-              <div class="escena" data-escena data-color={cat.color} data-activa={i === 0 ? "" : undefined} style={`--c:${cat.color}`}>
+            {escenas.map(({ e }, i) => (
+              <div class="escena" data-escena data-activa={i === 0 ? "" : undefined}>
                 <Image
                   src={e.foto}
                   alt=""
@@ -133,23 +123,9 @@ const fondo = generarBlob("hero-fondo", { lados: 7, irregularidad: 0.15, radio: 
     aspect-ratio: 1;
   }
 
-  .fondo,
   .marco {
     position: absolute;
     inset: 0;
-  }
-
-  /* El blob de color sobresale por detrás, desplazado y algo más grande. */
-  .fondo {
-    inset: -6% -10% 2% 6%;
-    rotate: 14deg;
-  }
-
-  .fondo svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
   }
 
   .blob,
@@ -349,14 +325,6 @@ const fondo = generarBlob("hero-fondo", { lados: 7, irregularidad: 0.15, radio: 
     const escenas = [...escenario.querySelectorAll<HTMLElement>("[data-escena]")];
     const rotulos = [...escenario.querySelectorAll<HTMLElement>("[data-rotulo]")];
     const botones = [...escenario.querySelectorAll<HTMLButtonElement>("[data-ir]")];
-    const marco = escenario.querySelector<HTMLElement>("[data-marco]")!;
-    const pathFondo = escenario.querySelector<SVGPathElement>("[data-fondo]")!;
-    const fondo = escenario.querySelector<HTMLElement>(".fondo")!;
-
-    // El color de cada categoría ya resuelto: GSAP no sabe interpolar var().
-    const colores = escenas.map((e) => getComputedStyle(e).getPropertyValue("--c").trim());
-    gsap.set(pathFondo, { fill: colores[0] });
-
     const reducido = sinMovimiento();
     let actual = 0;
     let progreso: gsap.core.Tween | null = null;
@@ -415,7 +383,6 @@ const fondo = generarBlob("hero-fondo", { lados: 7, irregularidad: 0.15, radio: 
         rotulos[antes]!.inert = true;
         sale.removeAttribute("data-activa");
         video(antes)?.pause();
-        gsap.set(pathFondo, { fill: colores[siguiente] });
         avanzar(siguiente);
         return;
       }
@@ -436,16 +403,6 @@ const fondo = generarBlob("hero-fondo", { lados: 7, irregularidad: 0.15, radio: 
         },
       });
       zoomLento(siguiente);
-
-      // El blob se aplasta y rebota como gelatina al cambiar de persona.
-      gsap.to(marco, {
-        keyframes: { scaleX: [1, 1.08, 0.96, 1.02, 1], scaleY: [1, 0.92, 1.04, 0.99, 1] },
-        duration: 1.1,
-        ease: "power1.inOut",
-      });
-      // El de color gira y toma el color de la nueva categoría.
-      gsap.to(fondo, { rotation: "+=38", duration: 1.4, ease: "power3.inOut" });
-      gsap.to(pathFondo, { fill: colores[siguiente], duration: 1.2, ease: "power2.inOut" });
 
       // Etiqueta: la vieja se va hacia arriba y la nueva cae con rebote.
       gsap.to(rotulos[antes]!, {
@@ -515,7 +472,7 @@ const fondo = generarBlob("hero-fondo", { lados: 7, irregularidad: 0.15, radio: 
       vista.kill();
       progreso?.kill();
       zoom?.kill();
-      gsap.killTweensOf([marco, fondo, pathFondo, ...escenas, ...rotulos]);
+      gsap.killTweensOf([...escenas, ...rotulos]);
       escenas.forEach((e) => e.querySelector("video")?.pause());
     };
   }
