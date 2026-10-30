@@ -40,11 +40,11 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
 
 <section class="listado" id="contenido" aria-labelledby="titulo-listado">
   <div class="listado-cabecera">
-    <div><p class="antetitulo">Talento de nuestras comunidades</p><h2 id="titulo-listado">Encuentra y conecta.</h2></div>
-    <p>Detrás de cada negocio,<br />hay una historia por conocer.</p>
+    <div><p class="antetitulo" data-anim="subir">Talento de nuestras comunidades</p><h2 id="titulo-listado" data-anim="letras" data-anim-retraso="0.1">Encuentra y conecta.</h2></div>
+    <p data-anim="lectura">Detrás de cada negocio,<br />hay una historia por conocer.</p>
   </div>
 
-  <div class="filtros" data-filtros>
+  <div class="filtros" data-filtros data-anim="pop" data-anim-hijos="legend, button">
     {comunidadesPresentes.length > 0 && (
     <fieldset>
       <legend>Comunidad</legend>
@@ -84,7 +84,10 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
 
   <div class="resultados">
   <p class="conteo" data-conteo role="status" aria-live="polite" aria-atomic="true">
-    {emprendedores.length} emprendedores
+    <!-- El número visible cuenta hacia el nuevo valor; el lector de pantalla
+         solo oye el resultado final, no cada paso intermedio. -->
+    <span aria-hidden="true" data-conteo-visible>{emprendedores.length} emprendedores</span>
+    <span class="solo-lectores" data-conteo-lector>{emprendedores.length} emprendedores</span>
   </p>
   <button class="limpiar-filtros" type="button" data-limpiar hidden>Limpiar filtros <span aria-hidden="true">↺</span></button>
   </div>
@@ -236,6 +239,34 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   import { obtenerScroll, sinMovimiento } from "../lib/scroll";
 
   gsap.registerPlugin(Flip, ScrollTrigger);
+
+  const rotulo = (n: number) => (n === 1 ? "1 emprendedor" : `${n} emprendedores`);
+
+  /** El contador corre hasta el nuevo total (el "CountUp" de React Bits). */
+  function contar(conteo: HTMLElement, total: number) {
+    const visible = conteo.querySelector<HTMLElement>("[data-conteo-visible]");
+    const lector = conteo.querySelector<HTMLElement>("[data-conteo-lector]");
+    if (lector) lector.textContent = rotulo(total);
+    if (!visible) return;
+
+    const valor = { n: Number(visible.dataset.valor ?? (parseInt(visible.textContent ?? "", 10) || 0)) };
+    visible.dataset.valor = String(total);
+    gsap.killTweensOf(visible);
+    if (sinMovimiento()) {
+      visible.textContent = rotulo(total);
+      return;
+    }
+    gsap.fromTo(visible, { scale: 1.25 }, { scale: 1, duration: 0.5, ease: "back.out(3)", clearProps: "transform" });
+    gsap.to(valor, {
+      n: total,
+      duration: 0.6,
+      ease: "power2.out",
+      snap: { n: 1 },
+      onUpdate: () => {
+        visible.textContent = rotulo(valor.n);
+      },
+    });
+  }
 
   /** Posición de cada retrato visible, independiente de las entradas. */
   function medirRetratos(celdas: HTMLElement[]) {
@@ -419,18 +450,19 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
           celda.dataset.columna = visibles % 2 === 0 ? "izq" : "der";
           visibles++;
           const tarjeta = celda.querySelector<HTMLElement>("[data-tarjeta]");
-          gsap.killTweensOf(tarjeta);
+          // La entrada pudo no haber ocurrido todavía: al filtrar, la tarjeta
+          // y sus partes se muestran ya en su estado final.
+          const partes = tarjeta?.querySelectorAll<HTMLElement>(".retrato, .etiquetas > *, .texto > :not(.etiquetas)") ?? [];
+          gsap.killTweensOf([tarjeta, ...partes]);
           gsap.set(tarjeta, { clearProps: "opacity,transform" });
+          gsap.set(partes, { clearProps: "opacity,visibility,transform" });
         } else {
           celda.querySelectorAll<HTMLVideoElement>("video").forEach(video => video.pause());
           celda.querySelector("[data-video-activo]")?.removeAttribute("data-video-activo");
         }
       }
 
-      if (conteo) {
-        conteo.textContent =
-          visibles === 1 ? "1 emprendedor" : `${visibles} emprendedores`;
-      }
+      if (conteo) contar(conteo, visibles);
       vacio?.toggleAttribute("hidden", visibles > 0);
       limpiarBoton?.toggleAttribute("hidden", activos.comunidad === "todas" && activos.categoria === "todas");
 
@@ -499,24 +531,36 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     const columnas = window.matchMedia("(min-width: 768px)");
     columnas.addEventListener("change", montarSnap, { signal });
 
-    // ---- Entrada y parallax ----------------------------------------------
+    // ---- Entrada --------------------------------------------------------
+    // El retrato crece y endereza su giro con rebote; la etiqueta salta y el
+    // texto sube en cascada. Los retratos nunca se transparentan: el blob
+    // siempre se ve opaco, solo se mueve.
     for (const celda of celdas) {
       const tarjeta = celda.querySelector<HTMLElement>("[data-tarjeta]");
+      if (!tarjeta || celda.classList.contains("oculta")) continue;
 
-      if (tarjeta) {
-        // Entrada por desplazamiento: los retratos permanecen opacos.
-        if (celda.classList.contains("oculta")) continue;
-        gsap.set(tarjeta, { y: 30 });
+      const retrato = tarjeta.querySelector<HTMLElement>(".retrato");
+      const pildoras = tarjeta.querySelectorAll<HTMLElement>(".etiquetas > *");
+      const lineas = tarjeta.querySelectorAll<HTMLElement>(".texto > :not(.etiquetas)");
+      const derecha = celda.dataset.columna === "der";
 
-        ScrollTrigger.create({
-          trigger: celda,
-          start: "top 92%",
-          once: true,
-          onEnter: () =>
-            gsap.to(tarjeta, { y: 0, duration: 0.7, ease: "power3.out", clearProps: "transform" }),
-        });
-      }
+      gsap.set(tarjeta, { y: 30 });
+      gsap.set(retrato, { scale: 0.8, rotation: derecha ? 6 : -6 });
+      gsap.set(pildoras, { autoAlpha: 0, scale: 0.5 });
+      gsap.set(lineas, { autoAlpha: 0, y: 18 });
 
+      ScrollTrigger.create({
+        trigger: celda,
+        start: "top 92%",
+        once: true,
+        onEnter: () => {
+          gsap.timeline()
+            .to(tarjeta, { y: 0, duration: 0.7, ease: "power3.out", clearProps: "transform" })
+            .to(retrato, { scale: 1, rotation: 0, duration: 1.1, ease: "back.out(1.6)", clearProps: "transform" }, 0)
+            .to(pildoras, { autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(2.5)", stagger: 0.06, clearProps: "opacity,visibility,transform" }, 0.25)
+            .to(lineas, { autoAlpha: 1, y: 0, duration: 0.6, ease: "power3.out", stagger: 0.07, clearProps: "opacity,visibility,transform" }, 0.35);
+        },
+      });
     }
   }
 

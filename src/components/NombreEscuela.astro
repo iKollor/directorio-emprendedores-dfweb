@@ -7,11 +7,11 @@
  * de la tipografía del logo, basta con declararla en tokens.css y apuntar
  * `--fuente-logo` a ella; este componente no cambia.
  */
-type Props = { tamano?: "hero" | "pie" };
-const { tamano = "hero" } = Astro.props;
+type Props = { tamano?: "hero" | "pie"; retraso?: number };
+const { tamano = "hero", retraso = 0 } = Astro.props;
 ---
 
-<p class:list={["escuela", tamano]}>
+<p class:list={["escuela", tamano]} data-anim="letras" data-anim-retraso={retraso}>
   <span>escuela de</span>
   <span>emprendimiento</span>
 </p>

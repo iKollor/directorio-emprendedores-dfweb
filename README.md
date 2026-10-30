@@ -219,6 +219,33 @@ tweens activos, y estas animaciones tienen que correr también con la página
 quieta. Van sobre `requestAnimationFrame` propio, uno solo para todos los blobs,
 y solo se evalúan los que un IntersectionObserver marca como visibles.
 
+### Animaciones de texto y entrada
+
+`src/lib/animaciones.ts` lee `data-anim` en el HTML y monta la animación con
+GSAP (SplitText + ScrollTrigger, gratis desde 3.13). Son versiones propias de
+efectos de React Bits, porque este sitio no usa React:
+
+| `data-anim` | Efecto | Dónde |
+|---|---|---|
+| `letras` | letras que suben desde su línea | titulares, "escuela de emprendimiento" |
+| `lineas` | líneas tras una máscara | oficio en la ficha |
+| `desenfoque` | palabras que entran desenfocadas (BlurText) | descripción, pie |
+| `lectura` | palabras que se encienden con el scroll (ScrollReveal) | cabecera del listado |
+| `subir` / `pop` | bloques que suben o crecen con rebote | intro, filtros, botones |
+| `revelar` | hijos que se destapan (clip-path) | galería de productos |
+| `subrayado` | el subrayado amarillo se dibuja | "apóyalos" |
+
+`data-anim-retraso` ordena la secuencia del hero y `data-anim-hijos` anima los
+hijos en cascada. Además: cinta de palabras que se acelera con la velocidad del
+scroll (`CintaPalabras.astro`, el ScrollVelocity de React Bits), contador que
+corre hasta el nuevo total al filtrar (CountUp), tarjetas que entran con
+rebote y brillo periódico en los botones amarillos.
+
+Reglas: nada sigue al puntero (ver "Los blobs"); los retratos nunca se
+transparentan; con movimiento reducido no se anima nada. Lo marcado se esconde
+hasta que GSAP fija su estado inicial, y un rescate en CSS lo muestra a los
+2.5 s si el JavaScript fallara.
+
 ### El vídeo
 
 Cada emprendedor puede tener el suyo en `src/assets/videos/<slug>.mp4`. Sin

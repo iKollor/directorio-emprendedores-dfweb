@@ -1,0 +1,178 @@
+---
+/**
+ * Dos cintas de palabras que corren en sentidos opuestos y se aceleran con la
+ * velocidad del scroll (el efecto "ScrollVelocity" de React Bits, hecho con
+ * GSAP). Al cambiar de sentido el scroll, las cintas también se dan la vuelta.
+ *
+ * Es decorativa: repite el lema del hero, así que se oculta a los lectores de
+ * pantalla. Cada pista lleva el texto dos veces y avanza hasta -50%, punto en
+ * el que la segunda copia ocupa el lugar de la primera: el bucle no tiene
+ * costura.
+ */
+const PALABRAS = ["explora", "conoce", "conecta", "apóyalos"];
+const FILAS = [
+  { sentido: 1, estilo: "lleno" },
+  { sentido: -1, estilo: "contorno" },
+] as const;
+---
+
+<section class="cinta" aria-hidden="true" data-cinta>
+  {
+    FILAS.map((fila) => (
+      <div class:list={["fila", fila.estilo]} data-sentido={fila.sentido}>
+        <div class="pista" data-pista>
+          {[0, 1].map(() => (
+            <span class="tramo">
+              {PALABRAS.map((p) => (
+                <>
+                  <span class="palabra">{p}</span>
+                  <span class="punto" />
+                </>
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
+    ))
+  }
+</section>
+
+<style>
+  .cinta {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1em;
+    padding-block: clamp(1.5rem, 5vw, 3.5rem);
+    overflow: hidden;
+    font-size: clamp(2.6rem, 9vw, 8rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    text-transform: lowercase;
+    user-select: none;
+  }
+
+  .fila {
+    display: flex;
+    white-space: nowrap;
+  }
+
+  .pista {
+    display: flex;
+    flex-shrink: 0;
+    will-change: transform;
+  }
+
+  .tramo {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .palabra {
+    padding-inline: 0.18em;
+  }
+
+  .contorno .palabra {
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--df-bone);
+  }
+
+  /* Un punto amarillo entre palabras, como la esfera del logo. */
+  .punto {
+    flex-shrink: 0;
+    width: 0.22em;
+    height: 0.22em;
+    margin-inline: 0.18em;
+    border-radius: 50%;
+    background: var(--df-yellow);
+  }
+
+  .contorno .punto {
+    background: var(--df-cyan);
+  }
+
+  /* La segunda fila arranca desplazada para no alinear las palabras. */
+  .contorno .pista {
+    translate: -25% 0;
+  }
+</style>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+  import { sinMovimiento } from "../lib/scroll";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  /** Velocidad de crucero, en segundos por vuelta completa. */
+  const VUELTA = 26;
+  /** Cuánto empuja el scroll: px/s de scroll que suman una velocidad extra. */
+  const SENSIBILIDAD = 450;
+  const MAXIMO = 5;
+
+  let contexto: gsap.Context | null = null;
+  let soltar: (() => void) | null = null;
+
+  function limpiar() {
+    soltar?.();
+    soltar = null;
+    contexto?.revert();
+    contexto = null;
+  }
+
+  function iniciar() {
+    limpiar();
+    const cinta = document.querySelector<HTMLElement>("[data-cinta]");
+    if (!cinta || sinMovimiento()) return;
+
+    contexto = gsap.context(() => {
+      const filas = [...cinta.querySelectorAll<HTMLElement>("[data-sentido]")].map((fila) => {
+        const pista = fila.querySelector<HTMLElement>("[data-pista]")!;
+        const base = Number(fila.dataset.sentido);
+        const giro = gsap.to(pista, { xPercent: -50, duration: VUELTA, ease: "none", repeat: -1 });
+        // Margen de tiempo hacia atrás: con timeScale negativo, un tween que
+        // empieza en 0 se detendría en seco en vez de seguir girando.
+        giro.totalTime(giro.duration() * 1000);
+        giro.timeScale(base);
+        const inclinar = gsap.quickTo(pista, "skewX", { duration: 0.5, ease: "power3" });
+        return { giro, base, inclinar };
+      });
+
+      let sentidoScroll = 1;
+      ScrollTrigger.create({
+        trigger: cinta,
+        start: "top bottom",
+        end: "bottom top",
+        onToggle: (self) => filas.forEach((f) => (self.isActive ? f.giro.resume() : f.giro.pause())),
+        onUpdate: (self) => {
+          const v = self.getVelocity();
+          if (self.direction !== 0) sentidoScroll = self.direction;
+          const empuje = 1 + Math.min(MAXIMO, Math.abs(v) / SENSIBILIDAD);
+          for (const f of filas) {
+            const crucero = f.base * sentidoScroll;
+            gsap.to(f.giro, {
+              timeScale: crucero * empuje,
+              duration: 0.2,
+              overwrite: true,
+              onComplete: () => {
+                gsap.to(f.giro, { timeScale: crucero, duration: 1.4, ease: "power2.out" });
+              },
+            });
+            f.inclinar(gsap.utils.clamp(-10, 10, (v / 300) * -f.base));
+          }
+        },
+      });
+
+      // Al soltar el scroll la inclinación vuelve a cero.
+      const enderezar = () => filas.forEach((f) => f.inclinar(0));
+      ScrollTrigger.addEventListener("scrollEnd", enderezar);
+      soltar = () => ScrollTrigger.removeEventListener("scrollEnd", enderezar);
+    });
+  }
+
+  document.addEventListener("astro:page-load", iniciar);
+  document.addEventListener("astro:before-swap", limpiar);
+</script>

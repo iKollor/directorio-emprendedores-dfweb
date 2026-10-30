@@ -133,6 +133,9 @@ a {
  * Botón píldora amarilla con texto azul: el CTA exacto de Diseña Futuro.
  */
 .pildora-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 0.6em;
@@ -150,6 +153,62 @@ a {
 
 .pildora-cta:hover {
   transform: scale(1.04);
+}
+
+/*
+ * ANIMACIONES — ver src/lib/animaciones.ts.
+ *
+ * Lo marcado con data-anim se esconde hasta que GSAP fija su estado inicial,
+ * para que no se vea el texto y luego desaparezca. Si el JavaScript falla, el
+ * rescate lo muestra a los 2.5 s: nunca queda contenido invisible.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [data-anim]:not(.anim-listo) {
+    visibility: hidden;
+    animation: anim-rescate 0s 2.5s forwards;
+  }
+
+  /* Brillo que cruza los botones amarillos cada pocos segundos. */
+  .pildora-cta::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.6) 50%, transparent 70%);
+    translate: -110% 0;
+    animation: brillo 5s var(--ease-suave) 1.8s infinite;
+    pointer-events: none;
+  }
+
+  .rebote {
+    display: inline-block;
+    animation: rebote 2.2s var(--ease-suave) 2s infinite;
+  }
+}
+
+/*
+ * La máscara de SplitText recorta justo a la altura de línea, y con los
+ * interlineados apretados de los titulares se comía los rasgos que bajan
+ * (la "p" de emprendimiento). El relleno agranda la máscara; el margen
+ * negativo deja el texto exactamente donde estaba.
+ */
+.anim-linea {
+  padding-block: 0.08em 0.16em;
+  margin-block: -0.08em -0.16em;
+}
+
+@keyframes anim-rescate {
+  to { visibility: visible; }
+}
+
+@keyframes brillo {
+  0% { translate: -110% 0; }
+  35%, 100% { translate: 110% 0; }
+}
+
+@keyframes rebote {
+  0%, 60%, 100% { translate: 0 0; }
+  30% { translate: 0 0.3em; }
 }
 
 .solo-lectores {

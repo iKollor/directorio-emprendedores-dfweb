@@ -72,6 +72,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         sinMovimiento,
       } from "../lib/scroll";
       import { animarBlobs, type ControlBlobs } from "../lib/blobRuntime";
+      import { animarTextos } from "../lib/animaciones";
 
       gsap.registerPlugin(ScrollTrigger);
 
@@ -123,6 +124,14 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         blobs = animarBlobs(document);
       }
 
+      /** Animaciones de texto y entrada declaradas con data-anim. */
+      let soltarTextos: (() => void) | null = null;
+
+      function montarTextos() {
+        soltarTextos?.();
+        soltarTextos = animarTextos(document);
+      }
+
       void arrancar();
 
       // Los scripts empaquetados no se reejecutan tras una transición de vista,
@@ -139,12 +148,15 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       document.addEventListener("astro:page-load", () => {
         obtenerScroll()?.start();
         montarBlobs();
+        montarTextos();
         ScrollTrigger.refresh();
       });
 
       document.addEventListener("astro:before-swap", () => {
         blobs?.destruir();
         blobs = null;
+        soltarTextos?.();
+        soltarTextos = null;
       });
 
       window
@@ -153,6 +165,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
           if (sinMovimiento()) detenerScroll();
           else void arrancar();
           montarBlobs();
+          montarTextos();
         });
     </script>
 

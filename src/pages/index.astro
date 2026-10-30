@@ -3,6 +3,7 @@ import Base from "../layouts/Base.astro";
 import ListaEmprendedores from "../components/ListaEmprendedores.astro";
 import ReelVideos from "../components/ReelVideos.astro";
 import NombreEscuela from "../components/NombreEscuela.astro";
+import CintaPalabras from "../components/CintaPalabras.astro";
 import { getEmprendedores } from "../lib/directorio";
 
 const emprendedores = await getEmprendedores();
@@ -18,11 +19,11 @@ const descripcion =
   <main>
   <section class="hero" aria-labelledby="titulo-hero">
     <div class="hero-texto">
-      <NombreEscuela />
+      <NombreEscuela retraso={0.1} />
 
-      <h1 id="titulo-hero">Conoce a nuestros <strong>emprendedores</strong></h1>
+      <h1 id="titulo-hero" data-anim="letras" data-anim-retraso="0.3">Conoce a nuestros <strong>emprendedores</strong></h1>
 
-      <div class="intro">
+      <div class="intro" data-anim="subir" data-anim-hijos data-anim-retraso="0.75">
         <p>
           Personas que decidieron apostar por sus ideas y convertir sus
           conocimientos y talentos en oportunidades para sus familias y sus
@@ -32,17 +33,21 @@ const descripcion =
         </p>
 
         <p class="cierre">
-          Explora, conoce, conecta y <span class="resalte">apóyalos</span>.
+          Explora, conoce, conecta y <span class="resalte" data-anim="subrayado" data-anim-retraso="1.4">apóyalos</span>.
         </p>
       </div>
 
-      <a class="pildora-cta" href="#contenido">
-        ¡Conoce a los emprendedores!
-        <span aria-hidden="true">↓</span>
-      </a>
+      <div data-anim="pop" data-anim-retraso="1.05">
+        <a class="pildora-cta" href="#contenido">
+          ¡Conoce a los emprendedores!
+          <span class="rebote" aria-hidden="true">↓</span>
+        </a>
+      </div>
     </div>
-    <p class="hero-lugar">Ideas locales. Nuevas oportunidades.</p>
+    <p class="hero-lugar" data-anim="subir" data-anim-retraso="1.3">Ideas locales. Nuevas oportunidades.</p>
   </section>
+
+  <CintaPalabras />
 
   <ReelVideos emprendedores={emprendedores} />
 
@@ -81,7 +86,8 @@ const descripcion =
   .resalte {
     color: inherit;
     font-weight: 700;
-    box-shadow: inset 0 -0.14em 0 var(--df-yellow);
+    /* Fondo y no box-shadow: así el ancho se puede animar (data-anim="subrayado"). */
+    background: linear-gradient(var(--df-yellow), var(--df-yellow)) no-repeat 0 100% / var(--subrayado, 100%) 0.14em;
   }
 
   h1 {

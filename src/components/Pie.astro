@@ -14,15 +14,15 @@ const SITIOS = [
 
 <footer class="pie" id="sobre-la-escuela">
   <div class="pie-principal">
-    <div class="pie-marca">
+    <div class="pie-marca" data-anim="subir" data-anim-hijos>
       <Marca grande />
       <p>Las oportunidades crecen<br />cuando nos conectamos.</p>
     </div>
     <div class="pie-escuela">
       <NombreEscuela tamano="pie" />
-      <p>Los emprendedores de esta plataforma se certificaron en el programa de la Escuela de Emprendimiento de Diseña Futuro, luego de culminar un proceso de fortalecimiento de conocimientos y desarrollo de habilidades blandas.</p>
+      <p data-anim="desenfoque" data-anim-retraso="0.2">Los emprendedores de esta plataforma se certificaron en el programa de la Escuela de Emprendimiento de Diseña Futuro, luego de culminar un proceso de fortalecimiento de conocimientos y desarrollo de habilidades blandas.</p>
     </div>
-    <nav class="sitios" aria-label="Sitios web de las organizaciones">
+    <nav class="sitios" aria-label="Sitios web de las organizaciones" data-anim="subir" data-anim-hijos data-anim-retraso="0.2">
       <h2>Conoce más</h2>
       {
         SITIOS.map((s) => (
@@ -46,9 +46,14 @@ const SITIOS = [
   .pie-marca p { margin: 1.4rem 0 0; font-size: var(--txt-s); }
   .pie-escuela p { max-width: 44ch; font-size: var(--txt-s); margin: 1.25rem 0 0; }
   .sitios h2 { font-size: var(--txt-s); font-weight: 500; letter-spacing: 0; margin-bottom: 1rem; line-height: 1.5; }
-  .sitios a { display: flex; align-items: center; gap: .7rem; min-height: 48px; border-bottom: 1px solid rgb(239 238 237 / .25); font-weight: 600; text-decoration: none; }
+  .sitios a { position: relative; display: flex; align-items: center; gap: .7rem; min-height: 48px; border-bottom: 1px solid rgb(239 238 237 / .25); font-weight: 600; text-decoration: none; }
   .salida { margin-left: auto; }
   .sitios a:hover, .pie-base a:hover { color: var(--df-yellow); }
+  /* Línea amarilla que recorre el borde inferior al pasar el puntero. */
+  .sitios a::after { content: ""; position: absolute; inset: auto 0 -1px; height: 2px; background: var(--df-yellow); scale: 0 1; transform-origin: left; transition: scale var(--dur-media) var(--ease-suave); }
+  .sitios a:hover::after, .sitios a:focus-visible::after { scale: 1 1; }
+  .sitios a .salida { transition: translate var(--dur-rapida) var(--ease-suave); }
+  .sitios a:hover .salida { translate: .2em -.2em; }
   .pie-base { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem 2rem; border-top: 1px solid rgb(239 238 237 / .25); padding-top: 1.5rem; font-size: var(--txt-s); }
   .pie-base p { margin: 0; }
   .pie-base a { display: inline-flex; gap: 1rem; align-items: center; min-height: 44px; text-decoration: none; }

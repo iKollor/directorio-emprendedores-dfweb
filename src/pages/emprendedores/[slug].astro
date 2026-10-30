@@ -44,7 +44,7 @@ const datosEstructurados = {
 
 <Base titulo={e.nombre} descripcion={descripcion} imagen={e.foto.src}>
   <main class="ficha" style={`--acento:${cat.color}; --acento-texto:${cat.colorTexto};`}>
-    <nav class="volver">
+    <nav class="volver" data-anim="subir">
       <a href="/">
         <span aria-hidden="true">←</span> Todos los emprendedores
       </a>
@@ -65,27 +65,29 @@ const datosEstructurados = {
       </div>
 
       <div class="texto">
-        <p class="etiquetas">
+        <p class="etiquetas" data-anim="pop" data-anim-hijos data-anim-retraso="0.15">
           {MOSTRAR_COMUNIDAD && <span class="pildora comunidad">{e.comunidad}</span>}
           <span class="pildora categoria">{cat.etiqueta}</span>
         </p>
 
         <h1 transition:name={`nombre-${e.slug}`}>{e.nombre}</h1>
-        <p class="emprendimiento">{e.emprendimiento}</p>
+        <p class="emprendimiento" data-anim="lineas" data-anim-retraso="0.25">{e.emprendimiento}</p>
 
-        <div class="descripcion">
+        <div class="descripcion" data-anim="desenfoque" data-anim-retraso="0.4">
           {e.parrafos.map((p) => <p>{p}</p>)}
         </div>
 
-        <BotonWhatsapp nombre={e.nombre} whatsapp={e.whatsapp} telefono={e.telefono} />
+        <div data-anim="pop" data-anim-retraso="0.7">
+          <BotonWhatsapp nombre={e.nombre} whatsapp={e.whatsapp} telefono={e.telefono} />
+        </div>
       </div>
     </div>
 
     {
       e.galeria.length > 0 && (
         <section class="galeria" aria-labelledby="titulo-galeria">
-          <h2 id="titulo-galeria">Su trabajo</h2>
-          <ul>
+          <h2 id="titulo-galeria" data-anim="letras">Su trabajo</h2>
+          <ul data-anim="revelar" data-anim-hijos>
             {e.galeria.map((foto, i) => (
               <li>
                 <Image
