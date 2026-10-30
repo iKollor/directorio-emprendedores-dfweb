@@ -219,6 +219,19 @@ tweens activos, y estas animaciones tienen que correr también con la página
 quieta. Van sobre `requestAnimationFrame` propio, uno solo para todos los blobs,
 y solo se evalúan los que un IntersectionObserver marca como visibles.
 
+### El escenario del hero
+
+`BlobHero.astro`: un blob grande que va pasando por los emprendedores cada
+5.5 s. Muestra el vídeo de cada persona si existe y, si no, su foto con un zoom
+lento. Detrás, otro blob toma el color de su categoría y gira en cada cambio;
+el blob principal se aplasta y rebota como gelatina. Una etiqueta con nombre y
+oficio lleva a la ficha, y las barras tipo "historias" permiten saltar.
+
+Solo entra quien tiene foto o vídeo propio (no siluetas), con prioridad para
+quien tiene vídeo, hasta 8 personas. Se pausa con el puntero o el foco encima,
+fuera de pantalla y con la pestaña oculta. Con movimiento reducido no avanza
+solo ni reproduce vídeo: las barras siguen sirviendo para cambiar a mano.
+
 ### Animaciones de texto y entrada
 
 `src/lib/animaciones.ts` lee `data-anim` en el HTML y monta la animación con
