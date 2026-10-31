@@ -486,7 +486,9 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       }
     };
 
-    escenario.addEventListener("pointerenter", () => pausar("puntero", true), { signal });
+    // Solo el ratón pausa al pasar por encima: en pantallas táctiles un toque
+    // no es "estar leyendo", y la pausa podía no soltarse nunca.
+    escenario.addEventListener("pointerenter", (e) => pausar("puntero", e.pointerType === "mouse"), { signal });
     escenario.addEventListener("pointerleave", () => pausar("puntero", false), { signal });
     // Solo el foco de teclado pausa: un clic deja el foco en la barra, y con
     // el ratón ya fuera la rotación se quedaba detenida para siempre.
