@@ -3,7 +3,8 @@
  * El escenario del hero: un blob grande que va pasando por los emprendedores.
  *
  * Cada escena es una persona: su vídeo si lo tiene y, si no, su foto con un
- * zoom lento. Abajo, una etiqueta con su nombre que lleva a su ficha, y una
+ * zoom lento. Cada cambio usa una transición con resorte elegida al azar
+ * (zoom, deslizar, giro o burbuja), sin repetir la anterior. Abajo, una etiqueta con su nombre que lleva a su ficha, y una
  * barra por persona que marca el tiempo y sirve para saltar a ella.
  *
  * ORDEN ALEATORIO: arranca con una persona al azar y sigue sacándolas de una
@@ -150,9 +151,11 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     background: var(--df-blue-deep);
   }
 
+  /* `overflow` recorta la foto cuando la escena se redondea (transición burbuja). */
   .escena {
     position: absolute;
     inset: 0;
+    overflow: hidden;
     opacity: 0;
   }
 
@@ -180,7 +183,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     opacity: 1;
   }
 
-  /* Etiqueta sobre el borde inferior del blob. */
+  /* Etiqueta tipo pegatina, inclinada, sobre el borde inferior del blob. */
   .rotulos {
     position: absolute;
     left: -2%;
@@ -201,8 +204,9 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     background: var(--df-bone);
     color: var(--df-ink);
     text-decoration: none;
+    rotate: -3deg;
     box-shadow: 0 1.25rem 2.5rem -1rem rgb(7 49 165 / 0.6);
-    transition: translate var(--dur-media) var(--ease-suave), box-shadow var(--dur-media) var(--ease-suave);
+    transition: rotate var(--dur-media) var(--ease-suave), scale var(--dur-media) var(--ease-suave);
   }
 
   .rotulo[inert] {
@@ -211,8 +215,8 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
 
   .rotulo:hover,
   .rotulo:focus-visible {
-    translate: 0 -3px;
-    box-shadow: 0 1.75rem 3rem -1rem rgb(7 49 165 / 0.7);
+    rotate: 0deg;
+    scale: 1.04;
   }
 
   .cat {
@@ -312,7 +316,6 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
 <script>
   import { gsap } from "gsap";
   import { ScrollTrigger } from "gsap/ScrollTrigger";
-  import { SALIDA, SUAVE } from "../lib/movimiento";
   import { sinMovimiento } from "../lib/scroll";
 
   gsap.registerPlugin(ScrollTrigger);
@@ -372,7 +375,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       zoom?.kill();
       const img = imagen(i);
       if (!img || reducido) return;
-      zoom = gsap.fromTo(img, { scale: 1 }, { scale: 1.08, duration: DURACION + 2, ease: "sine.out", paused: detenido });
+      zoom = gsap.fromTo(img, { scale: 1 }, { scale: 1.12, duration: DURACION + 1.5, ease: "none", paused: detenido });
     }
 
     function marcarTiempo(i: number) {
@@ -390,6 +393,51 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
         { scaleX: 0 },
         { scaleX: 1, duration: DURACION, ease: "none", paused: detenido, onComplete: () => irA(siguienteAlAzar()) },
       );
+    }
+
+    // ---- Transiciones con resorte -------------------------------------------
+    /*
+     * Cada cambio de persona usa una al azar, sin repetir la anterior. Todas
+     * mueven solo la escena que entra: el contorno del blob no se toca.
+     */
+    const lado = () => gsap.utils.random([-1, 1]);
+    const TRANSICIONES: ((entra: HTMLElement) => gsap.core.Timeline)[] = [
+      // Zoom: llega grande y se asienta con un rebote.
+      (entra) =>
+        gsap.timeline().fromTo(
+          entra,
+          { opacity: 0, scale: 1.35 },
+          { opacity: 1, scale: 1, duration: 1, ease: "back.out(1.7)" },
+        ),
+      // Deslizar: entra desde un borde al azar y se pasa un poco.
+      (entra) => {
+        const eje = gsap.utils.random(["xPercent", "yPercent"]);
+        return gsap.timeline().fromTo(
+          entra,
+          { [eje]: 100 * lado() },
+          { [eje]: 0, duration: 1, ease: "back.out(1.4)" },
+        );
+      },
+      // Giro: entra girando y grande, y se endereza.
+      (entra) =>
+        gsap.timeline().fromTo(
+          entra,
+          { opacity: 0, rotation: 28 * lado(), scale: 1.5 },
+          { opacity: 1, rotation: 0, scale: 1, duration: 1.1, ease: "back.out(1.5)" },
+        ),
+      // Burbuja: nace redonda y pequeña en el centro y crece elástica.
+      (entra) =>
+        gsap
+          .timeline()
+          .fromTo(entra, { scale: 0.2 }, { scale: 1, duration: 1.3, ease: "elastic.out(1, 0.6)" })
+          .fromTo(entra, { borderRadius: "50%" }, { borderRadius: "0%", duration: 0.9, ease: "power2.out" }, 0),
+    ];
+
+    let ultimaTransicion = -1;
+    function transicionAlAzar() {
+      const opciones = TRANSICIONES.map((_, i) => i).filter((i) => i !== ultimaTransicion);
+      ultimaTransicion = gsap.utils.random(opciones);
+      return ultimaTransicion;
     }
 
     // ---- Cambio de persona -------------------------------------------------
@@ -411,9 +459,9 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       const terminar = () => {
         entra.setAttribute("data-activa", "");
         sale.removeAttribute("data-activa");
-        gsap.set([entra, sale], { clearProps: "opacity,zIndex,clipPath,transform" });
+        gsap.set([entra, sale], { clearProps: "opacity,zIndex,transform,borderRadius" });
         rotulos.forEach((r, j) => (r.inert = j !== siguiente));
-        gsap.set([rotuloSale, rotuloEntra], { clearProps: "transform,opacity,visibility,filter" });
+        gsap.set([rotuloSale, rotuloEntra], { clearProps: "transform,opacity,visibility" });
         const v = video(antes);
         if (v) {
           v.pause();
@@ -430,27 +478,22 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
         return;
       }
 
-      /*
-       * La nueva persona se abre en un círculo desde un punto al azar y tapa
-       * a la anterior, que se queda quieta debajo: nunca asoma el fondo del
-       * blob. Un leve zoom que se asienta le da peso a la entrada.
-       */
-      const x = Math.round(gsap.utils.random(25, 75));
-      const y = Math.round(gsap.utils.random(25, 75));
       rotuloEntra.inert = false;
 
+      // La anterior se queda quieta debajo mientras la nueva entra encima:
+      // en los rebotes asoma la persona anterior, nunca el fondo del blob.
       transicion = gsap
         .timeline({ onComplete: terminar })
         .set(sale, { zIndex: 1 })
-        .set(entra, { zIndex: 2, opacity: 1, clipPath: `circle(0% at ${x}% ${y}%)` })
-        .to(entra, { clipPath: `circle(150% at ${x}% ${y}%)`, duration: 1.4, ease: "power2.inOut" }, 0)
-        .fromTo(entra, { scale: 1.06 }, { scale: 1, duration: 1.8, ease: SUAVE }, 0)
-        .to(rotuloSale, { y: -8, autoAlpha: 0, duration: 0.4, ease: SALIDA }, 0)
+        .set(entra, { zIndex: 2, opacity: 1 })
+        .add(TRANSICIONES[transicionAlAzar()]!(entra), 0)
+        // Etiqueta tipo pegatina: la vieja sale volando y la nueva cae con rebote.
+        .to(rotuloSale, { y: -24, rotation: 8, autoAlpha: 0, duration: 0.35, ease: "power2.in" }, 0)
         .fromTo(
           rotuloEntra,
-          { y: 14, autoAlpha: 0, filter: "blur(6px)" },
-          { y: 0, autoAlpha: 1, filter: "blur(0px)", duration: 0.9, ease: SUAVE, clearProps: "filter" },
-          0.55,
+          { y: 44, rotation: -14, autoAlpha: 0 },
+          { y: 0, rotation: 0, autoAlpha: 1, duration: 0.85, ease: "back.out(2)" },
+          0.3,
         );
     }
 

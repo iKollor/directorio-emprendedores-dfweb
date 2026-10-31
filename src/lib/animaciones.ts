@@ -10,7 +10,7 @@
  *   data-anim="desenfoque" palabras que entran desenfocadas (BlurText)
  *   data-anim="lectura"    palabras que se encienden con el scroll (ScrollReveal)
  *   data-anim="subir"      el bloque, o sus hijos, suben y aparecen
- *   data-anim="pop"        el bloque, o sus hijos, aparecen creciendo apenas
+ *   data-anim="pop"        el bloque, o sus hijos, crecen con rebote
  *   data-anim="revelar"    los hijos se destapan de abajo arriba (clip-path)
  *   data-anim="subrayado"  el subrayado amarillo se dibuja de izquierda a derecha
  *
@@ -31,7 +31,6 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
-import { SUAVE } from "./movimiento";
 import { sinMovimiento } from "./scroll";
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -62,9 +61,10 @@ const FABRICAS: Record<string, Fabrica> = {
       autoSplit: true,
       onSplit: (self) =>
         gsap.from(self.chars, {
-          yPercent: 100,
-          duration: 1.1,
-          ease: SUAVE,
+          yPercent: 110,
+          rotate: 6,
+          duration: 0.9,
+          ease: "power4.out",
           stagger: { amount: Math.min(0.6, self.chars.length * 0.025) },
           delay: retraso,
           scrollTrigger: disparador(el),
@@ -80,9 +80,9 @@ const FABRICAS: Record<string, Fabrica> = {
       autoSplit: true,
       onSplit: (self) =>
         gsap.from(self.lines, {
-          yPercent: 100,
-          duration: 1.1,
-          ease: SUAVE,
+          yPercent: 105,
+          duration: 1,
+          ease: "power4.out",
           stagger: 0.1,
           delay: retraso,
           scrollTrigger: disparador(el),
@@ -97,10 +97,10 @@ const FABRICAS: Record<string, Fabrica> = {
       onSplit: (self) =>
         gsap.from(self.words, {
           opacity: 0,
-          y: 8,
-          filter: "blur(8px)",
-          duration: 1,
-          ease: SUAVE,
+          y: 12,
+          filter: "blur(10px)",
+          duration: 0.8,
+          ease: "power2.out",
           stagger: { amount: Math.min(0.8, self.words.length * 0.03) },
           delay: retraso,
           clearProps: "filter",
@@ -130,9 +130,9 @@ const FABRICAS: Record<string, Fabrica> = {
   subir(el, retraso) {
     gsap.from(objetivos(el), {
       autoAlpha: 0,
-      y: 18,
-      duration: 1,
-      ease: SUAVE,
+      y: 26,
+      duration: 0.8,
+      ease: "power3.out",
       stagger: 0.08,
       delay: retraso,
       clearProps: LIMPIAR,
@@ -143,10 +143,9 @@ const FABRICAS: Record<string, Fabrica> = {
   pop(el, retraso) {
     gsap.from(objetivos(el), {
       autoAlpha: 0,
-      scale: 0.96,
-      y: 10,
-      duration: 0.9,
-      ease: SUAVE,
+      scale: 0.6,
+      duration: 0.7,
+      ease: "back.out(2)",
       stagger: 0.05,
       delay: retraso,
       clearProps: LIMPIAR,
@@ -157,9 +156,9 @@ const FABRICAS: Record<string, Fabrica> = {
   revelar(el, retraso) {
     gsap.from(objetivos(el), {
       clipPath: "inset(100% 0% 0% 0%)",
-      y: 24,
-      duration: 1.2,
-      ease: SUAVE,
+      y: 40,
+      duration: 1.1,
+      ease: "power4.out",
       stagger: 0.12,
       delay: retraso,
       clearProps: LIMPIAR,

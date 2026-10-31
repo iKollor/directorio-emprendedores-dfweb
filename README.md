@@ -223,7 +223,9 @@ y solo se evalúan los que un IntersectionObserver marca como visibles.
 
 `BlobHero.astro`: un blob grande que va pasando por los emprendedores cada
 5.5 s. Muestra el vídeo de cada persona si existe y, si no, su foto con un zoom
-lento. Es un solo blob fijo: solo cambia lo que hay dentro. (Un blob de color
+lento. Es un solo blob fijo: solo cambia lo que hay dentro. Las personas salen
+en orden aleatorio y cada cambio usa una transición con resorte elegida al
+azar (zoom, deslizar, giro o burbuja elástica), sin repetir la anterior. (Un blob de color
 detrás que giraba, y un rebote al cambiar de escena, se quitaron porque
 recordaban a la "mancha" retirada.) Una etiqueta con nombre y oficio lleva a la
 ficha, y las barras tipo "historias" permiten saltar.
