@@ -225,15 +225,18 @@ y solo se evalúan los que un IntersectionObserver marca como visibles.
 5.5 s. Muestra el vídeo de cada persona si existe y, si no, su foto con un zoom
 lento. Es un solo blob fijo: solo cambia lo que hay dentro. Las personas salen
 en orden aleatorio y cada cambio usa una transición con resorte elegida al
-azar (zoom, deslizar, giro o burbuja elástica), sin repetir la anterior. (Un blob de color
+azar (zoom, deslizar, giro o burbuja elástica), sin repetir la anterior, y el
+contorno del blob pasa a otra forma al azar con un resorte (evento
+`blob:forma` de `blobRuntime.ts`). Sin barras de progreso: con orden aleatorio
+no hay secuencia que mostrar. (Un blob de color
 detrás que giraba, y un rebote al cambiar de escena, se quitaron porque
 recordaban a la "mancha" retirada.) Una etiqueta con nombre y oficio lleva a la
-ficha, y las barras tipo "historias" permiten saltar.
+ficha.
 
 Solo entra quien tiene foto o vídeo propio (no siluetas), con prioridad para
 quien tiene vídeo, hasta 8 personas. Se pausa con el puntero o el foco encima,
 fuera de pantalla y con la pestaña oculta. Con movimiento reducido no avanza
-solo ni reproduce vídeo: las barras siguen sirviendo para cambiar a mano.
+solo ni reproduce vídeo.
 
 ### Animaciones de texto y entrada
 

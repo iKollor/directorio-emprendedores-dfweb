@@ -4,7 +4,8 @@
  *
  * Cada escena es una persona: su vídeo si lo tiene y, si no, su foto con un
  * zoom lento. Cada cambio usa una transición con resorte elegida al azar
- * (zoom, deslizar, giro o burbuja), sin repetir la anterior. Abajo, una etiqueta con su nombre que lleva a su ficha, y una
+ * (zoom, deslizar, giro o burbuja), sin repetir la anterior, y el contorno
+ * del blob pasa a otra forma al azar, también con resorte. Abajo, una etiqueta con su nombre que lleva a su ficha, y una
  * barra por persona que marca el tiempo y sirve para saltar a ella.
  *
  * ORDEN ALEATORIO: arranca con una persona al azar y sigue sacándolas de una
@@ -12,7 +13,7 @@
  * va en el navegador: si fuera en el build, todos verían el mismo orden hasta
  * el siguiente despliegue.
  *
- * UN SOLO BLOB, fijo en su sitio. Hubo una versión con un segundo blob de
+ * UN SOLO BLOB, en su sitio: cambia de forma pero no se desplaza. Hubo una versión con un segundo blob de
  * color detrás que giraba y cambiaba de tono, y otra con el blob rebotando al
  * cambiar de escena: las dos recordaban a la "mancha" que Diseña Futuro pidió
  * quitar. Aquí solo cambia lo que hay dentro.
@@ -108,16 +109,6 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
           </a>
         ))}
       </div>
-
-      {escenas.length > 1 && (
-        <div class="progreso" role="group" aria-label="Emprendedores destacados">
-          {escenas.map(({ e }, i) => (
-            <button type="button" data-ir={i} aria-label={`Ver a ${e.nombre}`} aria-pressed={i === 0 ? "true" : "false"}>
-              <span class="barra"><span class="relleno" data-relleno /></span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -270,52 +261,13 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     }
   }
 
-  /* Barras de progreso tipo "historias": cada una lleva a una persona. */
-  .progreso {
-    position: absolute;
-    top: -2%;
-    right: 8%;
-    z-index: 2;
-    display: flex;
-    gap: 0.4rem;
-    width: min(60%, 18rem);
-  }
-
-  .progreso button {
-    flex: 1;
-    min-height: 44px;
-    padding: 0;
-    border: 0;
-    background: none;
-    cursor: pointer;
-  }
-
-  .barra {
-    display: block;
-    height: 4px;
-    border-radius: 999px;
-    background: rgb(239 238 237 / 0.3);
-    overflow: hidden;
-  }
-
-  /* Con `transform` y no con `scale`: GSAP escribe en transform, y las dos
-     propiedades se multiplicarían. */
-  .relleno {
-    display: block;
-    height: 100%;
-    background: var(--df-bone);
-    transform-origin: left;
-    transform: scaleX(0);
-  }
-
-  [aria-pressed="true"] .relleno {
-    transform: scaleX(1);
-  }
 </style>
 
 <script>
   import { gsap } from "gsap";
   import { ScrollTrigger } from "gsap/ScrollTrigger";
+  import { generarBlob } from "../lib/blob";
+  import type { DetalleForma } from "../lib/blobRuntime";
   import { sinMovimiento } from "../lib/scroll";
 
   gsap.registerPlugin(ScrollTrigger);
@@ -334,12 +286,11 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
 
     const escenas = [...escenario.querySelectorAll<HTMLElement>("[data-escena]")];
     const rotulos = [...escenario.querySelectorAll<HTMLElement>("[data-rotulo]")];
-    const botones = [...escenario.querySelectorAll<HTMLButtonElement>("[data-ir]")];
-    const rellenos = botones.map((b) => b.querySelector<HTMLElement>("[data-relleno]")!);
 
     const reducido = sinMovimiento();
     let actual = 0;
-    let progreso: gsap.core.Tween | null = null;
+    /** Cuenta atrás hasta la siguiente persona. */
+    let reloj: gsap.core.Tween | null = null;
     let zoom: gsap.core.Tween | null = null;
     /**
      * La transición en curso. Antes de empezar otra se lleva a su final: así
@@ -350,6 +301,25 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     let detenido = false;
 
     const video = (i: number) => escenas[i]?.querySelector<HTMLVideoElement>("video") ?? null;
+    const blob = escenario.querySelector<HTMLElement>(".blob[data-blob]");
+    const LADOS = JSON.parse(blob?.dataset.vertices ?? "[]").length as number;
+
+    /**
+     * Forma nueva al azar para el blob. Mismo número de lados (el motor solo
+     * mezcla formas compatibles) e irregularidad dentro del rango seguro de
+     * lib/blob.ts: por encima de ~0.15 salen picos.
+     */
+    function formaAlAzar() {
+      if (!blob || !LADOS || reducido) return;
+      const nueva = generarBlob(`hero-${Math.random()}`, {
+        lados: LADOS,
+        irregularidad: gsap.utils.random(0.09, 0.15),
+        radio: 38,
+        lado: 92,
+      });
+      const detalle: DetalleForma = { vertices: nueva.vertices, encaje: nueva.encaje };
+      blob.dispatchEvent(new CustomEvent("blob:forma", { detail: detalle }));
+    }
     const imagen = (i: number) => escenas[i]?.querySelector<HTMLImageElement>("img") ?? null;
 
     // ---- Azar ------------------------------------------------------------
@@ -378,21 +348,12 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       zoom = gsap.fromTo(img, { scale: 1 }, { scale: 1.12, duration: DURACION + 1.5, ease: "none", paused: detenido });
     }
 
-    function marcarTiempo(i: number) {
-      progreso?.kill();
-      botones.forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
-      gsap.set(rellenos, { scaleX: 0 });
-      const relleno = rellenos[i];
-      if (!relleno) return;
-      if (reducido || escenas.length < 2) {
-        gsap.set(relleno, { scaleX: 1 });
-        return;
-      }
-      progreso = gsap.fromTo(
-        relleno,
-        { scaleX: 0 },
-        { scaleX: 1, duration: DURACION, ease: "none", paused: detenido, onComplete: () => irA(siguienteAlAzar()) },
-      );
+    function marcarTiempo() {
+      reloj?.kill();
+      reloj = null;
+      if (reducido || escenas.length < 2) return;
+      reloj = gsap.delayedCall(DURACION, () => irA(siguienteAlAzar()));
+      if (detenido) reloj.pause();
     }
 
     // ---- Transiciones con resorte -------------------------------------------
@@ -453,8 +414,6 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       const rotuloSale = rotulos[antes]!;
       const rotuloEntra = rotulos[siguiente]!;
 
-      // Una persona elegida a mano no debe volver a salir enseguida.
-      bolsa = bolsa.filter((i) => i !== siguiente);
 
       const terminar = () => {
         entra.setAttribute("data-activa", "");
@@ -471,7 +430,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
 
       reproducir(siguiente);
       zoomLento(siguiente);
-      marcarTiempo(siguiente);
+      marcarTiempo();
 
       if (inmediato || reducido) {
         terminar();
@@ -479,6 +438,8 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       }
 
       rotuloEntra.inert = false;
+      // El contorno también cambia: otra silueta al azar, con resorte.
+      formaAlAzar();
 
       // La anterior se queda quieta debajo mientras la nueva entra encima:
       // en los rebotes asoma la persona anterior, nunca el fondo del blob.
@@ -498,18 +459,19 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     }
 
     // ---- Arranque: una persona al azar -------------------------------------
+    // También una forma al azar. Con un respiro: el motor de blobs se monta en
+    // el mismo evento y podría no estar escuchando todavía.
+    const formaInicial = gsap.delayedCall(0.3, formaAlAzar);
     const inicio = Math.floor(Math.random() * escenas.length);
     if (inicio !== 0) irA(inicio, true);
     else {
       reproducir(0);
       zoomLento(0);
-      marcarTiempo(0);
+      marcarTiempo();
     }
 
     const eventos = new AbortController();
     const { signal } = eventos;
-
-    botones.forEach((b) => b.addEventListener("click", () => irA(Number(b.dataset.ir)), { signal }));
 
     // Se pausa fuera de pantalla, con la pestaña oculta o con el puntero encima
     // (para poder leer y hacer clic sin que la persona cambie).
@@ -519,11 +481,11 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       else motivos.delete(motivo);
       detenido = motivos.size > 0;
       if (detenido) {
-        progreso?.pause();
+        reloj?.pause();
         zoom?.pause();
         video(actual)?.pause();
       } else {
-        progreso?.resume();
+        reloj?.resume();
         zoom?.resume();
         if (!reducido) void video(actual)?.play().catch(() => {});
       }
@@ -533,7 +495,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     // no es "estar leyendo", y la pausa podía no soltarse nunca.
     escenario.addEventListener("pointerenter", (e) => pausar("puntero", e.pointerType === "mouse"), { signal });
     escenario.addEventListener("pointerleave", () => pausar("puntero", false), { signal });
-    // Solo el foco de teclado pausa: un clic deja el foco en la barra, y con
+    // Solo el foco de teclado pausa: un clic deja el foco en el enlace, y con
     // el ratón ya fuera la rotación se quedaba detenida para siempre.
     escenario.addEventListener(
       "focusin",
@@ -554,9 +516,10 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       eventos.abort();
       vista.kill();
       transicion?.kill();
-      progreso?.kill();
+      formaInicial.kill();
+      reloj?.kill();
       zoom?.kill();
-      gsap.killTweensOf([...escenas, ...rotulos, ...rellenos]);
+      gsap.killTweensOf([...escenas, ...rotulos]);
       escenas.forEach((e) => e.querySelector("video")?.pause());
     };
   }

@@ -23,6 +23,8 @@ import { construirPath, type Encaje, type Vertice } from "./blob";
  * leía como una mancha que perseguía a quien navegaba, y se retiró a pedido
  * de Diseña Futuro. Solo queda la respiración lenta de la silueta.
  */
+type Forma = { angulos: number[]; radios: number[]; encaje: Encaje };
+
 type BlobVivo = {
   elemento: HTMLElement;
   vertices: Vertice[];
@@ -31,7 +33,34 @@ type BlobVivo = {
   /** Desfase temporal para que dos vecinos nunca respiren a la vez. */
   desfase: number;
   visible: boolean;
+  /** Cambio de forma en curso (evento `blob:forma`), o null. */
+  morfo: { desde: Forma; hacia: Forma; inicio: number } | null;
 };
+
+/**
+ * CAMBIO DE FORMA. Un componente puede pedirle a un blob otra silueta:
+ *
+ *   elemento.dispatchEvent(new CustomEvent("blob:forma", { detail: { vertices, encaje } }))
+ *
+ * La nueva forma debe tener el mismo número de vértices. Se cambian ángulo y
+ * radio de cada vértice y el encaje; los osciladores se conservan, así la
+ * respiración sigue sin saltos. El paso de una forma a otra es un resorte:
+ * se pasa un poco y vuelve, como gelatina.
+ */
+export type DetalleForma = { vertices: Pick<Vertice, "angulo" | "radio">[]; encaje: Encaje };
+
+const DURACION_MORFO = 1.3;
+/** Resorte amortiguado: llega a 1 pasándose un par de veces cada vez menos. */
+const resorte = (t: number) => 1 - Math.exp(-6 * t) * Math.cos(11 * t);
+const mezclar = (a: number, b: number, t: number) => a + (b - a) * t;
+
+function formaDe(vivo: BlobVivo): Forma {
+  return {
+    angulos: vivo.vertices.map((v) => v.angulo),
+    radios: vivo.vertices.map((v) => v.radio),
+    encaje: { ...vivo.encaje },
+  };
+}
 
 export type ControlBlobs = { destruir: () => void };
 
@@ -67,6 +96,7 @@ export function animarBlobs(raiz: ParentNode = document): ControlBlobs {
       paths,
       desfase: Number(elemento.dataset.desfase ?? 0),
       visible: false,
+      morfo: null,
     });
   }
 
@@ -86,10 +116,46 @@ export function animarBlobs(raiz: ParentNode = document): ControlBlobs {
   );
   for (const v of vivos) observador.observe(v.elemento);
 
+  // --- Cambio de forma ---------------------------------------------------
+  const eventos = new AbortController();
+  for (const vivo of vivos) {
+    vivo.elemento.addEventListener(
+      "blob:forma",
+      (e) => {
+        const { vertices, encaje } = (e as CustomEvent<DetalleForma>).detail;
+        if (sinMovimiento.matches || vertices.length !== vivo.vertices.length) return;
+        vivo.morfo = {
+          desde: formaDe(vivo),
+          hacia: { angulos: vertices.map((v) => v.angulo), radios: vertices.map((v) => v.radio), encaje },
+          inicio: performance.now() / 1000,
+        };
+      },
+      { signal: eventos.signal },
+    );
+  }
+
+  function avanzarMorfo(vivo: BlobVivo, tiempo: number) {
+    const m = vivo.morfo!;
+    const p = Math.min(1, Math.max(0, (tiempo - m.inicio) / DURACION_MORFO));
+    const t = p >= 1 ? 1 : resorte(p);
+    vivo.vertices.forEach((v, i) => {
+      v.angulo = mezclar(m.desde.angulos[i]!, m.hacia.angulos[i]!, t);
+      v.radio = mezclar(m.desde.radios[i]!, m.hacia.radios[i]!, t);
+    });
+    vivo.encaje = {
+      sx: mezclar(m.desde.encaje.sx, m.hacia.encaje.sx, t),
+      sy: mezclar(m.desde.encaje.sy, m.hacia.encaje.sy, t),
+      cx: mezclar(m.desde.encaje.cx, m.hacia.encaje.cx, t),
+      cy: mezclar(m.desde.encaje.cy, m.hacia.encaje.cy, t),
+    };
+    if (p >= 1) vivo.morfo = null;
+  }
+
   // --- Bucle ------------------------------------------------------------
   const pintar = (tiempo: number) => {
     for (const vivo of vivos) {
       if (!vivo.visible) continue;
+      if (vivo.morfo) avanzarMorfo(vivo, tiempo);
 
       const d = construirPath(vivo.vertices, tiempo + vivo.desfase, null, vivo.encaje);
 
@@ -114,6 +180,7 @@ export function animarBlobs(raiz: ParentNode = document): ControlBlobs {
       activo = false;
       cancelAnimationFrame(cuadro);
       observador.disconnect();
+      eventos.abort();
     },
   };
 }
