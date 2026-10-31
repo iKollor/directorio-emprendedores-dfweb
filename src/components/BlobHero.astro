@@ -3,9 +3,13 @@
  * El escenario del hero: un blob grande que va pasando por los emprendedores.
  *
  * Cada escena es una persona: su vídeo si lo tiene y, si no, su foto con un
- * zoom lento. Abajo, una etiqueta con su nombre que lleva a su ficha, y
- * barras de progreso al estilo "historias" que también sirven para saltar a
- * otra persona.
+ * zoom lento. Abajo, una etiqueta con su nombre que lleva a su ficha, y una
+ * barra por persona que marca el tiempo y sirve para saltar a ella.
+ *
+ * ORDEN ALEATORIO: arranca con una persona al azar y sigue sacándolas de una
+ * bolsa barajada, así que nadie se repite hasta que han salido todos. El azar
+ * va en el navegador: si fuera en el build, todos verían el mismo orden hasta
+ * el siguiente despliegue.
  *
  * UN SOLO BLOB, fijo en su sitio. Hubo una versión con un segundo blob de
  * color detrás que giraba y cambiaba de tono, y otra con el blob rebotando al
@@ -13,7 +17,8 @@
  * quitar. Aquí solo cambia lo que hay dentro.
  *
  * Solo entra quien tiene foto o vídeo propio: una silueta neutra en el hero
- * no le dice nada a nadie. Primero van quienes tienen vídeo.
+ * no le dice nada a nadie. Si hay más de 8, entran primero quienes tienen
+ * vídeo.
  *
  * Las siluetas usan el mismo motor que los retratos (lib/blob.ts) y las anima
  * el mismo bucle (lib/blobRuntime.ts), que recoge todo lo marcado data-blob.
@@ -175,7 +180,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     opacity: 1;
   }
 
-  /* Etiqueta tipo pegatina, inclinada, sobre el borde inferior del blob. */
+  /* Etiqueta sobre el borde inferior del blob. */
   .rotulos {
     position: absolute;
     left: -2%;
@@ -196,9 +201,8 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     background: var(--df-bone);
     color: var(--df-ink);
     text-decoration: none;
-    rotate: -3deg;
     box-shadow: 0 1.25rem 2.5rem -1rem rgb(7 49 165 / 0.6);
-    transition: rotate var(--dur-media) var(--ease-suave), scale var(--dur-media) var(--ease-suave);
+    transition: translate var(--dur-media) var(--ease-suave), box-shadow var(--dur-media) var(--ease-suave);
   }
 
   .rotulo[inert] {
@@ -207,8 +211,8 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
 
   .rotulo:hover,
   .rotulo:focus-visible {
-    rotate: 0deg;
-    scale: 1.04;
+    translate: 0 -3px;
+    box-shadow: 0 1.75rem 3rem -1rem rgb(7 49 165 / 0.7);
   }
 
   .cat {
@@ -290,22 +294,25 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     overflow: hidden;
   }
 
+  /* Con `transform` y no con `scale`: GSAP escribe en transform, y las dos
+     propiedades se multiplicarían. */
   .relleno {
     display: block;
     height: 100%;
     background: var(--df-bone);
     transform-origin: left;
-    scale: 0 1;
+    transform: scaleX(0);
   }
 
   [aria-pressed="true"] .relleno {
-    scale: 1 1;
+    transform: scaleX(1);
   }
 </style>
 
 <script>
   import { gsap } from "gsap";
   import { ScrollTrigger } from "gsap/ScrollTrigger";
+  import { SALIDA, SUAVE } from "../lib/movimiento";
   import { sinMovimiento } from "../lib/scroll";
 
   gsap.registerPlugin(ScrollTrigger);
@@ -325,14 +332,35 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     const escenas = [...escenario.querySelectorAll<HTMLElement>("[data-escena]")];
     const rotulos = [...escenario.querySelectorAll<HTMLElement>("[data-rotulo]")];
     const botones = [...escenario.querySelectorAll<HTMLButtonElement>("[data-ir]")];
+    const rellenos = botones.map((b) => b.querySelector<HTMLElement>("[data-relleno]")!);
+
     const reducido = sinMovimiento();
     let actual = 0;
     let progreso: gsap.core.Tween | null = null;
     let zoom: gsap.core.Tween | null = null;
+    /**
+     * La transición en curso. Antes de empezar otra se lleva a su final: así
+     * dos clics seguidos nunca dejan dos animaciones peleando por la misma
+     * escena (pasaba, y el blob se quedaba sin ninguna persona activa).
+     */
+    let transicion: gsap.core.Timeline | null = null;
     let detenido = false;
 
     const video = (i: number) => escenas[i]?.querySelector<HTMLVideoElement>("video") ?? null;
+    const imagen = (i: number) => escenas[i]?.querySelector<HTMLImageElement>("img") ?? null;
 
+    // ---- Azar ------------------------------------------------------------
+    // Bolsa barajada sin la persona actual: nadie se repite hasta que han
+    // salido todos, y nunca sale dos veces seguidas la misma.
+    let bolsa: number[] = [];
+    function siguienteAlAzar() {
+      if (bolsa.length === 0) {
+        bolsa = gsap.utils.shuffle(escenas.map((_, i) => i).filter((i) => i !== actual));
+      }
+      return bolsa.shift() ?? actual;
+    }
+
+    // ---- Piezas ------------------------------------------------------------
     function reproducir(i: number) {
       const v = video(i);
       if (!v || reducido) return;
@@ -342,99 +370,103 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
 
     function zoomLento(i: number) {
       zoom?.kill();
-      const img = escenas[i]?.querySelector("img");
+      const img = imagen(i);
       if (!img || reducido) return;
-      zoom = gsap.fromTo(img, { scale: 1 }, { scale: 1.14, duration: DURACION + 1.5, ease: "none" });
+      zoom = gsap.fromTo(img, { scale: 1 }, { scale: 1.08, duration: DURACION + 2, ease: "sine.out", paused: detenido });
     }
 
-    function avanzar(i: number) {
+    function marcarTiempo(i: number) {
       progreso?.kill();
       botones.forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
-      const relleno = botones[i]?.querySelector<HTMLElement>("[data-relleno]");
-      botones.forEach((b, j) => {
-        const r = b.querySelector<HTMLElement>("[data-relleno]");
-        if (r && j !== i) gsap.set(r, { scaleX: j < i ? 1 : 0 });
-      });
-      if (!relleno || reducido || escenas.length < 2) return;
+      gsap.set(rellenos, { scaleX: 0 });
+      const relleno = rellenos[i];
+      if (!relleno) return;
+      if (reducido || escenas.length < 2) {
+        gsap.set(relleno, { scaleX: 1 });
+        return;
+      }
       progreso = gsap.fromTo(
         relleno,
         { scaleX: 0 },
-        { scaleX: 1, duration: DURACION, ease: "none", paused: detenido, onComplete: () => irA((i + 1) % escenas.length) },
+        { scaleX: 1, duration: DURACION, ease: "none", paused: detenido, onComplete: () => irA(siguienteAlAzar()) },
       );
     }
 
-    function irA(siguiente: number) {
+    // ---- Cambio de persona -------------------------------------------------
+    function irA(siguiente: number, inmediato = false) {
       if (siguiente === actual) return;
+      transicion?.progress(1).kill();
+      transicion = null;
+
       const antes = actual;
       actual = siguiente;
       const sale = escenas[antes]!;
       const entra = escenas[siguiente]!;
+      const rotuloSale = rotulos[antes]!;
+      const rotuloEntra = rotulos[siguiente]!;
 
-      // La que sale queda inerte al terminar su salida: si no, el CSS la
-      // escondería de golpe y no se vería irse.
-      rotulos.forEach((r, j) => {
-        if (j !== siguiente && j !== antes) r.inert = true;
-      });
-      rotulos[siguiente]!.inert = false;
-      entra.setAttribute("data-activa", "");
-      reproducir(siguiente);
+      // Una persona elegida a mano no debe volver a salir enseguida.
+      bolsa = bolsa.filter((i) => i !== siguiente);
 
-      if (reducido) {
-        rotulos[antes]!.inert = true;
+      const terminar = () => {
+        entra.setAttribute("data-activa", "");
         sale.removeAttribute("data-activa");
-        video(antes)?.pause();
-        avanzar(siguiente);
+        gsap.set([entra, sale], { clearProps: "opacity,zIndex,clipPath,transform" });
+        rotulos.forEach((r, j) => (r.inert = j !== siguiente));
+        gsap.set([rotuloSale, rotuloEntra], { clearProps: "transform,opacity,visibility,filter" });
+        const v = video(antes);
+        if (v) {
+          v.pause();
+          v.removeAttribute("data-listo");
+        }
+      };
+
+      reproducir(siguiente);
+      zoomLento(siguiente);
+      marcarTiempo(siguiente);
+
+      if (inmediato || reducido) {
+        terminar();
         return;
       }
 
-      // Escena: la nueva entra con zoom que se asienta; la vieja se aleja.
-      gsap.set(entra, { zIndex: 2 });
-      gsap.set(sale, { zIndex: 1 });
-      gsap.fromTo(entra, { opacity: 0, scale: 1.2 }, { opacity: 1, scale: 1, duration: 1.1, ease: "power3.out" });
-      gsap.to(sale, {
-        opacity: 0,
-        scale: 0.92,
-        duration: 0.9,
-        ease: "power2.in",
-        onComplete: () => {
-          sale.removeAttribute("data-activa");
-          gsap.set(sale, { clearProps: "opacity,transform,zIndex" });
-          video(antes)?.pause();
-        },
-      });
-      zoomLento(siguiente);
+      /*
+       * La nueva persona se abre en un círculo desde un punto al azar y tapa
+       * a la anterior, que se queda quieta debajo: nunca asoma el fondo del
+       * blob. Un leve zoom que se asienta le da peso a la entrada.
+       */
+      const x = Math.round(gsap.utils.random(25, 75));
+      const y = Math.round(gsap.utils.random(25, 75));
+      rotuloEntra.inert = false;
 
-      // Etiqueta: la vieja se va hacia arriba y la nueva cae con rebote.
-      gsap.to(rotulos[antes]!, {
-        y: -24,
-        autoAlpha: 0,
-        duration: 0.35,
-        ease: "power2.in",
-        onComplete: () => {
-          if (actual !== antes) rotulos[antes]!.inert = true;
-          gsap.set(rotulos[antes]!, { clearProps: "transform,opacity,visibility" });
-        },
-      });
-      gsap.fromTo(
-        rotulos[siguiente]!,
-        { y: 40, autoAlpha: 0, rotation: -10 },
-        { y: 0, autoAlpha: 1, rotation: 0, duration: 0.8, delay: 0.25, ease: "back.out(2)", clearProps: "transform,opacity,visibility" },
-      );
-
-      avanzar(siguiente);
+      transicion = gsap
+        .timeline({ onComplete: terminar })
+        .set(sale, { zIndex: 1 })
+        .set(entra, { zIndex: 2, opacity: 1, clipPath: `circle(0% at ${x}% ${y}%)` })
+        .to(entra, { clipPath: `circle(150% at ${x}% ${y}%)`, duration: 1.4, ease: "power2.inOut" }, 0)
+        .fromTo(entra, { scale: 1.06 }, { scale: 1, duration: 1.8, ease: SUAVE }, 0)
+        .to(rotuloSale, { y: -8, autoAlpha: 0, duration: 0.4, ease: SALIDA }, 0)
+        .fromTo(
+          rotuloEntra,
+          { y: 14, autoAlpha: 0, filter: "blur(6px)" },
+          { y: 0, autoAlpha: 1, filter: "blur(0px)", duration: 0.9, ease: SUAVE, clearProps: "filter" },
+          0.55,
+        );
     }
 
-    // Arranque.
-    reproducir(0);
-    zoomLento(0);
-    avanzar(0);
+    // ---- Arranque: una persona al azar -------------------------------------
+    const inicio = Math.floor(Math.random() * escenas.length);
+    if (inicio !== 0) irA(inicio, true);
+    else {
+      reproducir(0);
+      zoomLento(0);
+      marcarTiempo(0);
+    }
 
     const eventos = new AbortController();
     const { signal } = eventos;
 
-    botones.forEach((b) =>
-      b.addEventListener("click", () => irA(Number(b.dataset.ir)), { signal }),
-    );
+    botones.forEach((b) => b.addEventListener("click", () => irA(Number(b.dataset.ir)), { signal }));
 
     // Se pausa fuera de pantalla, con la pestaña oculta o con el puntero encima
     // (para poder leer y hacer clic sin que la persona cambie).
@@ -456,7 +488,13 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
 
     escenario.addEventListener("pointerenter", () => pausar("puntero", true), { signal });
     escenario.addEventListener("pointerleave", () => pausar("puntero", false), { signal });
-    escenario.addEventListener("focusin", () => pausar("foco", true), { signal });
+    // Solo el foco de teclado pausa: un clic deja el foco en la barra, y con
+    // el ratón ya fuera la rotación se quedaba detenida para siempre.
+    escenario.addEventListener(
+      "focusin",
+      (e) => pausar("foco", (e.target as HTMLElement).matches(":focus-visible")),
+      { signal },
+    );
     escenario.addEventListener("focusout", () => pausar("foco", false), { signal });
     document.addEventListener("visibilitychange", () => pausar("pestaña", document.hidden), { signal });
 
@@ -470,9 +508,10 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     soltar = () => {
       eventos.abort();
       vista.kill();
+      transicion?.kill();
       progreso?.kill();
       zoom?.kill();
-      gsap.killTweensOf([...escenas, ...rotulos]);
+      gsap.killTweensOf([...escenas, ...rotulos, ...rellenos]);
       escenas.forEach((e) => e.querySelector("video")?.pause());
     };
   }
