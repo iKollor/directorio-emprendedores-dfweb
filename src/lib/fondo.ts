@@ -1,20 +1,29 @@
 /**
  * EL FONDO — agua en el azul de la marca.
  *
- * El azul liso dejaba a las gotas flotando sobre nada. Este fondo es la
- * superficie sobre la que están: zonas apenas más hondas que se desplazan muy
- * despacio y un veteado de luz finísimo, como el que deja el sol al pasar por
- * el agua. La luz viene de arriba a la izquierda, igual que en los retratos.
+ * El azul liso dejaba a las gotas flotando sobre nada. Este fondo es el agua
+ * sobre la que están, vista desde arriba: la red de luz que se forma en el
+ * fondo de una piscina (cáusticas), con zonas más hondas entre los hilos.
  *
- * LO QUE NO PUEDE HACER: bajar el contraste del texto. El azul de la marca es
- * el tono más claro de casi todo el fondo; el veteado lo aclara como mucho un
- * 3 %, con lo que el texto hueso sigue por encima de 4.5:1 en cualquier punto.
- * Si se tocan los valores del shader, hay que volver a comprobarlo.
+ * CÓMO SE CALCULA. No es una textura ni un ruido con forma de agua: es la
+ * óptica de verdad, simplificada. La superficie es una suma de ondas. La luz
+ * que la atraviesa se desvía según la pendiente de esas ondas, y donde los
+ * rayos vecinos se juntan aparece un hilo brillante; donde se separan, una
+ * zona oscura. Cuánto se juntan lo da el determinante del jacobiano del
+ * desvío, que con ondas senoidales tiene fórmula exacta. Por eso los hilos
+ * salen nítidos a cualquier resolución y no hace falta ninguna extensión.
  *
- * COSTE: se dibuja a un tercio de la resolución (es todo suave, no se nota) y
- * a 30 fotogramas por segundo. Se mueve con el scroll, más despacio que la
- * página, y deriva muy lentamente cuando nadie toca nada. Con la pestaña en
- * segundo plano no dibuja.
+ * LO QUE NO PUEDE HACER: bajar el contraste del texto. El contraste se gana
+ * hacia abajo: las zonas tranquilas son el azul de la marca, las hondas van
+ * hacia un azul más profundo, y los hilos de luz tienen un tope
+ * (`CLARO` = 0.30, 0.31, 1.0) con el que el texto hueso queda en 4.7:1 aun
+ * con `INTENSIDAD` a 1, por encima del 4.5:1 que pide WCAG AA. Si se toca
+ * `CLARO`, hay que recalcularlo.
+ *
+ * COSTE: se dibuja a la mitad de la resolución y a 30 fotogramas por segundo;
+ * son seis senos por píxel. Se desplaza con el scroll, más despacio que la
+ * página, y el agua se agita un poco más mientras se hace scroll. Con la
+ * pestaña en segundo plano no dibuja.
  *
  * Tiene su propio contexto WebGL (el segundo y último del sitio): es un
  * lienzo fijo a pantalla completa, y eso no encaja en el contexto compartido
@@ -35,23 +44,21 @@ uniform vec2 uTamano;
 uniform float uTiempo;
 uniform float uScroll;
 
-float azar(vec2 p) {
-  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-}
+// Azul de la marca, un azul más hondo y el tope de luz de los hilos.
+const vec3 AZUL = vec3(0.255, 0.255, 0.976);
+const vec3 HONDO = vec3(0.175, 0.175, 0.84);
+const vec3 CLARO = vec3(0.30, 0.31, 1.0);
+// Cuánto se nota el agua sobre el azul liso: 0 = nada, 1 = todo. A 1 se
+// pidió bajarla a la mitad por demasiado visible; casi a 0 era aburrida.
+const float INTENSIDAD = 0.5;
 
-float ruido(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
-  return mix(
-    mix(azar(i), azar(i + vec2(1.0, 0.0)), f.x),
-    mix(azar(i + vec2(0.0, 1.0)), azar(i + vec2(1.0, 1.0)), f.x),
-    f.y
-  );
-}
-
-float nube(vec2 p) {
-  return ruido(p) * 0.6 + ruido(p * 2.03 + 7.1) * 0.28 + ruido(p * 4.1 + 3.7) * 0.12;
+// Segunda derivada de la superficie: lo que aporta una onda a la curvatura.
+// \`fuerza\` ya incluye amplitud, número de onda y cuánto desvía la luz.
+void onda(vec2 p, vec2 dir, float k, float fase, float fuerza, inout vec3 h) {
+  float s = sin(k * dot(dir, p) + fase) * fuerza;
+  h.x -= s * dir.x * dir.x;
+  h.y -= s * dir.y * dir.y;
+  h.z -= s * dir.x * dir.y;
 }
 
 void main() {
@@ -62,24 +69,34 @@ void main() {
   p.y -= uScroll;
 
   float t = uTiempo;
-  // Dos capas de ruido; la primera arrastra a la segunda, y eso es lo que
-  // hace que parezca líquido y no una nube.
-  vec2 q = p * 1.15 + vec2(t * 0.8, -t * 0.55);
-  float a = nube(q);
-  float b = nube(q * 2.1 + vec2(a * 1.9 - t, a * 1.3 + t * 0.6));
+  // Una ondulación lenta y ancha deforma el dominio: sin ella, la suma de
+  // ondas se repetiría como un papel pintado.
+  p += 0.045 * vec2(sin(p.y * 2.3 + t * 0.21), cos(p.x * 1.9 - t * 0.17));
 
-  vec3 azul = vec3(0.255, 0.255, 0.976);
-  vec3 hondo = vec3(0.2, 0.2, 0.89);
+  // Curvatura de la superficie (xx, yy, xy): seis ondas en direcciones y
+  // tamaños que no encajan entre sí.
+  vec3 h = vec3(0.0);
+  onda(p, vec2(0.966, 0.259), 17.0, t * 0.61, 0.56, h);
+  onda(p, vec2(-0.342, 0.940), 23.0, -t * 0.47 + 1.3, 0.52, h);
+  onda(p, vec2(0.574, -0.819), 29.0, t * 0.74 + 4.1, 0.46, h);
+  onda(p, vec2(-0.866, -0.5), 37.0, -t * 0.55 + 2.2, 0.4, h);
+  onda(p, vec2(0.139, 0.990), 46.0, t * 0.83 + 0.7, 0.32, h);
+  onda(p, vec2(0.788, 0.616), 11.0, -t * 0.33 + 5.0, 0.5, h);
 
-  // Zonas más hondas, anchas y suaves.
-  vec3 color = mix(azul, hondo, smoothstep(0.38, 0.78, a) * 0.62);
-  // Veteado de luz: solo donde la segunda capa pasa por su valor medio.
-  float veta = pow(1.0 - abs(b * 2.0 - 1.0), 6.0);
-  color += vec3(0.55, 0.6, 1.0) * veta * 0.03;
-  // Luz general desde arriba a la izquierda (en gl_FragCoord, y crece hacia arriba).
-  color += vec3(0.022, 0.022, 0.0) * (1.0 - smoothstep(0.0, 1.25, distance(uv, vec2(0.0, 1.0))));
+  // Cuánto se concentra la luz: inverso del área que ocupan los rayos tras
+  // desviarse. Cerca de cero el área se pliega y ahí está el hilo.
+  float area = abs((1.0 + h.x) * (1.0 + h.y) - h.z * h.z);
+  float luz = 1.0 / (area + 0.13);
 
-  gl_FragColor = vec4(color, 1.0);
+  // Zonas hondas donde la luz se dispersa, azul de marca donde llega normal.
+  vec3 color = mix(HONDO, AZUL, smoothstep(0.3, 1.15, luz));
+  // Hilos de luz, con tope.
+  color = mix(color, CLARO, smoothstep(1.5, 4.5, luz));
+  // Un poco más de fondo hacia abajo a la derecha: la luz viene de arriba a
+  // la izquierda, como en las gotas (en gl_FragCoord, y crece hacia arriba).
+  color = mix(color, HONDO, smoothstep(0.35, 1.5, distance(uv, vec2(0.0, 1.0))) * 0.22);
+
+  gl_FragColor = vec4(mix(AZUL, min(color, CLARO), INTENSIDAD), 1.0);
 }`;
 
 type Fondo = { lienzo: HTMLCanvasElement; destruir(): void };
@@ -145,9 +162,9 @@ function crear(): Fondo | null {
   const uScroll = gl.getUniformLocation(programa, "uScroll");
 
   function ajustar() {
-    // Un tercio de la resolución, con tope: todo es suave y el navegador lo
-    // estira sin que se note.
-    const ancho = Math.min(640, Math.max(200, Math.round(window.innerWidth / 3)));
+    // La mitad de la resolución, con tope: los hilos son finos y a un tercio
+    // se emborronan. El navegador lo estira al tamaño de la ventana.
+    const ancho = Math.min(960, Math.max(240, Math.round(window.innerWidth / 2)));
     const alto = Math.max(120, Math.round((ancho * window.innerHeight) / Math.max(1, window.innerWidth)));
     if (lienzo.width !== ancho || lienzo.height !== alto) {
       lienzo.width = ancho;
@@ -161,16 +178,27 @@ function crear(): Fondo | null {
   let vivo = true;
   let cuadro = 0;
   let ultimo = 0;
-  const inicio = performance.now();
+  /** Reloj del agua: avanza solo, y algo más deprisa mientras se hace scroll. */
+  let agua = 0;
+  let scrollPrevio = window.scrollY;
+  let agitacion = 0;
 
   function bucle(ms: number) {
     cuadro = 0;
     if (!vivo) return;
     // 30 por segundo: se salta un fotograma de cada dos en pantallas de 60 Hz.
     if (ms - ultimo >= 30) {
+      const dt = Math.min(0.1, ultimo ? (ms - ultimo) / 1000 : 0.033);
       ultimo = ms;
-      gl!.uniform1f(uTiempo, ((ms - inicio) / 1000) * 0.018);
-      gl!.uniform1f(uScroll, (window.scrollY / Math.max(1, window.innerHeight)) * 0.32);
+      // El scroll agita el agua; al parar, se calma sola.
+      const y = window.scrollY;
+      const velocidad = Math.min(1, Math.abs(y - scrollPrevio) / dt / 2200);
+      scrollPrevio = y;
+      agitacion += (velocidad - agitacion) * Math.min(1, dt * 4);
+      agua += dt * (0.55 + agitacion * 1.6);
+
+      gl!.uniform1f(uTiempo, agua);
+      gl!.uniform1f(uScroll, (y / Math.max(1, window.innerHeight)) * 0.32);
       gl!.drawArrays(gl!.TRIANGLES, 0, 3);
     }
     pedir();

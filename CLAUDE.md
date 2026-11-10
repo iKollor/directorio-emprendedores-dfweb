@@ -45,10 +45,13 @@ Tampoco hay nada que siga al cursor por la página.
 píldoras y puntos llevan el brillo y la sombra interior de una gota
 (`--gota` en `src/styles/tokens.css`), hechos con sombras, no con WebGL.
 
-**El fondo es agua.** `src/lib/fondo.ts` dibuja zonas apenas más hondas y un
-veteado de luz en el azul de la marca. No puede bajar el contraste del texto:
-el azul de la marca es su tono más claro salvo un 3 % de veteado. Si se
-tocan sus valores, hay que recalcular el contraste del texto hueso (4.5:1).
+**El fondo es agua.** `src/lib/fondo.ts` dibuja la red de luz del fondo de
+una piscina (cáusticas), calculada como óptica: una suma de ondas y cuánto
+concentran la luz. Cuánto se nota es `INTENSIDAD` (0.5): casi invisible se
+rechazó por aburrido y a tope, por demasiado visible. El contraste se gana
+hacia el azul hondo, nunca aclarando: los hilos de luz tienen un tope (`CLARO`) con el que el texto
+hueso queda en 4.7:1. Si se toca ese tope, hay que volver a medirlo (mínimo
+4.5:1).
 
 **El rostro, al centro.** Las fotos son apaisadas y la cara cae arriba, justo
 en el canto de la gota. Cada persona lleva en el JSON un campo `rostro`
@@ -70,7 +73,7 @@ No usar:
   por fotograma y tiemblan. Van en el shader.
 
 Rendimiento, que es parte del diseño: dos contextos WebGL en total (los
-retratos comparten uno; el fondo tiene el suyo, a un tercio de resolución y
+retratos comparten uno; el fondo tiene el suyo, a media resolución y
 30 fotogramas por segundo), se pinta solo lo visible, en reposo a media cadencia, y un freno baja la resolución si el
 dispositivo no llega. Sin WebGL o con movimiento reducido quedan las fotos
 normales. Cualquier cambio en `tinta.ts` debe conservar eso.
