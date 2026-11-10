@@ -155,6 +155,39 @@ a {
   transform: scale(1.04);
 }
 
+.pildora-cta:active {
+  transform: scale(0.97);
+}
+
+/* La flecha del botón responde al puntero; no se mueve sola. */
+.pildora-cta .flecha-cta {
+  display: inline-block;
+  transition: translate var(--dur-rapida) var(--ease-suave);
+}
+
+.pildora-cta:hover .flecha-cta,
+.pildora-cta:focus-visible .flecha-cta {
+  translate: 0 0.22em;
+}
+
+::selection {
+  background: var(--df-yellow);
+  color: var(--df-blue-deep);
+}
+
+/*
+ * NAVEGACIÓN ENTRE PÁGINAS. El retrato y el nombre de la persona viajan desde
+ * su tarjeta hasta su ficha (transition:name). Ese viaje es la transición: no
+ * hay cortinas ni círculos encima. Aquí solo se le da tiempo y una curva
+ * suave, porque el salto de 250 ms por defecto no deja ver de dónde viene.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(*) {
+    animation-duration: 0.6s;
+    animation-timing-function: var(--ease-suave);
+  }
+}
+
 /*
  * ANIMACIONES — ver src/lib/animaciones.ts.
  *
@@ -166,23 +199,6 @@ a {
   [data-anim]:not(.anim-listo) {
     visibility: hidden;
     animation: anim-rescate 0s 2.5s forwards;
-  }
-
-  /* Brillo que cruza los botones amarillos cada pocos segundos. */
-  .pildora-cta::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.6) 50%, transparent 70%);
-    translate: -110% 0;
-    animation: brillo 5s var(--ease-suave) 1.8s infinite;
-    pointer-events: none;
-  }
-
-  .rebote {
-    display: inline-block;
-    animation: rebote 2.2s var(--ease-suave) 2s infinite;
   }
 }
 
@@ -199,16 +215,6 @@ a {
 
 @keyframes anim-rescate {
   to { visibility: visible; }
-}
-
-@keyframes brillo {
-  0% { translate: -110% 0; }
-  35%, 100% { translate: 110% 0; }
-}
-
-@keyframes rebote {
-  0%, 60%, 100% { translate: 0 0; }
-  30% { translate: 0 0.3em; }
 }
 
 .solo-lectores {

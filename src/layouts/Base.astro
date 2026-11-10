@@ -73,6 +73,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       } from "../lib/scroll";
       import { animarBlobs, type ControlBlobs } from "../lib/blobRuntime";
       import { animarTextos } from "../lib/animaciones";
+      import type { TransitionBeforePreparationEvent } from "astro:transitions/client";
 
       gsap.registerPlugin(ScrollTrigger);
 
@@ -136,12 +137,22 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
 
       // Los scripts empaquetados no se reejecutan tras una transición de vista,
       // así que el ciclo de vida hay que engancharlo explícitamente.
+      /*
+       * Al llegar a una página nueva se empieza arriba. Pero al volver atrás
+       * (o al llegar con un ancla, como el "Todos los emprendedores" de la
+       * ficha) hay que respetar la posición que pone el navegador: antes se
+       * forzaba el inicio siempre y quien volvía de una ficha perdía su sitio
+       * en el listado.
+       */
+      let tipoNavegacion = "push";
+
       document.addEventListener("astro:after-swap", () => {
-        window.scrollTo(0, 0);
+        if (tipoNavegacion !== "traverse" && !location.hash) window.scrollTo(0, 0);
         ScrollTrigger.refresh();
       });
 
-      document.addEventListener("astro:before-preparation", () => {
+      document.addEventListener("astro:before-preparation", (evento) => {
+        tipoNavegacion = (evento as TransitionBeforePreparationEvent).navigationType;
         obtenerScroll()?.stop();
       });
 
@@ -174,6 +185,10 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       .cabecera nav { display: flex; align-items: center; gap: clamp(1rem, 3vw, 2.5rem); }
       .cabecera nav a { display: inline-flex; align-items: center; gap: .6rem; min-height: 44px; font-size: var(--txt-s); font-weight: 500; text-decoration: none; }
       .cabecera nav a:hover { color: var(--df-yellow); }
+      /* Subrayado que se dibuja de izquierda a derecha, igual que el del pie. */
+      .cabecera nav a { position: relative; }
+      .cabecera nav a::after { content: ""; position: absolute; inset: auto 0 .55rem; height: 2px; background: var(--df-yellow); scale: 0 1; transform-origin: left; transition: scale var(--dur-media) var(--ease-suave); }
+      .cabecera nav a:hover::after, .cabecera nav a:focus-visible::after { scale: 1 1; }
       /*
        * En móvil la cabecera es solo la marca compartida: con dos logos no
        * queda sitio para el menú, y el hero ya trae su botón al listado.

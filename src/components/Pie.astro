@@ -13,10 +13,11 @@ const SITIOS = [
 ---
 
 <footer class="pie" id="sobre-la-escuela">
+  {/* El lema ya estaba aquí, en letra pequeña bajo el logo. Ahora cierra la página. */}
+  <p class="pie-lema" data-anim="lineas">Las oportunidades crecen <strong>cuando nos conectamos.</strong></p>
   <div class="pie-principal">
     <div class="pie-marca" data-anim="subir" data-anim-hijos>
       <Marca grande />
-      <p>Las oportunidades crecen<br />cuando nos conectamos.</p>
     </div>
     <div class="pie-escuela">
       <NombreEscuela tamano="pie" />
@@ -43,7 +44,9 @@ const SITIOS = [
 <style>
   .pie { position: relative; z-index: 2; background: var(--df-blue-deep); border-radius: clamp(2rem, 5vw, 4rem) clamp(2rem, 5vw, 4rem) 0 0; padding: clamp(3rem, 6vw, 6rem) var(--gutter) 1.5rem; }
   .pie-principal { display: grid; grid-template-columns: 1fr 1.3fr 0.8fr; gap: clamp(2rem, 5vw, 5rem); padding-bottom: 4rem; }
-  .pie-marca p { margin: 1.4rem 0 0; font-size: var(--txt-s); }
+  /* Fino + grueso en la misma frase, igual que el titular del inicio. */
+  .pie-lema { margin: 0 0 clamp(3rem, 7vw, 6rem); font-size: var(--txt-xl); font-weight: 300; line-height: 0.98; letter-spacing: -0.03em; }
+  .pie-lema strong { display: block; font-weight: 700; }
   .pie-escuela p { max-width: 44ch; font-size: var(--txt-s); margin: 1.25rem 0 0; }
   .sitios h2 { font-size: var(--txt-s); font-weight: 500; letter-spacing: 0; margin-bottom: 1rem; line-height: 1.5; }
   .sitios a { position: relative; display: flex; align-items: center; gap: .7rem; min-height: 48px; border-bottom: 1px solid rgb(239 238 237 / .25); font-weight: 600; text-decoration: none; }

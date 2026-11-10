@@ -18,14 +18,14 @@ Estado de cada punto de la revisión.
 | 12 | Botones de redes de DF | ✅ Se quitaron Instagram y LinkedIn. El pie enlaza solo a las webs de Diseña Futuro e Intervalores. |
 | 13 | "Sabanilla y Los Lojas · Daule" en el pie | ✅ Eliminado. |
 | 14 | Nombres completos | ✅ Se muestra un nombre y un apellido ("Kerly Huacón"). El nombre completo no aparece en ninguna parte del sitio. Para usar el formato "Kerly Huacón C." hay que cambiar una línea. |
-| 15 | Fotos o videos con menores de edad | ✅ Se retiró la foto de Alexandra y no se volverá a descargar. Además, el sitio ya no "presta" fotos de otras personas: antes esa misma foto aparecía en 4 fichas más. Quien no tiene foto muestra una silueta neutra. Las guías para subir material piden revisar que no aparezcan menores. |
+| 15 | Fotos o videos con menores de edad | ✅ Se retiró la foto de Alexandra y no se volverá a descargar. Además, el sitio ya no "presta" fotos de otras personas: antes esa misma foto aparecía en 4 fichas más. Quien no tiene foto muestra un monograma con sus iniciales (antes, una silueta neutra). Las guías para subir material piden revisar que no aparezcan menores. |
 | 16 | "Ficha en preparación" | ✅ Era el estado de 6 personas que todavía no entregaron los datos de su negocio, no una categoría. Se quitó el botón y la etiqueta ahora dice "Próximamente". |
 
 ## Lo que necesitamos de Diseña Futuro
 
 1. **Logo de Intervalores**, en versión clara para fondo azul (SVG o PNG con
    fondo transparente). Va en `public/brand/intervalores.svg`.
-2. **Fotos de retrato** de los 12 que muestran silueta, sin menores en el
+2. **Fotos de retrato** de los 12 que muestran monograma, sin menores en el
    cuadro.
 3. **Videos de presentación y fotos de productos o servicios**, sin menores y
    sin letreros, fachadas ni placas que permitan ubicar el negocio o la

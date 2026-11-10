@@ -40,14 +40,19 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
 
 <section class="listado" id="contenido" aria-labelledby="titulo-listado">
   <div class="listado-cabecera">
-    <div><p class="antetitulo" data-anim="subir">Talento de nuestras comunidades</p><h2 id="titulo-listado" data-anim="letras" data-anim-retraso="0.1">Encuentra y conecta.</h2></div>
+    {/*
+      Un solo titular, sin rótulo pequeño encima: la frase de arriba se
+      integró en él. Fino + grueso, como el titular del inicio.
+    */}
+    <h2 id="titulo-listado" data-anim="lineas">Encuentra y conecta con el <strong>talento de nuestras comunidades.</strong></h2>
     <p data-anim="lectura">Detrás de cada negocio,<br />hay una historia por conocer.</p>
   </div>
 
-  <div class="filtros" data-filtros data-anim="pop" data-anim-hijos="legend, button">
+  <div class="filtros" data-filtros data-anim="pop" data-anim-hijos="legend, button, [data-indicador]">
     {comunidadesPresentes.length > 0 && (
     <fieldset>
       <legend>Comunidad</legend>
+      <span class="indicador" data-indicador aria-hidden="true"></span>
       <button type="button" data-filtro="comunidad" data-valor="todas" aria-pressed="true">
         Todas
       </button>
@@ -63,6 +68,7 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
 
     <fieldset>
       <legend>Categoría</legend>
+      <span class="indicador" data-indicador aria-hidden="true"></span>
       <button type="button" data-filtro="categoria" data-valor="todas" aria-pressed="true">
         Todas
       </button>
@@ -120,8 +126,8 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   }
 
   .listado-cabecera { position: relative; z-index: 2; display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2.5rem; }
-  .antetitulo { margin: 0 0 .75rem; font-size: var(--txt-s); }
-  .listado-cabecera h2 { font-size: var(--txt-xl); }
+  .listado-cabecera h2 { max-width: 16em; font-size: var(--txt-xl); font-weight: 300; line-height: 0.98; }
+  .listado-cabecera h2 strong { font-weight: 700; }
   .listado-cabecera > p { margin: 0; font-size: var(--txt-s); }
 
   .filtros {
@@ -136,6 +142,7 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   }
 
   fieldset {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -150,12 +157,30 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     width: 100%;
     margin-bottom: 0.6rem;
     font-size: var(--txt-s);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
     opacity: 0.9;
   }
 
+  /*
+   * Píldora que se desliza hasta el filtro elegido y toma su color: muestra
+   * de dónde a dónde cambió la selección. Hasta que el script la coloca no se
+   * ve, y el botón activo se pinta solo (así funciona también sin JavaScript).
+   */
+  .indicador {
+    position: absolute;
+    z-index: 0;
+    display: none;
+    border-radius: var(--radio-pildora);
+    background: var(--df-bone);
+    pointer-events: none;
+  }
+
+  .con-indicador .indicador {
+    display: block;
+  }
+
   .filtros button {
+    position: relative;
+    z-index: 1;
     min-height: 44px;
     padding: 0.45em 1.1em;
     border: 1.5px solid var(--df-bone);
@@ -168,7 +193,9 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     cursor: pointer;
     transition:
       background var(--dur-rapida) var(--ease-suave),
-      color var(--dur-rapida) var(--ease-suave);
+      border-color var(--dur-rapida) var(--ease-suave),
+      color var(--dur-rapida) var(--ease-suave),
+      scale var(--dur-rapida) var(--ease-suave);
   }
 
   .filtros button:hover { background: rgb(239 238 237 / .15); }
@@ -177,6 +204,18 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     background: var(--acento, var(--df-bone));
     border-color: var(--acento, var(--df-bone));
     color: var(--acento-texto, var(--df-blue-deep));
+  }
+
+  /* Con la píldora deslizante, el fondo lo pone ella. */
+  .filtros .con-indicador button[aria-pressed="true"] {
+    background: transparent;
+    border-color: transparent;
+    /* El texto y el borde cambian cuando la píldora ya está llegando. */
+    transition-delay: 0.22s;
+  }
+
+  .filtros button:active {
+    scale: 0.96;
   }
 
   .conteo {
@@ -236,6 +275,7 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   import { Flip } from "gsap/Flip";
   import { ScrollTrigger } from "gsap/ScrollTrigger";
   import Snap from "lenis/snap";
+  import { montarGelatina } from "../lib/gelatina";
   import { obtenerScroll, sinMovimiento } from "../lib/scroll";
 
   gsap.registerPlugin(Flip, ScrollTrigger);
@@ -326,6 +366,46 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     const limpiarBoton = seccion.querySelector<HTMLButtonElement>("[data-limpiar]");
 
     montarVideos(grid, signal);
+    montarGelatina(grid.querySelectorAll<HTMLElement>("a[data-tarjeta]"), signal);
+
+    // ---- Píldora deslizante de los filtros --------------------------------
+    const grupos = [...seccion.querySelectorAll<HTMLFieldSetElement>("[data-filtros] fieldset")];
+
+    function colocarIndicador(grupo: HTMLFieldSetElement, animar: boolean) {
+      const indicador = grupo.querySelector<HTMLElement>("[data-indicador]");
+      const boton = grupo.querySelector<HTMLElement>('button[aria-pressed="true"]');
+      if (!indicador || !boton) return;
+
+      // offset*: medidas de layout, ajenas a las transformaciones de entrada.
+      const destino = {
+        left: boton.offsetLeft,
+        top: boton.offsetTop,
+        width: boton.offsetWidth,
+        height: boton.offsetHeight,
+        backgroundColor: getComputedStyle(boton).getPropertyValue("--acento").trim() || "#efeeed",
+      };
+
+      gsap.killTweensOf(indicador, "left,top,width,height,backgroundColor");
+      if (animar && !sinMovimiento()) gsap.to(indicador, { ...destino, duration: 0.5, ease: "power3.inOut" });
+      else gsap.set(indicador, destino);
+    }
+
+    const colocarTodos = (animar: boolean) => grupos.forEach((g) => colocarIndicador(g, animar));
+
+    grupos.forEach((g) => g.classList.add("con-indicador"));
+    colocarTodos(false);
+    // El ancho de los botones cambia al cargar la fuente y al girar la pantalla.
+    const vigia = new ResizeObserver(() => colocarTodos(false));
+    grupos.forEach((g) => vigia.observe(g));
+    void document.fonts.ready.then(() => !signal.aborted && colocarTodos(false));
+    signal.addEventListener(
+      "abort",
+      () => {
+        vigia.disconnect();
+        grupos.forEach((g) => g.classList.remove("con-indicador"));
+      },
+      { once: true },
+    );
 
     // ---- Anclaje por filas ----------------------------------------------
     // `proximity`, no `mandatory`: acomoda la fila cuando el usuario se detiene
@@ -512,6 +592,7 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
           .querySelectorAll<HTMLButtonElement>("[data-filtro=" + JSON.stringify(grupo) + "]")
           .forEach((b) => b.setAttribute("aria-pressed", String(b === boton)));
 
+        colocarTodos(true);
         contexto?.add(aplicarFiltros);
       }, { signal });
     });
@@ -520,6 +601,7 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
       boton.addEventListener("click", () => {
         activos.comunidad = activos.categoria = "todas";
         seccion.querySelectorAll<HTMLButtonElement>("[data-filtro]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.valor === "todas")));
+        colocarTodos(true);
         contexto?.add(aplicarFiltros);
       }, { signal });
     });

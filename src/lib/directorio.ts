@@ -165,13 +165,28 @@ export async function getEmprendedores(): Promise<Emprendedor[]> {
   const sinFoto = lista.filter((e) => e.fotoPendiente);
   if (sinFoto.length > 0) {
     console.info(
-      `\nℹ️  ${sinFoto.length} emprendedores todavía sin foto propia (se muestra una silueta).` +
+      `\nℹ️  ${sinFoto.length} emprendedores todavía sin foto propia (se muestra un monograma).` +
         `\n   Corre: npm run fotos\n`,
     );
   }
 
   cache = lista;
   return cache;
+}
+
+/**
+ * Iniciales para el monograma de quien todavía no tiene foto propia, o null
+ * si ya la tiene. Salen del nombre público (un nombre y un apellido), así que
+ * no revelan nada que no esté ya en pantalla.
+ */
+export function inicialesSinFoto(e: Emprendedor): string | null {
+  if (!e.fotoPendiente) return null;
+  return e.nombre
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((parte) => parte.charAt(0).toLocaleUpperCase("es"))
+    .join("");
 }
 
 export async function getEmprendedor(slug: string): Promise<Emprendedor | null> {

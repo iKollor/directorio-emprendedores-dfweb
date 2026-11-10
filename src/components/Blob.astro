@@ -32,6 +32,11 @@ type Props = {
    * `hover` espera al puntero y no descarga nada hasta entonces (listado).
    */
   videoModo?: "auto" | "hover";
+  /**
+   * Las dos iniciales de la persona. Si llegan, el blob no muestra foto sino
+   * un monograma: es lo que se ve mientras no hay retrato propio.
+   */
+  iniciales?: string | null;
 };
 
 const {
@@ -43,7 +48,12 @@ const {
   sizes = "(max-width: 767px) 88vw, 42vw",
   video = null,
   videoModo = "hover",
+  iniciales = null,
 } = Astro.props;
+
+// Las iniciales van en el color de la categoría. Sobre el fondo azul hondo
+// del monograma, la categoría que ya es azul hondo no se vería: va en hueso.
+const tinta = color === "var(--df-blue-deep)" ? "var(--df-bone)" : color;
 
 const retrato = generarBlob(slug);
 const idRecorte = `recorte-${slug}`;
@@ -75,15 +85,32 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
     </svg>
 
     <div class="recorte" style={`clip-path: url(#${idRecorte})`}>
-      <Image
-        src={foto}
-        alt={alt}
-        widths={[400, 700, 1000, 1400]}
-        sizes={sizes}
-        loading={prioritaria ? "eager" : "lazy"}
-        fetchpriority={prioritaria ? "high" : "auto"}
-        decoding="async"
-      />
+      {
+        iniciales ? (
+          /*
+           * MONOGRAMA. Sustituye a la silueta genérica de "usuario sin foto",
+           * que con doce personas seguidas convertía el listado en una pared
+           * de avatares iguales. Sigue siendo neutro (no presta la foto de
+           * nadie), pero ahora cada blob dice quién es y, por el color, a qué
+           * se dedica. Primera letra fina y segunda gruesa: el mismo recurso
+           * tipográfico de la marca que usa el titular.
+           */
+          <div class="monograma" role="img" aria-label={alt} style={`--tinta:${tinta};`}>
+            <span aria-hidden="true">{iniciales.slice(0, 1)}</span>
+            <strong aria-hidden="true">{iniciales.slice(1, 2)}</strong>
+          </div>
+        ) : (
+          <Image
+            src={foto}
+            alt={alt}
+            widths={[400, 700, 1000, 1400]}
+            sizes={sizes}
+            loading={prioritaria ? "eager" : "lazy"}
+            fetchpriority={prioritaria ? "high" : "auto"}
+            decoding="async"
+          />
+        )
+      }
 
       {
         video && (
@@ -165,6 +192,30 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
     position: relative;
     width: 100%;
     height: 100%;
+    /* Para que el monograma escale con el blob y no con la pantalla. */
+    container-type: inline-size;
+  }
+
+  .monograma {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: var(--df-blue-deep);
+    color: var(--tinta);
+    font-size: 38cqw;
+    line-height: 1;
+    letter-spacing: -0.07em;
+    user-select: none;
+  }
+
+  .monograma span {
+    font-weight: 300;
+  }
+
+  .monograma strong {
+    font-weight: 700;
   }
 
   .recorte :global(img),

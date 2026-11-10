@@ -8,7 +8,7 @@
  */
 import Blob from "./Blob.astro";
 import { MOSTRAR_COMUNIDAD, categoria } from "../data/taxonomia";
-import type { Emprendedor } from "../lib/directorio";
+import { inicialesSinFoto, type Emprendedor } from "../lib/directorio";
 
 type Props = {
   emprendedor: Emprendedor;
@@ -24,6 +24,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
 
 <Envoltura
   {...props}
+  id={e.slug}
   class:list={["tarjeta", { pendiente: e.fichaPendiente }]}
   data-tarjeta
   data-comunidad={MOSTRAR_COMUNIDAD ? e.comunidad : undefined}
@@ -35,7 +36,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
       slug={e.slug}
       foto={e.foto}
       alt={e.fotoPendiente
-        ? `Silueta: todavía no hay foto de ${e.nombre}`
+        ? `Todavía no hay foto de ${e.nombre}`
         : e.fichaPendiente
           ? `Retrato de ${e.nombre}`
           : `${e.nombre}, ${e.emprendimiento}`}
@@ -44,6 +45,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
       sizes="(max-width: 767px) 100vw, 42vw"
       video={e.fichaPendiente ? null : e.video}
       videoModo="hover"
+      iniciales={inicialesSinFoto(e)}
     />
   </div>
 
@@ -75,6 +77,13 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
     flex-direction: column;
     color: inherit;
     text-decoration: none;
+    /* Al volver desde una ficha se aterriza en esta tarjeta, con aire arriba. */
+    scroll-margin-top: 14vh;
+  }
+
+  /* Quien aún no tiene ficha se ve, pero un paso atrás. */
+  .pendiente :global(.monograma) {
+    color: rgb(239 238 237 / 0.45);
   }
 
   .retrato {
