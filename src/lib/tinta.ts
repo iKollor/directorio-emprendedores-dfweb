@@ -222,11 +222,32 @@ const CALIDADES = [1, 0.75, 0.5];
 
 type Textura = { textura: WebGLTexture; escala: [number, number]; uso: number };
 
+/**
+ * Cómo llega lo pintado al lienzo de cada retrato.
+ *
+ *   traspaso  el contexto WebGL vive en un OffscreenCanvas y cada dibujo se
+ *             entrega entero al lienzo del retrato (transferToImageBitmap +
+ *             bitmaprenderer), sin copiar píxeles
+ *   copia     el contexto vive en un <canvas> y cada dibujo se copia con
+ *             drawImage al lienzo 2D del retrato
+ *
+ * La copia era el cuello de botella: puede obligar a traer cada dibujo de la
+ * tarjeta gráfica al procesador, y con dos o tres retratos en pantalla los
+ * fotogramas no llegaban a tiempo (los "saltos"). Medido en Chromium sin
+ * tarjeta gráfica: unos 22 ms por copia, más que un fotograma entero. La
+ * copia queda solo para navegadores sin OffscreenCanvas con WebGL.
+ */
+type Salida =
+  | { modo: "traspaso"; ctx: ImageBitmapRenderingContext }
+  | { modo: "copia"; ctx: CanvasRenderingContext2D };
+
 type Pieza = {
   contenedor: HTMLElement;
   blob: Element | null;
   lienzo: HTMLCanvasElement;
-  ctx: CanvasRenderingContext2D;
+  salida: Salida;
+  /** Lado en píxeles al que se pinta; con traspaso, el del lienzo no sirve. */
+  lado: number;
   fotos: Imagen[];
   videos: (HTMLVideoElement | null)[];
   zooms: number[];
@@ -270,16 +291,37 @@ export function soltarTinta(): void {
   motor = null;
 }
 
+/** ¿Se puede pintar en un OffscreenCanvas y entregar sin copia? */
+function admiteTraspaso(): boolean {
+  if (typeof OffscreenCanvas === "undefined" || !("transferToImageBitmap" in OffscreenCanvas.prototype)) return false;
+  try {
+    return document.createElement("canvas").getContext("bitmaprenderer") !== null;
+  } catch {
+    return false;
+  }
+}
+
 function crearMotor(): Motor | null {
-  const base = document.createElement("canvas");
-  base.width = base.height = 512;
-  const gl = base.getContext("webgl", {
+  const OPCIONES_GL: WebGLContextAttributes = {
     alpha: false,
     antialias: false,
     depth: false,
     stencil: false,
     powerPreference: "default",
-  });
+  };
+  let traspaso = admiteTraspaso();
+  let base: HTMLCanvasElement | OffscreenCanvas = traspaso
+    ? new OffscreenCanvas(512, 512)
+    : document.createElement("canvas");
+  base.width = base.height = 512;
+  let gl = base.getContext("webgl", OPCIONES_GL) as WebGLRenderingContext | null;
+  if (!gl && traspaso) {
+    // OffscreenCanvas sin WebGL (algún navegador antiguo): se vuelve a la copia.
+    traspaso = false;
+    base = document.createElement("canvas");
+    base.width = base.height = 512;
+    gl = base.getContext("webgl", OPCIONES_GL);
+  }
   if (!gl) return null;
 
   const compilar = (tipo: number, codigo: string) => {
@@ -493,13 +535,16 @@ function crearMotor(): Motor | null {
     const lado = Math.max(2, Math.round(pieza.contenedor.clientWidth * escala));
     // Las dos medidas: un lienzo nace de 300 × 150, y si el lado pedido era
     // justo 300 el ancho ya coincidía y el alto se quedaba en 150.
-    if (pieza.lienzo.width !== lado || pieza.lienzo.height !== lado) {
+    if (pieza.lado !== lado || pieza.lienzo.width !== lado || pieza.lienzo.height !== lado) {
+      pieza.lado = lado;
       pieza.lienzo.width = pieza.lienzo.height = lado;
       pieza.pintada = false;
     }
-    // El lienzo compartido crece hasta la pieza más grande y ya no encoge:
-    // cambiarle el tamaño en cada dibujo reharía sus búferes cada vez.
-    if (base.width < lado) base.width = base.height = lado;
+    // Con copia, el lienzo compartido crece hasta la pieza más grande y ya no
+    // encoge: cambiarle el tamaño en cada dibujo reharía sus búferes. Con
+    // traspaso toma el tamaño de cada pieza al pintarla (cada entrega estrena
+    // búfer de todos modos).
+    if (!traspaso && base.width < lado) base.width = base.height = lado;
     pieza.sucia = true;
   }
 
@@ -515,7 +560,10 @@ function crearMotor(): Motor | null {
     const contorno = pieza.blob ? CONTORNOS.get(pieza.blob) : undefined;
     if (contorno) subirContorno(contorno);
 
-    const lado = pieza.lienzo.width;
+    const lado = pieza.lado;
+    if (traspaso && (base.width !== lado || base.height !== lado)) {
+      base.width = base.height = lado;
+    }
     gl!.viewport(0, 0, lado, lado);
     gl!.activeTexture(gl!.TEXTURE0);
     gl!.bindTexture(gl!.TEXTURE_2D, a.textura);
@@ -532,9 +580,14 @@ function crearMotor(): Motor | null {
     gl!.uniform1f(uniformes.conContorno, contorno ? 1 : 0);
     gl!.drawArrays(gl!.TRIANGLES, 0, 3);
 
-    // El viewport de WebGL nace abajo a la izquierda; en coordenadas de
-    // lienzo eso es el final de la altura.
-    pieza.ctx.drawImage(base, 0, base.height - lado, lado, lado, 0, 0, lado, lado);
+    if (pieza.salida.modo === "traspaso") {
+      // Se entrega el dibujo entero, sin copiarlo.
+      pieza.salida.ctx.transferFromImageBitmap((base as OffscreenCanvas).transferToImageBitmap());
+    } else {
+      // El viewport de WebGL nace abajo a la izquierda; en coordenadas de
+      // lienzo eso es el final de la altura.
+      pieza.salida.ctx.drawImage(base, 0, base.height - lado, lado, lado, 0, 0, lado, lado);
+    }
 
     if (!pieza.pintada) {
       pieza.pintada = true;
@@ -636,8 +689,15 @@ function crearMotor(): Motor | null {
     const lienzo = document.createElement("canvas");
     lienzo.className = "lienzo-tinta";
     lienzo.setAttribute("aria-hidden", "true");
-    const ctx = lienzo.getContext("2d");
-    if (!ctx) return null;
+    let salida: Salida | null = null;
+    if (traspaso) {
+      const ctx = lienzo.getContext("bitmaprenderer");
+      if (ctx) salida = { modo: "traspaso", ctx };
+    } else {
+      const ctx = lienzo.getContext("2d");
+      if (ctx) salida = { modo: "copia", ctx };
+    }
+    if (!salida) return null;
 
     // Antes del vídeo, si lo hay: el vídeo del listado se muestra por encima.
     contenedor.insertBefore(lienzo, contenedor.querySelector(":scope > video"));
@@ -646,7 +706,8 @@ function crearMotor(): Motor | null {
       contenedor,
       blob: contenedor.closest("[data-blob]"),
       lienzo,
-      ctx,
+      salida,
+      lado: 0,
       fotos,
       videos: fotos.map(() => null),
       zooms: fotos.map(() => 1),

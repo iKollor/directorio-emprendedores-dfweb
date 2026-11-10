@@ -115,7 +115,9 @@ No usar:
   por fotograma y tiemblan. Van en el shader.
 
 Rendimiento, que es parte del diseño: un solo contexto WebGL para todos
-los retratos, se pinta solo lo visible, en reposo a media cadencia, y un freno baja la resolución si el
+los retratos, que entrega cada dibujo a su lienzo sin copiarlo
+(OffscreenCanvas + `transferToImageBitmap`; copiar con `drawImage` traía
+cada dibujo de la tarjeta gráfica y daba saltos en Firefox), se pinta solo lo visible, en reposo a media cadencia, y un freno baja la resolución si el
 dispositivo no llega. Sin WebGL o con movimiento reducido quedan las fotos
 normales. Cualquier cambio en `tinta.ts` debe conservar eso.
 
