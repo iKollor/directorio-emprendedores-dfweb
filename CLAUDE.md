@@ -10,39 +10,50 @@ Manage the background server with `astro dev stop`, `astro dev status`, and `ast
 
 ## Criterio de diseño
 
-Antes de añadir o cambiar algo visual o animado, pásalo por esta lista. Sale
-de los catálogos de "diseño genérico" de [Impeccable](https://impeccable.style/slop),
-de la skill `frontend-design` de Anthropic y de
-[Hallmark](https://github.com/Nutlope/hallmark), aplicados a este sitio.
+Antes de añadir o cambiar algo visual o animado, léelo entero. El sitio tiene
+UNA idea y todo sale de ella; lo que no salga de ella, no entra.
 
-**La regla:** nada se mueve si la persona no hizo algo o algo no cambió. Y
-cada recurso tiene que salir de este sitio (los blobs, el fino + grueso del
-titular, el color por categoría, la nota pegada, la píldora amarilla), no de
-una librería de efectos.
+**La idea.** El directorio está impreso en la tinta azul de la escuela. Los
+retratos llegan en esa tinta (tres tonos de la marca y trama de puntos) y
+pasan a color vivo allí donde va la atención, a través de un frente líquido.
+Ese mismo frente releva a una persona por otra en el hero.
+
+**Un material.** Todo efecto de imagen es `src/lib/tinta.ts` (WebGL, un solo
+shader). No añadas otro efecto de imagen: si hace falta algo nuevo, es un
+parámetro de ese material. Cuándo se revela cada retrato está en
+`src/lib/retratos.ts`; el hero, en `BlobHero.astro`.
+
+**Una curva.** Todo lo que entra sube un poco y se asienta con `expo.out`
+(`CURVA` en `src/lib/animaciones.ts`). Sin rebotes, giros ni desenfoques. El
+único elástico del sitio es el contorno de los blobs, que es líquido.
+
+**Nada se mueve solo.** El movimiento responde a algo: la carga de la página,
+el scroll, un clic, el puntero. La única excepción es el relevo de personas
+del hero. En reposo, el lienzo no dibuja ni un fotograma.
 
 No usar:
 
+- Varias transiciones distintas para lo mismo, o elegidas al azar.
 - Ondas o anillos que salen de un elemento (ripple), pulsos, brillos que
-  cruzan un botón, flechas que rebotan solas ni nada que se anime en bucle
-  para llamar la atención.
+  cruzan un botón, flechas que rebotan, cintas que corren solas.
 - Círculos que se abren desde el clic, cortinas o barridos entre páginas. La
   transición es el retrato y el nombre viajando a su ficha (`transition:name`).
-- Rótulo pequeño encima de un titular (antetítulo, "eyebrow"), ni en
-  mayúsculas espaciadas. Si aporta algo, va dentro del titular.
+- Rótulo pequeño encima de un titular (antetítulo), ni en mayúsculas
+  espaciadas. Si aporta algo, va dentro del titular.
 - Sellos de texto giratorio, cursores personalizados, nada que siga al
-  puntero (esto último lo pidió quitar Diseña Futuro).
-- Aparecer-al-hacer-scroll en cada bloque, parallax en cada sección, y un
-  efecto al pasar el puntero distinto en cada elemento.
-- Numerar cosas que no son una secuencia, degradados en texto, resplandores,
-  vidrio esmerilado y siluetas o iconos genéricos de relleno.
+  puntero (lo pidió quitar Diseña Futuro). La estela de la tinta responde al
+  movimiento del puntero sobre un retrato y vuelve sola a su sitio: con el
+  puntero quieto no hay nada deformado. Se apaga con `ARRASTRE = 0` en
+  `retratos.ts`.
+- Degradados en texto, resplandores, vidrio esmerilado, siluetas o iconos
+  genéricos de relleno, numerar lo que no es una secuencia.
 
-Sí:
+Rendimiento, que es parte del diseño: un solo contexto WebGL, se pinta solo
+lo visible y solo cuando cambia, sin WebGL o con movimiento reducido quedan
+las fotos normales. Cualquier cambio en `tinta.ts` debe conservar eso.
 
-- Movimiento que explica un cambio: la píldora que se desliza al filtro
-  elegido, las tarjetas que se reordenan, el retrato que viaja a su ficha.
-- Una sola secuencia orquestada al cargar cada página.
-- Tipografía como recurso principal: fino + grueso en la misma frase.
-- Antes de dar algo por terminado, quitar un elemento.
+Referencias: [Impeccable](https://impeccable.style/slop), la skill
+`frontend-design` de Anthropic y [Hallmark](https://github.com/Nutlope/hallmark).
 
 ## Documentation
 

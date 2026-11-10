@@ -170,6 +170,41 @@ a {
   translate: 0 0.22em;
 }
 
+/*
+ * TINTA (lib/tinta.ts). El lienzo se coloca sobre la foto y la sustituye.
+ *
+ * `html.gl` se pone antes del primer pintado si el navegador admite WebGL:
+ * esconde las fotos que van a salir impresas en tinta, para que no asomen a
+ * color un instante. La de la ficha (`data-tinta="color"`) no se esconde
+ * hasta que su lienzo ha dibujado, porque las dos se ven igual.
+ * Sin WebGL o con movimiento reducido no hay `gl` y quedan las fotos.
+ */
+.lienzo-tinta {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+html.gl [data-tinta]:not([data-tinta="color"]) img,
+[data-tinta-lista] img {
+  opacity: 0;
+}
+
+/*
+ * Rescate: si el script no llegara a montar el lienzo, la foto vuelve a los
+ * tres segundos. Nunca se queda un retrato vacío.
+ */
+html.gl [data-tinta]:not(:has(.lienzo-tinta)) img {
+  animation: tinta-rescate 0s 3s forwards;
+}
+
+@keyframes tinta-rescate {
+  to { opacity: 1; }
+}
+
 ::selection {
   background: var(--df-yellow);
   color: var(--df-blue-deep);

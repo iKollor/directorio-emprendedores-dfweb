@@ -37,6 +37,12 @@ type Props = {
    * un monograma: es lo que se ve mientras no hay retrato propio.
    */
   iniciales?: string | null;
+  /**
+   * Cómo se comporta la tinta del retrato (lib/retratos.ts): `foco` lo deja
+   * impreso en azul hasta que recibe atención; `color` lo muestra a color
+   * (ficha individual).
+   */
+  tinta?: "foco" | "color";
 };
 
 const {
@@ -49,11 +55,12 @@ const {
   video = null,
   videoModo = "hover",
   iniciales = null,
+  tinta = "foco",
 } = Astro.props;
 
 // Las iniciales van en el color de la categoría. Sobre el fondo azul hondo
 // del monograma, la categoría que ya es azul hondo no se vería: va en hueso.
-const tinta = color === "var(--df-blue-deep)" ? "var(--df-bone)" : color;
+const tintaMonograma = color === "var(--df-blue-deep)" ? "var(--df-bone)" : color;
 
 const retrato = generarBlob(slug);
 const idRecorte = `recorte-${slug}`;
@@ -84,7 +91,7 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
       </defs>
     </svg>
 
-    <div class="recorte" style={`clip-path: url(#${idRecorte})`}>
+    <div class="recorte" style={`clip-path: url(#${idRecorte})`} data-tinta={iniciales ? undefined : tinta}>
       {
         iniciales ? (
           /*
@@ -95,7 +102,7 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
            * se dedica. Primera letra fina y segunda gruesa: el mismo recurso
            * tipográfico de la marca que usa el titular.
            */
-          <div class="monograma" role="img" aria-label={alt} style={`--tinta:${tinta};`}>
+          <div class="monograma" role="img" aria-label={alt} style={`--tinta:${tintaMonograma};`}>
             <span aria-hidden="true">{iniciales.slice(0, 1)}</span>
             <strong aria-hidden="true">{iniciales.slice(1, 2)}</strong>
           </div>

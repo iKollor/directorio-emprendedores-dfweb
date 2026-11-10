@@ -1,13 +1,16 @@
 ---
 /**
- * Dos cintas de palabras que corren en sentidos opuestos y se aceleran con la
- * velocidad del scroll (el efecto "ScrollVelocity" de React Bits, hecho con
- * GSAP). Al cambiar de sentido el scroll, las cintas también se dan la vuelta.
+ * Dos renglones de palabras que se cruzan en sentidos opuestos, movidos por
+ * el scroll: avanzan cuando la persona avanza y se quedan quietos cuando se
+ * detiene.
+ *
+ * Antes corrían solos, sin parar, se aceleraban con la velocidad del scroll y
+ * se inclinaban. Era lo único de la página que se movía sin que nadie hiciera
+ * nada, y obligaba a leer al ritmo de la cinta.
  *
  * Es decorativa: repite el lema del hero, así que se oculta a los lectores de
- * pantalla. Cada pista lleva el texto dos veces y avanza hasta -50%, punto en
- * el que la segunda copia ocupa el lugar de la primera: el bucle no tiene
- * costura.
+ * pantalla. Cada pista lleva el texto dos veces para que nunca se vea su
+ * final durante el recorrido.
  */
 const PALABRAS = ["explora", "conoce", "conecta", "apóyalos"];
 const FILAS = [
@@ -107,18 +110,12 @@ const FILAS = [
 
   gsap.registerPlugin(ScrollTrigger);
 
-  /** Velocidad de crucero, en segundos por vuelta completa. */
-  const VUELTA = 26;
-  /** Cuánto empuja el scroll: px/s de scroll que suman una velocidad extra. */
-  const SENSIBILIDAD = 450;
-  const MAXIMO = 5;
+  /** Cuánto se desplaza cada renglón mientras la sección cruza la pantalla. */
+  const RECORRIDO = 30; // % del ancho de la pista
 
   let contexto: gsap.Context | null = null;
-  let soltar: (() => void) | null = null;
 
   function limpiar() {
-    soltar?.();
-    soltar = null;
     contexto?.revert();
     contexto = null;
   }
@@ -129,50 +126,25 @@ const FILAS = [
     if (!cinta || sinMovimiento()) return;
 
     contexto = gsap.context(() => {
-      const filas = [...cinta.querySelectorAll<HTMLElement>("[data-sentido]")].map((fila) => {
-        const pista = fila.querySelector<HTMLElement>("[data-pista]")!;
-        const base = Number(fila.dataset.sentido);
-        const giro = gsap.to(pista, { xPercent: -50, duration: VUELTA, ease: "none", repeat: -1 });
-        // Margen de tiempo hacia atrás: con timeScale negativo, un tween que
-        // empieza en 0 se detendría en seco en vez de seguir girando.
-        giro.totalTime(giro.duration() * 1000);
-        giro.timeScale(base);
-        const inclinar = gsap.quickTo(pista, "skewX", { duration: 0.5, ease: "power3" });
-        return { giro, base, inclinar };
-      });
-
-      let sentidoScroll = 1;
-      ScrollTrigger.create({
-        trigger: cinta,
-        start: "top bottom",
-        end: "bottom top",
-        onToggle: (self) => filas.forEach((f) => (self.isActive ? f.giro.resume() : f.giro.pause())),
-        onUpdate: (self) => {
-          const v = self.getVelocity();
-          if (self.direction !== 0) sentidoScroll = self.direction;
-          const empuje = 1 + Math.min(MAXIMO, Math.abs(v) / SENSIBILIDAD);
-          for (const f of filas) {
-            const crucero = f.base * sentidoScroll;
-            gsap.to(f.giro, {
-              timeScale: crucero * empuje,
-              duration: 0.2,
-              overwrite: true,
-              onComplete: () => {
-                gsap.to(f.giro, { timeScale: crucero, duration: 1.4, ease: "power2.out" });
-              },
-            });
-            f.inclinar(gsap.utils.clamp(-10, 10, (v / 300) * -f.base));
-          }
-        },
-      });
-
-      // Al soltar el scroll la inclinación vuelve a cero.
-      const enderezar = () => filas.forEach((f) => f.inclinar(0));
-      ScrollTrigger.addEventListener("scrollEnd", enderezar);
-      soltar = () => ScrollTrigger.removeEventListener("scrollEnd", enderezar);
-    });
+      for (const fila of cinta.querySelectorAll<HTMLElement>("[data-sentido]")) {
+        const pista = fila.querySelector<HTMLElement>("[data-pista]");
+        if (!pista) continue;
+        const haciaIzquierda = Number(fila.dataset.sentido) > 0;
+        gsap.fromTo(
+          pista,
+          { xPercent: haciaIzquierda ? 0 : -RECORRIDO },
+          {
+            xPercent: haciaIzquierda ? -RECORRIDO : 0,
+            ease: "none",
+            // Un poco de inercia: en el móvil el scroll es a saltos de dedo.
+            scrollTrigger: { trigger: cinta, start: "top bottom", end: "bottom top", scrub: 0.5 },
+          },
+        );
+      }
+    }, cinta);
   }
 
   document.addEventListener("astro:page-load", iniciar);
   document.addEventListener("astro:before-swap", limpiar);
+  window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", iniciar);
 </script>

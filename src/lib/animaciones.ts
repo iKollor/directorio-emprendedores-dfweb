@@ -1,16 +1,19 @@
 /**
  * Animaciones de texto y entrada, declaradas en el HTML con `data-anim`.
  *
- * Son versiones con GSAP de efectos populares de librerías de React (React
- * Bits y parecidas): este sitio no usa React, y GSAP ya trae SplitText y
- * ScrollTrigger gratis, así que no hace falta sumar dependencias ni peso.
+ * UNA SOLA FAMILIA DE MOVIMIENTO. Todo lo que entra lo hace igual: sube un
+ * poco y se asienta con la misma curva (`CURVA`), sin rebotes, giros ni
+ * desenfoques. Antes cada efecto traía su propia curva y su propio truco
+ * (rebote, giro de letras, palabras borrosas) y la página parecía un
+ * muestrario. Los titulares suben tras una máscara; los bloques, sin ella.
+ * Los nombres se conservan para no tocar el HTML.
  *
- *   data-anim="letras"     letras que suben desde su línea (SplitText)
- *   data-anim="lineas"     líneas que suben tras una máscara (SplitText)
- *   data-anim="desenfoque" palabras que entran desenfocadas (BlurText)
- *   data-anim="lectura"    palabras que se encienden con el scroll (ScrollReveal)
+ *   data-anim="letras"     letras que suben desde su línea (solo titulares)
+ *   data-anim="lineas"     líneas que suben tras una máscara
+ *   data-anim="desenfoque" texto corrido: sus párrafos suben, sin desenfoque
+ *   data-anim="lectura"    palabras que se aclaran al avanzar el scroll
  *   data-anim="subir"      el bloque, o sus hijos, suben y aparecen
- *   data-anim="pop"        el bloque, o sus hijos, crecen con rebote
+ *   data-anim="pop"        igual que subir, para botones y píldoras
  *   data-anim="revelar"    los hijos se destapan de abajo arriba (clip-path)
  *   data-anim="subrayado"  el subrayado amarillo se dibuja de izquierda a derecha
  *
@@ -36,6 +39,8 @@ import { sinMovimiento } from "./scroll";
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
 const ARRANQUE = "top 92%";
+/** La curva de todo el sitio: sale rápido y se asienta despacio. */
+const CURVA = "expo.out";
 
 type Fabrica = (el: HTMLElement, retraso: number) => void;
 
@@ -62,9 +67,8 @@ const FABRICAS: Record<string, Fabrica> = {
       onSplit: (self) =>
         gsap.from(self.chars, {
           yPercent: 110,
-          rotate: 6,
-          duration: 0.9,
-          ease: "power4.out",
+          duration: 1.1,
+          ease: CURVA,
           stagger: { amount: Math.min(0.6, self.chars.length * 0.025) },
           delay: retraso,
           scrollTrigger: disparador(el),
@@ -81,9 +85,9 @@ const FABRICAS: Record<string, Fabrica> = {
       onSplit: (self) =>
         gsap.from(self.lines, {
           yPercent: 105,
-          duration: 1,
-          ease: "power4.out",
-          stagger: 0.1,
+          duration: 1.1,
+          ease: CURVA,
+          stagger: 0.09,
           delay: retraso,
           scrollTrigger: disparador(el),
         }),
@@ -91,21 +95,18 @@ const FABRICAS: Record<string, Fabrica> = {
   },
 
   desenfoque(el, retraso) {
-    SplitText.create(el, {
-      type: "words",
-      autoSplit: true,
-      onSplit: (self) =>
-        gsap.from(self.words, {
-          opacity: 0,
-          y: 12,
-          filter: "blur(10px)",
-          duration: 0.8,
-          ease: "power2.out",
-          stagger: { amount: Math.min(0.8, self.words.length * 0.03) },
-          delay: retraso,
-          clearProps: "filter",
-          scrollTrigger: disparador(el),
-        }),
+    // Sin partir el texto: los párrafos suben enteros. Partirlo en líneas
+    // rompía el interlineado cuando el bloque trae varios párrafos.
+    const parrafos = el.children.length > 0 ? ([...el.children] as HTMLElement[]) : [el];
+    gsap.from(parrafos, {
+      autoAlpha: 0,
+      y: 18,
+      duration: 1,
+      ease: CURVA,
+      stagger: 0.08,
+      delay: retraso,
+      clearProps: LIMPIAR,
+      scrollTrigger: disparador(el),
     });
   },
 
@@ -116,7 +117,8 @@ const FABRICAS: Record<string, Fabrica> = {
       onSplit: (self) =>
         gsap.fromTo(
           self.words,
-          { opacity: 0.18 },
+          // Nunca por debajo de lo legible: es un énfasis, no un texto oculto.
+          { opacity: 0.45 },
           {
             opacity: 1,
             ease: "none",
@@ -130,9 +132,9 @@ const FABRICAS: Record<string, Fabrica> = {
   subir(el, retraso) {
     gsap.from(objetivos(el), {
       autoAlpha: 0,
-      y: 26,
-      duration: 0.8,
-      ease: "power3.out",
+      y: 22,
+      duration: 1,
+      ease: CURVA,
       stagger: 0.08,
       delay: retraso,
       clearProps: LIMPIAR,
@@ -143,10 +145,10 @@ const FABRICAS: Record<string, Fabrica> = {
   pop(el, retraso) {
     gsap.from(objetivos(el), {
       autoAlpha: 0,
-      scale: 0.6,
-      duration: 0.7,
-      ease: "back.out(2)",
-      stagger: 0.05,
+      y: 14,
+      duration: 0.9,
+      ease: CURVA,
+      stagger: 0.045,
       delay: retraso,
       clearProps: LIMPIAR,
       scrollTrigger: disparador(el),
@@ -158,7 +160,7 @@ const FABRICAS: Record<string, Fabrica> = {
       clipPath: "inset(100% 0% 0% 0%)",
       y: 40,
       duration: 1.1,
-      ease: "power4.out",
+      ease: CURVA,
       stagger: 0.12,
       delay: retraso,
       clearProps: LIMPIAR,
@@ -172,8 +174,8 @@ const FABRICAS: Record<string, Fabrica> = {
       { "--subrayado": "0%" },
       {
         "--subrayado": "100%",
-        duration: 0.8,
-        ease: "power2.inOut",
+        duration: 0.9,
+        ease: CURVA,
         delay: retraso,
         scrollTrigger: disparador(el),
       },

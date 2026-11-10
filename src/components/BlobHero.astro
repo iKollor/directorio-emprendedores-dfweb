@@ -3,10 +3,17 @@
  * El escenario del hero: un blob grande que va pasando por los emprendedores.
  *
  * Cada escena es una persona: su vídeo si lo tiene y, si no, su foto con un
- * zoom lento. Cada cambio usa una transición con resorte elegida al azar
- * (zoom, deslizar, giro o burbuja), sin repetir la anterior, y el contorno
- * del blob pasa a otra forma al azar, también con resorte. Abajo, una etiqueta con su nombre que lleva a su ficha, y una
- * barra por persona que marca el tiempo y sirve para saltar a ella.
+ * acercamiento lento. Abajo, una etiqueta con su nombre que lleva a su ficha.
+ *
+ * EL RELEVO. Para pasar de una persona a otra hay un solo movimiento: un
+ * frente líquido que nace en la esquina de la etiqueta y va dejando a la
+ * persona nueva (lib/tinta.ts). A la vez, el contorno del blob toma otra
+ * forma. Antes había cuatro transiciones distintas elegidas al azar (zoom,
+ * deslizar, giro, burbuja): cada cambio parecía de un sitio distinto. Al
+ * cargar, el retrato llega impreso en la tinta azul de la escuela y se
+ * revela a color con ese mismo frente.
+ *
+ * Sin WebGL o con movimiento reducido, las personas se funden una en otra.
  *
  * ORDEN ALEATORIO: arranca con una persona al azar y sigue sacándolas de una
  * bolsa barajada, así que nadie se repite hasta que han salido todos. El azar
@@ -63,7 +70,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
             </defs>
           </svg>
 
-          <div class="recorte" style="clip-path: url(#recorte-escenario)">
+          <div class="recorte" style="clip-path: url(#recorte-escenario)" data-tinta="escenario">
             {escenas.map(({ e }, i) => (
               <div class="escena" data-escena data-activa={i === 0 ? "" : undefined}>
                 <Image
@@ -142,7 +149,6 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     background: var(--df-blue-deep);
   }
 
-  /* `overflow` recorta la foto cuando la escena se redondea (transición burbuja). */
   .escena {
     position: absolute;
     inset: 0;
@@ -268,12 +274,16 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
   import { ScrollTrigger } from "gsap/ScrollTrigger";
   import { generarBlob } from "../lib/blob";
   import type { DetalleForma } from "../lib/blobRuntime";
+  import { engancharEstela } from "../lib/retratos";
   import { sinMovimiento } from "../lib/scroll";
+  import { obtenerTinta } from "../lib/tinta";
 
   gsap.registerPlugin(ScrollTrigger);
 
   /** Segundos que dura cada persona en pantalla. */
   const DURACION = 5.5;
+  /** De dónde nace el frente líquido: la esquina donde está la etiqueta. */
+  const ORIGEN: [number, number] = [0.1, 0.88];
 
   let soltar: (() => void) | null = null;
 
@@ -286,6 +296,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
 
     const escenas = [...escenario.querySelectorAll<HTMLElement>("[data-escena]")];
     const rotulos = [...escenario.querySelectorAll<HTMLElement>("[data-rotulo]")];
+    const recorte = escenario.querySelector<HTMLElement>(".recorte");
 
     const reducido = sinMovimiento();
     let actual = 0;
@@ -293,16 +304,24 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     let reloj: gsap.core.Tween | null = null;
     let zoom: gsap.core.Tween | null = null;
     /**
-     * La transición en curso. Antes de empezar otra se lleva a su final: así
-     * dos clics seguidos nunca dejan dos animaciones peleando por la misma
+     * El relevo en curso. Antes de empezar otro se lleva a su final: así dos
+     * cambios seguidos nunca dejan dos animaciones peleando por la misma
      * escena (pasaba, y el blob se quedaba sin ninguna persona activa).
      */
     let transicion: gsap.core.Timeline | null = null;
     let detenido = false;
 
     const video = (i: number) => escenas[i]?.querySelector<HTMLVideoElement>("video") ?? null;
+    const imagen = (i: number) => escenas[i]?.querySelector<HTMLImageElement>("img") ?? null;
     const blob = escenario.querySelector<HTMLElement>(".blob[data-blob]");
     const LADOS = JSON.parse(blob?.dataset.vertices ?? "[]").length as number;
+
+    // ---- Tinta ---------------------------------------------------------------
+    const fotos = escenas.map((_, i) => imagen(i));
+    const tinta =
+      recorte && fotos.every(Boolean)
+        ? (obtenerTinta()?.montar(recorte, { fuentes: fotos as HTMLImageElement[], color: 0 }) ?? null)
+        : null;
 
     /**
      * Forma nueva al azar para el blob. Mismo número de lados (el motor solo
@@ -320,7 +339,6 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       const detalle: DetalleForma = { vertices: nueva.vertices, encaje: nueva.encaje };
       blob.dispatchEvent(new CustomEvent("blob:forma", { detail: detalle }));
     }
-    const imagen = (i: number) => escenas[i]?.querySelector<HTMLImageElement>("img") ?? null;
 
     // ---- Azar ------------------------------------------------------------
     // Bolsa barajada sin la persona actual: nadie se repite hasta que han
@@ -338,14 +356,47 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       const v = video(i);
       if (!v || reducido) return;
       v.currentTime = 0;
-      void v.play().then(() => v.setAttribute("data-listo", ""), () => {});
+      void v.play().then(
+        () => {
+          v.setAttribute("data-listo", "");
+          // Con tinta, el vídeo se pinta dentro del mismo material.
+          if (i === actual) tinta?.usarVideo(i, v);
+        },
+        () => {},
+      );
     }
+
+    /**
+     * Acercamiento lento mientras la persona está en pantalla.
+     *
+     * Con tinta se escala el lienzo entero por CSS: lo mueve el compositor y
+     * no hay que redibujar el shader en cada fotograma. Sin tinta, la foto.
+     */
+    const lente = (i: number) => tinta?.lienzo ?? imagen(i);
 
     function zoomLento(i: number) {
       zoom?.kill();
-      const img = imagen(i);
-      if (!img || reducido) return;
-      zoom = gsap.fromTo(img, { scale: 1 }, { scale: 1.12, duration: DURACION + 1.5, ease: "none", paused: detenido });
+      const objetivo = lente(i);
+      if (!objetivo || reducido) return;
+      zoom = gsap.fromTo(
+        objetivo,
+        { scale: 1 },
+        { scale: 1.12, duration: DURACION + 1.6, ease: "none", paused: detenido },
+      );
+    }
+
+    /**
+     * Antes de un relevo, el acercamiento del lienzo se pasa al shader: la
+     * persona que sale conserva el encuadre que tenía y la que entra empieza
+     * sin acercar. El lienzo vuelve a escala 1 en el mismo fotograma, así
+     * que no se nota el traspaso.
+     */
+    function traspasarZoom(sale: number, entra: number) {
+      if (!tinta) return;
+      zoom?.kill();
+      tinta.acercar(sale, Number(gsap.getProperty(tinta.lienzo, "scale")) || 1);
+      tinta.acercar(entra, 1);
+      gsap.set(tinta.lienzo, { scale: 1 });
     }
 
     function marcarTiempo() {
@@ -354,51 +405,6 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       if (reducido || escenas.length < 2) return;
       reloj = gsap.delayedCall(DURACION, () => irA(siguienteAlAzar()));
       if (detenido) reloj.pause();
-    }
-
-    // ---- Transiciones con resorte -------------------------------------------
-    /*
-     * Cada cambio de persona usa una al azar, sin repetir la anterior. Todas
-     * mueven solo la escena que entra: el contorno del blob no se toca.
-     */
-    const lado = () => gsap.utils.random([-1, 1]);
-    const TRANSICIONES: ((entra: HTMLElement) => gsap.core.Timeline)[] = [
-      // Zoom: llega grande y se asienta con un rebote.
-      (entra) =>
-        gsap.timeline().fromTo(
-          entra,
-          { opacity: 0, scale: 1.35 },
-          { opacity: 1, scale: 1, duration: 1, ease: "back.out(1.7)" },
-        ),
-      // Deslizar: entra desde un borde al azar y se pasa un poco.
-      (entra) => {
-        const eje = gsap.utils.random(["xPercent", "yPercent"]);
-        return gsap.timeline().fromTo(
-          entra,
-          { [eje]: 100 * lado() },
-          { [eje]: 0, duration: 1, ease: "back.out(1.4)" },
-        );
-      },
-      // Giro: entra girando y grande, y se endereza.
-      (entra) =>
-        gsap.timeline().fromTo(
-          entra,
-          { opacity: 0, rotation: 28 * lado(), scale: 1.5 },
-          { opacity: 1, rotation: 0, scale: 1, duration: 1.1, ease: "back.out(1.5)" },
-        ),
-      // Burbuja: nace redonda y pequeña en el centro y crece elástica.
-      (entra) =>
-        gsap
-          .timeline()
-          .fromTo(entra, { scale: 0.2 }, { scale: 1, duration: 1.3, ease: "elastic.out(1, 0.6)" })
-          .fromTo(entra, { borderRadius: "50%" }, { borderRadius: "0%", duration: 0.9, ease: "power2.out" }, 0),
-    ];
-
-    let ultimaTransicion = -1;
-    function transicionAlAzar() {
-      const opciones = TRANSICIONES.map((_, i) => i).filter((i) => i !== ultimaTransicion);
-      ultimaTransicion = gsap.utils.random(opciones);
-      return ultimaTransicion;
     }
 
     // ---- Cambio de persona -------------------------------------------------
@@ -414,13 +420,14 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       const rotuloSale = rotulos[antes]!;
       const rotuloEntra = rotulos[siguiente]!;
 
-
       const terminar = () => {
         entra.setAttribute("data-activa", "");
         sale.removeAttribute("data-activa");
-        gsap.set([entra, sale], { clearProps: "opacity,zIndex,transform,borderRadius" });
+        gsap.set([entra, sale], { clearProps: "opacity,zIndex" });
         rotulos.forEach((r, j) => (r.inert = j !== siguiente));
         gsap.set([rotuloSale, rotuloEntra], { clearProps: "transform,opacity,visibility" });
+        tinta?.usarVideo(antes, null);
+        if (tinta && !inmediato && !reducido) zoomLento(siguiente);
         const v = video(antes);
         if (v) {
           v.pause();
@@ -429,39 +436,53 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       };
 
       reproducir(siguiente);
-      zoomLento(siguiente);
       marcarTiempo();
 
       if (inmediato || reducido) {
+        tinta?.acercar(siguiente, 1);
+        tinta?.fijar(siguiente);
+        zoomLento(siguiente);
         terminar();
         return;
       }
 
+      // Con tinta, el acercamiento de la nueva persona empieza al acabar el
+      // relevo (lo arranca `terminar`); sin ella, ya.
+      if (tinta) traspasarZoom(antes, siguiente);
+      else zoomLento(siguiente);
+
       rotuloEntra.inert = false;
-      // El contorno también cambia: otra silueta al azar, con resorte.
+      // El contorno también cambia: otra silueta al azar.
       formaAlAzar();
 
-      // La anterior se queda quieta debajo mientras la nueva entra encima:
-      // en los rebotes asoma la persona anterior, nunca el fondo del blob.
-      transicion = gsap
-        .timeline({ onComplete: terminar })
-        .set(sale, { zIndex: 1 })
-        .set(entra, { zIndex: 2, opacity: 1 })
-        .add(TRANSICIONES[transicionAlAzar()]!(entra), 0)
-        // Etiqueta tipo pegatina: la vieja sale volando y la nueva cae con rebote.
-        .to(rotuloSale, { y: -24, rotation: 8, autoAlpha: 0, duration: 0.35, ease: "power2.in" }, 0)
+      transicion = gsap.timeline({ onComplete: terminar });
+
+      if (tinta) {
+        // El frente líquido sale de la esquina de la etiqueta.
+        transicion.add(tinta.relevar(siguiente, ORIGEN), 0);
+      } else {
+        // Sin WebGL: la persona nueva se funde sobre la anterior.
+        transicion
+          .set(sale, { zIndex: 1 })
+          .set(entra, { zIndex: 2 })
+          .fromTo(entra, { opacity: 0 }, { opacity: 1, duration: 1.1, ease: "power2.inOut" }, 0);
+      }
+
+      // La etiqueta acompaña al frente: la anterior se va hacia arriba y la
+      // nueva sube desde abajo. Mismo recorrido y misma curva que el resto
+      // de entradas del sitio; nada gira ni rebota.
+      transicion
+        .to(rotuloSale, { y: -18, autoAlpha: 0, duration: 0.32, ease: "power2.in" }, 0)
         .fromTo(
           rotuloEntra,
-          { y: 44, rotation: -14, autoAlpha: 0 },
-          { y: 0, rotation: 0, autoAlpha: 1, duration: 0.85, ease: "back.out(2)" },
-          0.3,
+          { y: 22, autoAlpha: 0 },
+          { y: 0, autoAlpha: 1, duration: 0.9, ease: "expo.out" },
+          // Entra cuando la anterior ya se fue: dos nombres a medias no se leen.
+          0.36,
         );
     }
 
     // ---- Arranque: una persona al azar -------------------------------------
-    // También una forma al azar. Con un respiro: el motor de blobs se monta en
-    // el mismo evento y podría no estar escuchando todavía.
-    const formaInicial = gsap.delayedCall(0.3, formaAlAzar);
     const inicio = Math.floor(Math.random() * escenas.length);
     if (inicio !== 0) irA(inicio, true);
     else {
@@ -469,9 +490,19 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       zoomLento(0);
       marcarTiempo();
     }
+    // Con un respiro: el motor de blobs se monta en el mismo evento y podría
+    // no estar escuchando todavía. El retrato llega en tinta y aquí se revela.
+    const forma = gsap.delayedCall(0.4, formaAlAzar);
+    // El retrato se queda un momento en tinta, mientras entra el titular, y
+    // luego se revela despacio: es el único gesto de la carga.
+    const arranque = gsap.delayedCall(1.25, () => tinta?.revelar(true, ORIGEN, 2.4));
 
     const eventos = new AbortController();
     const { signal } = eventos;
+
+    if (tinta && recorte && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      engancharEstela(recorte, tinta, signal);
+    }
 
     // Se pausa fuera de pantalla, con la pestaña oculta o con el puntero encima
     // (para poder leer y hacer clic sin que la persona cambie).
@@ -516,11 +547,13 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       eventos.abort();
       vista.kill();
       transicion?.kill();
-      formaInicial.kill();
+      forma.kill();
+      arranque.kill();
       reloj?.kill();
       zoom?.kill();
       gsap.killTweensOf([...escenas, ...rotulos]);
       escenas.forEach((e) => e.querySelector("video")?.pause());
+      tinta?.destruir();
     };
   }
 

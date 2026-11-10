@@ -296,7 +296,6 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
       visible.textContent = rotulo(total);
       return;
     }
-    gsap.fromTo(visible, { scale: 1.25 }, { scale: 1, duration: 0.5, ease: "back.out(3)", clearProps: "transform" });
     gsap.to(valor, {
       n: total,
       duration: 0.6,
@@ -571,10 +570,10 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
         onEnter: (els) =>
           gsap.fromTo(
             els,
-            { scale: 0.8 },
-            { scale: 1, duration: 0.4, ease: "power2.out" },
+            { scale: 0.9 },
+            { scale: 1, duration: 0.6, ease: "expo.out" },
           ),
-        onLeave: (els) => gsap.to(els, { scale: 0.8, duration: 0.25 }),
+        onLeave: (els) => gsap.to(els, { scale: 0.9, duration: 0.25, ease: "power2.in" }),
         onComplete: () => {
           ajusteAltura = gsap.to(grid!, { height: alturaDespues, duration: 0.25, ease: "power2.out", onComplete: rematar });
         },
@@ -614,33 +613,25 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     columnas.addEventListener("change", montarSnap, { signal });
 
     // ---- Entrada --------------------------------------------------------
-    // El retrato crece y endereza su giro con rebote; la etiqueta salta y el
-    // texto sube en cascada. Los retratos nunca se transparentan: el blob
-    // siempre se ve opaco, solo se mueve.
+    // El retrato no tiene entrada propia: su momento es pasar de tinta a
+    // color cuando llega al centro de la pantalla (lib/retratos.ts). Aquí
+    // solo sube el texto, con la misma curva que el resto del sitio.
     for (const celda of celdas) {
       const tarjeta = celda.querySelector<HTMLElement>("[data-tarjeta]");
       if (!tarjeta || celda.classList.contains("oculta")) continue;
 
-      const retrato = tarjeta.querySelector<HTMLElement>(".retrato");
-      const pildoras = tarjeta.querySelectorAll<HTMLElement>(".etiquetas > *");
-      const lineas = tarjeta.querySelectorAll<HTMLElement>(".texto > :not(.etiquetas)");
-      const derecha = celda.dataset.columna === "der";
+      const lineas = tarjeta.querySelectorAll<HTMLElement>(".etiquetas > *, .texto > :not(.etiquetas)");
+      const texto = tarjeta.querySelector<HTMLElement>(".texto");
+      if (!texto) continue;
 
-      gsap.set(tarjeta, { y: 30 });
-      gsap.set(retrato, { scale: 0.8, rotation: derecha ? 6 : -6 });
-      gsap.set(pildoras, { autoAlpha: 0, scale: 0.5 });
       gsap.set(lineas, { autoAlpha: 0, y: 18 });
 
       ScrollTrigger.create({
-        trigger: celda,
-        start: "top 92%",
+        trigger: texto,
+        start: "top 94%",
         once: true,
         onEnter: () => {
-          gsap.timeline()
-            .to(tarjeta, { y: 0, duration: 0.7, ease: "power3.out", clearProps: "transform" })
-            .to(retrato, { scale: 1, rotation: 0, duration: 1.1, ease: "back.out(1.6)", clearProps: "transform" }, 0)
-            .to(pildoras, { autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(2.5)", stagger: 0.06, clearProps: "opacity,visibility,transform" }, 0.25)
-            .to(lineas, { autoAlpha: 1, y: 0, duration: 0.6, ease: "power3.out", stagger: 0.07, clearProps: "opacity,visibility,transform" }, 0.35);
+          gsap.to(lineas, { autoAlpha: 1, y: 0, duration: 1, ease: "expo.out", stagger: 0.07, clearProps: "opacity,visibility,transform" });
         },
       });
     }

@@ -47,6 +47,16 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
     <link rel="preload" href="/fonts/general-sans-700.woff2" as="font" type="font/woff2" crossorigin />
 
     <ClientRouter />
+
+    {/*
+      Antes del primer pintado: si habrá tinta WebGL, se avisa al CSS para que
+      no enseñe a color las fotos que van a salir impresas (ver tokens.css).
+    */}
+    <script is:inline>
+      if (window.WebGLRenderingContext && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        document.documentElement.classList.add("gl");
+      }
+    </script>
   </head>
 
   <body>
@@ -73,6 +83,8 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       } from "../lib/scroll";
       import { animarBlobs, type ControlBlobs } from "../lib/blobRuntime";
       import { animarTextos } from "../lib/animaciones";
+      import { montarRetratos } from "../lib/retratos";
+      import { obtenerTinta, soltarTinta } from "../lib/tinta";
       import type { TransitionBeforePreparationEvent } from "astro:transitions/client";
 
       gsap.registerPlugin(ScrollTrigger);
@@ -125,6 +137,16 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         blobs = animarBlobs(document);
       }
 
+      /** Tinta de los retratos sueltos; el hero monta la suya. */
+      let soltarRetratos: (() => void) | null = null;
+      let primeraCarga = true;
+
+      function montarTinta() {
+        soltarRetratos?.();
+        soltarRetratos = montarRetratos(document, primeraCarga);
+        primeraCarga = false;
+      }
+
       /** Animaciones de texto y entrada declaradas con data-anim. */
       let soltarTextos: (() => void) | null = null;
 
@@ -147,6 +169,8 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       let tipoNavegacion = "push";
 
       document.addEventListener("astro:after-swap", () => {
+        // Repone `gl` en <html> antes de que se pinte la página nueva.
+        obtenerTinta();
         if (tipoNavegacion !== "traverse" && !location.hash) window.scrollTo(0, 0);
         ScrollTrigger.refresh();
       });
@@ -160,6 +184,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         obtenerScroll()?.start();
         montarBlobs();
         montarTextos();
+        montarTinta();
         ScrollTrigger.refresh();
       });
 
@@ -168,6 +193,8 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         blobs = null;
         soltarTextos?.();
         soltarTextos = null;
+        soltarRetratos?.();
+        soltarRetratos = null;
       });
 
       window
@@ -177,6 +204,14 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
           else void arrancar();
           montarBlobs();
           montarTextos();
+          // Con movimiento reducido se retira la tinta y vuelven las fotos.
+          if (sinMovimiento()) {
+            soltarRetratos?.();
+            soltarRetratos = null;
+            soltarTinta();
+          } else {
+            montarTinta();
+          }
         });
     </script>
 
