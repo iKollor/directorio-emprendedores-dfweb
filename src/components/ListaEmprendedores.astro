@@ -319,6 +319,8 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   import { ScrollTrigger } from "gsap/ScrollTrigger";
   import Snap from "lenis/snap";
   import { obtenerScroll, sinMovimiento } from "../lib/scroll";
+  import { aLaVista } from "../lib/animaciones";
+  import { trasAterrizar } from "../lib/aterrizaje";
 
   gsap.registerPlugin(Flip, ScrollTrigger);
 
@@ -670,14 +672,25 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
       if (!texto) continue;
 
       gsap.set(lineas, { autoAlpha: 0, y: 18 });
+      const entrar = () =>
+        gsap.to(lineas, { autoAlpha: 1, y: 0, duration: 1, ease: "expo.out", stagger: 0.07, clearProps: "opacity,visibility,transform" });
+
+      // Al volver de una ficha, la tarjeta ya está en pantalla: entra cuando
+      // aterriza el retrato, sin esperar a un ScrollTrigger calculado con la
+      // página a medio cambiar (lib/aterrizaje.ts).
+      if (aLaVista(texto)) {
+        trasAterrizar(() => {
+          // Dentro del contexto, para que se deshaga con todo lo demás.
+          if (!signal.aborted) contexto?.add(entrar);
+        });
+        continue;
+      }
 
       ScrollTrigger.create({
         trigger: texto,
         start: "top 94%",
         once: true,
-        onEnter: () => {
-          gsap.to(lineas, { autoAlpha: 1, y: 0, duration: 1, ease: "expo.out", stagger: 0.07, clearProps: "opacity,visibility,transform" });
-        },
+        onEnter: entrar,
       });
     }
   }

@@ -123,11 +123,25 @@ export function prepararViaje(evento: TransitionBeforePreparationEvent) {
   };
 }
 
+/** ¿Aterriza algo en la página nueva? */
+export const hayAterrizaje = () => nombradas.length > 0;
+
 /** Con la página nueva ya puesta: se marca dónde aterriza. */
 export function recibirViaje() {
   soltar();
   if (!slugEnViaje) return;
   const destino =
     document.querySelector(`[data-ficha="${CSS.escape(slugEnViaje)}"]`) ?? enlaceA(slugEnViaje);
-  if (destino) nombrar(destino);
+  if (!destino) return;
+  nombrar(destino);
+  /*
+   * Lo que envuelve a una pieza que aterriza se da por entrado: si hiciera
+   * su entrada (aparecer desde opacidad 0, como el escenario del hero), el
+   * retrato llegaría a un contenedor todavía invisible y se vería a saltos.
+   */
+  for (const el of nombradas) {
+    for (let padre = el.closest<HTMLElement>("[data-anim]"); padre; padre = padre.parentElement?.closest<HTMLElement>("[data-anim]") ?? null) {
+      padre.classList.add("anim-listo");
+    }
+  }
 }

@@ -101,6 +101,12 @@ No usar:
   enciende; de lo que viaja vuela una sola imagen (reglas en `tokens.css`).
 - `transition:name` en listas: el navegador saca una foto aparte de cada
   elemento nombrado. Los nombres los pone `viaje.ts`, solo a lo que viaja.
+- Entradas en mitad del vuelo. Al cambiar de página, primero vuelan el
+  retrato y el nombre y después entra lo demás (`src/lib/aterrizaje.ts`); si
+  no aterriza nada, lo demás entra ya. Lo que recibe una pieza que vuela no
+  hace su propia entrada. Y lo que ya está en pantalla entra sin esperar a un
+  ScrollTrigger: calculado con la página a medio cambiar, alguno no disparaba
+  y dejaba un titular escondido.
 - Rótulo pequeño encima de un titular (antetítulo), ni en mayúsculas
   espaciadas. Si aporta algo, va dentro del titular.
 - Sellos de texto giratorio, cursores personalizados, degradados en texto,

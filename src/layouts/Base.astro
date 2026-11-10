@@ -85,7 +85,8 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       import { animarTextos } from "../lib/animaciones";
       import { montarRetratos } from "../lib/retratos";
       import { obtenerTinta, soltarTinta } from "../lib/tinta";
-      import { prepararViaje, recibirViaje } from "../lib/viaje";
+      import { hayAterrizaje, prepararViaje, recibirViaje } from "../lib/viaje";
+      import { despegar, sinVuelo, trasAterrizar } from "../lib/aterrizaje";
       import type {
         TransitionBeforePreparationEvent,
         TransitionBeforeSwapEvent,
@@ -229,6 +230,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         subir();
         // Con el scroll ya en su sitio: dónde aterrizan el retrato y el nombre.
         recibirViaje();
+        if (!hayAterrizaje()) sinVuelo();
         ScrollTrigger.refresh();
       });
 
@@ -238,15 +240,23 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         obtenerScroll()?.stop();
       });
 
+      // Cuenta las páginas: una entrada pendiente de otra página no se monta.
+      let paginas = 0;
+
       document.addEventListener("astro:page-load", () => {
         obtenerScroll()?.start();
         subir();
         montarBlobs();
-        montarTextos();
         montarTinta();
-        montarFormas();
-        ScrollTrigger.refresh();
-        subir();
+        const esta = ++paginas;
+        // Textos y formas entran cuando han aterrizado el retrato y el nombre.
+        trasAterrizar(() => {
+          if (esta !== paginas) return;
+          montarTextos();
+          montarFormas();
+          ScrollTrigger.refresh();
+          subir();
+        });
       });
 
       document.addEventListener("astro:before-swap", (evento) => {
@@ -255,7 +265,9 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
           subir();
           fijarArriba = false;
         };
-        (evento as TransitionBeforeSwapEvent).viewTransition.finished.then(terminar, terminar);
+        const transicion = (evento as TransitionBeforeSwapEvent).viewTransition;
+        despegar(transicion);
+        transicion.finished.then(terminar, terminar);
         blobs?.destruir();
         blobs = null;
         soltarTextos?.();

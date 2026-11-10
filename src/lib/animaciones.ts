@@ -24,9 +24,15 @@
  *                          (vacío = hijos directos)
  *   data-anim-retraso="s"  segundos de espera; ordena la secuencia del hero
  *
- * Todo entra con ScrollTrigger `once`: lo que ya está en pantalla al cargar
- * arranca enseguida y lo de abajo espera a que llegue. Con movimiento
- * reducido no se toca nada y el texto queda tal cual.
+ * Lo que ya está en pantalla al montarse entra en el acto, sin ScrollTrigger;
+ * lo de abajo espera con un ScrollTrigger `once` a que llegue. Antes también
+ * lo visible dependía del ScrollTrigger, y si se calculaba con la página a
+ * medio cambiar (al volver de una ficha) el titular no llegaba a entrar
+ * nunca. Con movimiento reducido no se toca nada y el texto queda tal cual.
+ *
+ * Lo que recibe una pieza que vuela entre páginas (lib/viaje.ts) no hace su
+ * entrada: el retrato aterrizaría en un contenedor que aún se está
+ * encendiendo. Viaje lo marca `anim-listo` y aquí se salta.
  *
  * Mientras el script no corre, el CSS esconde estos elementos para que no
  * parpadeen (tokens.css). Si el JavaScript fallara, un rescate en CSS los
@@ -46,8 +52,15 @@ const CURVA = "expo.out";
 
 type Fabrica = (el: HTMLElement, retraso: number) => void;
 
+/** ¿Asoma ya por la pantalla? El mismo umbral que ARRANQUE (92 %). */
+export function aLaVista(el: Element): boolean {
+  const caja = el.getBoundingClientRect();
+  return caja.bottom > 0 && caja.top < window.innerHeight * 0.92;
+}
+
+/** Sin ScrollTrigger si ya está a la vista: entra en el acto. */
 function disparador(el: HTMLElement) {
-  return { trigger: el, start: ARRANQUE, once: true };
+  return aLaVista(el) ? undefined : { trigger: el, start: ARRANQUE, once: true };
 }
 
 function objetivos(el: HTMLElement): HTMLElement[] {
@@ -220,7 +233,10 @@ const FABRICAS: Record<string, Fabrica> = {
 
 /** Monta todas las animaciones de la página; devuelve cómo deshacerlas. */
 export function animarTextos(raiz: ParentNode = document): () => void {
-  const elementos = [...raiz.querySelectorAll<HTMLElement>("[data-anim]")];
+  // Los ya listos son los que recibe un viaje: no se animan.
+  const elementos = [...raiz.querySelectorAll<HTMLElement>("[data-anim]")].filter(
+    (el) => !el.classList.contains("anim-listo"),
+  );
 
   if (sinMovimiento()) {
     elementos.forEach((el) => el.classList.add("anim-listo"));
