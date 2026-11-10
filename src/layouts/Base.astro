@@ -86,7 +86,10 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       import { montarRetratos } from "../lib/retratos";
       import { obtenerTinta, soltarTinta } from "../lib/tinta";
       import { prepararViaje, recibirViaje } from "../lib/viaje";
-      import type { TransitionBeforePreparationEvent } from "astro:transitions/client";
+      import type {
+        TransitionBeforePreparationEvent,
+        TransitionBeforeSwapEvent,
+      } from "astro:transitions/client";
 
       gsap.registerPlugin(ScrollTrigger);
 
@@ -196,10 +199,34 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
        */
       let tipoNavegacion = "push";
 
+      /*
+       * ARRIBA, Y QUE NO SE MUEVA. Al abrir una ficha desde lo hondo del
+       * listado, en Firefox la ficha aparecía abajo del todo, en el pie: el
+       * navegador se quedaba con la posición de la página anterior, que en
+       * una página más corta es el final. Así que el inicio se fija en cada
+       * paso del cambio (tras el cambio, al cargar y al acabar la transición)
+       * y se suelta en cuanto la persona toca el scroll, para no pelearle.
+       */
+      let fijarArriba = false;
+      const soltarArriba = () => (fijarArriba = false);
+      for (const tipo of ["wheel", "touchstart", "keydown", "pointerdown"]) {
+        window.addEventListener(tipo, soltarArriba, { passive: true, capture: true });
+      }
+
+      function subir() {
+        if (!fijarArriba) return;
+        if (window.scrollY !== 0) window.scrollTo({ left: 0, top: 0, behavior: "instant" });
+        const raiz = document.scrollingElement;
+        if (raiz && raiz.scrollTop !== 0) raiz.scrollTop = 0;
+        // Lenis guarda su propio destino: si no se lo cambia, vuelve a él.
+        obtenerScroll()?.scrollTo(0, { immediate: true, force: true });
+      }
+
       document.addEventListener("astro:after-swap", () => {
         // Repone `gl` en <html> antes de que se pinte la página nueva.
         obtenerTinta();
-        if (tipoNavegacion !== "traverse" && !location.hash) window.scrollTo(0, 0);
+        fijarArriba = tipoNavegacion !== "traverse" && !location.hash;
+        subir();
         // Con el scroll ya en su sitio: dónde aterrizan el retrato y el nombre.
         recibirViaje();
         ScrollTrigger.refresh();
@@ -213,14 +240,22 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
 
       document.addEventListener("astro:page-load", () => {
         obtenerScroll()?.start();
+        subir();
         montarBlobs();
         montarTextos();
         montarTinta();
         montarFormas();
         ScrollTrigger.refresh();
+        subir();
       });
 
-      document.addEventListener("astro:before-swap", () => {
+      document.addEventListener("astro:before-swap", (evento) => {
+        // Al terminar la transición, una última vez; después, libre.
+        const terminar = () => {
+          subir();
+          fijarArriba = false;
+        };
+        (evento as TransitionBeforeSwapEvent).viewTransition.finished.then(terminar, terminar);
         blobs?.destruir();
         blobs = null;
         soltarTextos?.();
