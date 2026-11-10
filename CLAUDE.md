@@ -13,47 +13,52 @@ Manage the background server with `astro dev stop`, `astro dev status`, and `ast
 Antes de añadir o cambiar algo visual o animado, léelo entero. El sitio tiene
 UNA idea y todo sale de ella; lo que no salga de ella, no entra.
 
-**La idea.** El directorio está impreso en la tinta azul de la escuela. Los
-retratos llegan en esa tinta (tres tonos de la marca y trama de puntos) y
-pasan a color vivo allí donde va la atención, a través de un frente líquido.
-Ese mismo frente releva a una persona por otra en el hero.
+**La idea.** Cada retrato es una gota de vidrio líquido. El blob ya era la
+forma de la marca; el material le da volumen: la foto se refracta en el
+borde, aparece un filo de color, hay un brillo de luz. Fuera de foco, la gota
+es vidrio esmerilado en la tinta azul de la escuela; cuando recibe atención,
+enfoca y toma color.
+
+**Solo óptica.** Todo lo que pasa con una imagen es lo que haría una lente:
+refracción, dispersión, enfoque. Para pasar de una persona a otra en el hero
+hay un cambio de foco. No hay barridos, cortinas, páginas que se doblan,
+puntos que crecen ni disolvencias: eso es lenguaje de editor de vídeo.
 
 **Un material.** Todo efecto de imagen es `src/lib/tinta.ts` (WebGL, un solo
-shader). No añadas otro efecto de imagen: si hace falta algo nuevo, es un
-parámetro de ese material. Cuándo se revela cada retrato está en
-`src/lib/retratos.ts`; el hero, en `BlobHero.astro`.
+shader). No añadas otro: si hace falta algo nuevo, es un parámetro de ese
+material. Cuándo enfoca cada retrato está en `src/lib/retratos.ts`; el hero,
+en `BlobHero.astro`. La silueta que usa el shader sale de `src/lib/blob.ts`.
 
 **Una curva.** Todo lo que entra sube un poco y se asienta con `expo.out`
-(`CURVA` en `src/lib/animaciones.ts`). Sin rebotes, giros ni desenfoques. El
-único elástico del sitio es el contorno de los blobs, que es líquido.
+(`CURVA` en `src/lib/animaciones.ts`). Sin rebotes, giros ni desenfoques de
+texto. El único elástico del sitio es el contorno de los blobs.
 
-**Nada se mueve solo.** El movimiento responde a algo: la carga de la página,
-el scroll, un clic, el puntero. La única excepción es el relevo de personas
-del hero. En reposo, el lienzo no dibuja ni un fotograma.
+**Nada responde al puntero salvo enfocar.** Pasar por encima de un retrato lo
+enfoca, igual que llegar con el scroll o el teclado. Nada sigue al cursor ni
+deforma la imagen con él: lo pidió quitar Diseña Futuro y se volvió a pedir.
 
 No usar:
 
 - Varias transiciones distintas para lo mismo, o elegidas al azar.
 - Ondas o anillos que salen de un elemento (ripple), pulsos, brillos que
   cruzan un botón, flechas que rebotan, cintas que corren solas.
-- Círculos que se abren desde el clic, cortinas o barridos entre páginas. La
-  transición es el retrato y el nombre viajando a su ficha (`transition:name`).
+- Círculos que se abren desde el clic o cortinas entre páginas. La transición
+  es el retrato y el nombre viajando a su ficha (`transition:name`).
 - Rótulo pequeño encima de un titular (antetítulo), ni en mayúsculas
   espaciadas. Si aporta algo, va dentro del titular.
-- Sellos de texto giratorio, cursores personalizados, nada que siga al
-  puntero (lo pidió quitar Diseña Futuro). La estela de la tinta responde al
-  movimiento del puntero sobre un retrato y vuelve sola a su sitio: con el
-  puntero quieto no hay nada deformado. Se apaga con `ARRASTRE = 0` en
-  `retratos.ts`.
-- Degradados en texto, resplandores, vidrio esmerilado, siluetas o iconos
-  genéricos de relleno, numerar lo que no es una secuencia.
+- Sellos de texto giratorio, cursores personalizados, degradados en texto,
+  siluetas o iconos genéricos de relleno, numerar lo que no es una secuencia.
+- Acercamientos lentos hechos con `transform`: avanzan fracciones de píxel
+  por fotograma y tiemblan. Van en el shader.
 
 Rendimiento, que es parte del diseño: un solo contexto WebGL, se pinta solo
-lo visible y solo cuando cambia, sin WebGL o con movimiento reducido quedan
-las fotos normales. Cualquier cambio en `tinta.ts` debe conservar eso.
+lo visible, en reposo a media cadencia, y un freno baja la resolución si el
+dispositivo no llega. Sin WebGL o con movimiento reducido quedan las fotos
+normales. Cualquier cambio en `tinta.ts` debe conservar eso.
 
-Referencias: [Impeccable](https://impeccable.style/slop), la skill
-`frontend-design` de Anthropic y [Hallmark](https://github.com/Nutlope/hallmark).
+Referencias: [refracción y dispersión, Maxime Heckel](https://blog.maximeheckel.com/posts/refraction-dispersion-and-other-shader-light-effects/),
+[vidrio refractivo con SDF](https://zenn.dev/orectic/articles/liquid-glass-webgl-refraction?locale=en),
+[Impeccable](https://impeccable.style/slop) y la skill `frontend-design`.
 
 ## Documentation
 

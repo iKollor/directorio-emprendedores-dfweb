@@ -117,13 +117,14 @@ function curvar(pts: { x: number; y: number }[]): string {
  */
 const ENCAJE_NEUTRO: Encaje = { sx: 1, sy: 1, cx: 0, cy: 0 };
 
-export function construirPath(
+/** Los puntos de control de la silueta en el instante `t`, en el viewBox 0-100. */
+function puntosDe(
   vertices: Vertice[],
   t: number,
-  deformacion?: Deformacion | null,
-  encaje: Encaje = ENCAJE_NEUTRO,
-): string {
-  const puntos = vertices.map((v) => {
+  deformacion: Deformacion | null | undefined,
+  encaje: Encaje,
+): { x: number; y: number }[] {
+  return vertices.map((v) => {
     let radio = v.radio;
 
     for (const o of v.osc) radio += o.amp * Math.sin(o.vel * t + o.fase);
@@ -147,8 +148,108 @@ export function construirPath(
       y: CENTRO + (sen * radio + encaje.cy) * encaje.sy,
     };
   });
+}
 
-  return curvar(puntos);
+export function construirPath(
+  vertices: Vertice[],
+  t: number,
+  deformacion?: Deformacion | null,
+  encaje: Encaje = ENCAJE_NEUTRO,
+): string {
+  return curvar(puntosDe(vertices, t, deformacion, encaje));
+}
+
+/**
+ * EL CONTORNO, EN NÚMEROS, PARA EL SHADER.
+ *
+ * El material de los retratos (lib/tinta.ts) necesita saber a qué distancia
+ * del borde está cada píxel para dibujar el volumen de la gota: refracción,
+ * brillo y sombra nacen en el borde. El recorte de verdad lo sigue haciendo
+ * el `clip-path` del SVG; esto es la misma silueta descrita como "radio en
+ * cada dirección" desde el centro, que es lo que un shader consulta barato.
+ *
+ * Se recorre la misma curva que dibuja `construirPath` y se anota el radio en
+ * `MUESTRAS` direcciones repartidas por igual. Vale porque estas siluetas son
+ * casi convexas: desde el centro, cada dirección corta el borde una sola vez.
+ *
+ * Los radios van en unidades de la caja (0.5 = medio ancho) y la dirección 0
+ * apunta a la izquierda (ángulo -π), avanzando en el sentido de `atan2`.
+ */
+export const MUESTRAS_CONTORNO = 64;
+
+/** Contorno vigente de cada blob, escrito por blobRuntime en cada fotograma. */
+export const CONTORNOS = new WeakMap<Element, Float32Array>();
+
+const PASOS_POR_TRAMO = 7;
+let angulos = new Float32Array(0);
+let radios = new Float32Array(0);
+
+export function muestrearContorno(
+  vertices: Vertice[],
+  t: number,
+  encaje: Encaje,
+  destino: Float32Array,
+): void {
+  const pts = puntosDe(vertices, t, null, encaje);
+  const n = pts.length;
+  const total = n * PASOS_POR_TRAMO;
+  if (angulos.length !== total) {
+    angulos = new Float32Array(total);
+    radios = new Float32Array(total);
+  }
+
+  // La misma curva que `curvar`: Catmull-Rom cerrado, tramo a tramo.
+  let k = 0;
+  let menor = 0;
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n]!;
+    const p1 = pts[i]!;
+    const p2 = pts[(i + 1) % n]!;
+    const p3 = pts[(i + 2) % n]!;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    for (let j = 0; j < PASOS_POR_TRAMO; j++) {
+      const u = j / PASOS_POR_TRAMO;
+      const v = 1 - u;
+      const x = v * v * v * p1.x + 3 * v * v * u * c1x + 3 * v * u * u * c2x + u * u * u * p2.x - CENTRO;
+      const y = v * v * v * p1.y + 3 * v * v * u * c1y + 3 * v * u * u * c2y + u * u * u * p2.y - CENTRO;
+      angulos[k] = Math.atan2(y, x);
+      radios[k] = Math.hypot(x, y) / VIEWBOX;
+      if (angulos[k]! < angulos[menor]!) menor = k;
+      k++;
+    }
+  }
+
+  // Se recorre desde el ángulo más bajo, interpolando el radio entre las dos
+  // muestras de la curva que rodean cada dirección pedida.
+  const m = destino.length;
+  let a = menor;
+  let b = (menor + 1) % total;
+  let angA = angulos[a]!;
+  let angB = angulos[b]! > angA ? angulos[b]! : angulos[b]! + TAU;
+  let vueltas = 0;
+  // Se empieza por la primera dirección que queda después de esa muestra y
+  // se da la vuelta completa: así los ángulos pedidos siempre crecen, igual
+  // que los de la curva, y no hay que retroceder.
+  const primera = Math.ceil(((angA + Math.PI) / TAU) * m - 0.5);
+  for (let paso = primera; paso < primera + m; paso++) {
+    const j = ((paso % m) + m) % m;
+    const objetivo = -Math.PI + ((paso + 0.5) / m) * TAU;
+    while (objetivo > angB && vueltas < total) {
+      a = b;
+      b = (b + 1) % total;
+      angA = angB;
+      let siguiente = angulos[b]!;
+      while (siguiente < angA) siguiente += TAU;
+      angB = siguiente;
+      vueltas++;
+    }
+    const tramo = angB - angA;
+    const f = tramo > 1e-6 ? Math.min(1, Math.max(0, (objetivo - angA) / tramo)) : 0;
+    destino[j] = radios[a]! + (radios[b]! - radios[a]!) * f;
+  }
 }
 
 /**

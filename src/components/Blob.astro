@@ -38,8 +38,8 @@ type Props = {
    */
   iniciales?: string | null;
   /**
-   * Cómo se comporta la tinta del retrato (lib/retratos.ts): `foco` lo deja
-   * impreso en azul hasta que recibe atención; `color` lo muestra a color
+   * Cómo se comporta la gota (lib/retratos.ts): `foco` la deja fuera de foco,
+   * en tinta azul, hasta que recibe atención; `color` la muestra enfocada
    * (ficha individual).
    */
   tinta?: "foco" | "color";
@@ -91,7 +91,7 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
       </defs>
     </svg>
 
-    <div class="recorte" style={`clip-path: url(#${idRecorte})`} data-tinta={iniciales ? undefined : tinta}>
+    <div class="recorte" style={`clip-path: url(#${idRecorte})`} data-tinta={tinta}>
       {
         iniciales ? (
           /*

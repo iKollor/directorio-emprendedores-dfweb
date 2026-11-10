@@ -16,7 +16,14 @@
  *   layout, nada de estilos: solo el atributo de dos <path>.
  */
 
-import { construirPath, type Encaje, type Vertice } from "./blob";
+import {
+  CONTORNOS,
+  MUESTRAS_CONTORNO,
+  construirPath,
+  muestrearContorno,
+  type Encaje,
+  type Vertice,
+} from "./blob";
 
 /*
  * Los blobs ya NO reaccionan al puntero. El abultamiento hacia el cursor se
@@ -160,6 +167,14 @@ export function animarBlobs(raiz: ParentNode = document): ControlBlobs {
       const d = construirPath(vivo.vertices, tiempo + vivo.desfase, null, vivo.encaje);
 
       for (const p of vivo.paths) p.setAttribute("d", d);
+
+      // La misma silueta, en números, para el material de los retratos.
+      let contorno = CONTORNOS.get(vivo.elemento);
+      if (!contorno) {
+        contorno = new Float32Array(MUESTRAS_CONTORNO);
+        CONTORNOS.set(vivo.elemento, contorno);
+      }
+      muestrearContorno(vivo.vertices, tiempo + vivo.desfase, vivo.encaje, contorno);
     }
   };
 

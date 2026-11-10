@@ -1,68 +1,69 @@
 /**
- * TINTA — el material de los retratos, en WebGL.
+ * EL MATERIAL DE LOS RETRATOS — vidrio líquido, en WebGL.
  *
- * La idea de todo el sitio: los retratos están impresos en la tinta azul de la
- * escuela y pasan a color vivo allí donde va la atención, a través de un
- * frente líquido. Ese mismo frente es el que cambia de persona en el hero. Hay
- * UN material y UN movimiento; no hay otros efectos de imagen en el sitio.
+ * Cada retrato es una gota. El blob ya era la forma de la marca; aquí gana
+ * volumen. No hay barridos, cortinas ni disolvencias: todo lo que ocurre es
+ * óptica, lo que haría una lente de verdad.
  *
- * El shader hace cuatro cosas, en una sola pasada:
+ *   1. REFRACCIÓN. Cerca del borde la gota se curva y desvía la imagen hacia
+ *      dentro, como el canto de una lupa. En el centro, la foto queda intacta.
+ *   2. DISPERSIÓN. En ese mismo borde, rojo, verde y azul se desvían un poco
+ *      distinto y aparece un filo de color.
+ *   3. LUZ. Un brillo arriba a la izquierda, un rebote suave enfrente y una
+ *      sombra interior fina: es lo que hace que se lea como volumen.
+ *   4. ENFOQUE. Fuera de foco, la gota es vidrio esmerilado en la tinta azul
+ *      de la escuela. Cuando recibe atención, enfoca: se aclara y toma color.
+ *   5. RELEVO. Para pasar de una persona a otra, la primera se desenfoca y se
+ *      acerca, y la segunda llega desde el desenfoque: un cambio de foco.
+ *   6. INERCIA. Al hacer scroll, la imagen se retrasa un poco dentro de la
+ *      gota, como un líquido. Responde al scroll, no al puntero.
  *
- *   1. TINTA: la foto en tres tonos de la marca (azul hondo, azul, lavanda),
- *      con una trama de puntos fina como la de una impresión a una tinta.
- *   2. REVELADO: un frente que crece desde un punto y deja la foto a color.
- *      El borde del frente lo deforma un ruido, así que avanza como un líquido
- *      y no como un círculo.
- *   3. RELEVO: el mismo frente, usado para pasar de una persona a otra.
- *   4. ESTELA: al mover el puntero por encima, la imagen se remueve como agua
- *      y vuelve sola a su sitio. Solo responde al movimiento: con el puntero
- *      quieto no hay nada deformado ni nada que lo siga.
+ * El recorte lo sigue haciendo el `clip-path` del SVG. El shader recibe esa
+ * misma silueta como radios (lib/blob.ts) solo para saber dónde está el borde.
  *
- * DECISIONES DE RENDIMIENTO
+ * RENDIMIENTO
  *
  * - UN SOLO CONTEXTO WebGL para todos los retratos. Los navegadores permiten
- *   pocos contextos a la vez (en móvil, unos 8), y aquí hay hasta 16 blobs.
- *   Se pinta en un lienzo oculto y se copia a un <canvas> 2D por retrato.
- *   Los lienzos 2D viven dentro de la página, así que hacen scroll con ella:
- *   un único lienzo fijo a pantalla completa se desfasa del contenido en el
- *   scroll táctil, que el navegador mueve fuera del hilo principal.
- * - SOLO SE PINTA LO QUE CAMBIA. En reposo no hay bucle de dibujo: cada
- *   retrato se marca "sucio" cuando una animación o el puntero lo tocan.
+ *   pocos a la vez (en móvil, unos 8) y aquí hay hasta 16 blobs. Se pinta en
+ *   un lienzo oculto y se copia a un <canvas> 2D por retrato. Los lienzos 2D
+ *   viven dentro de la página y hacen scroll con ella: un único lienzo fijo a
+ *   pantalla completa se desfasa del contenido en el scroll táctil.
  * - SOLO LO VISIBLE. Un IntersectionObserver descarta lo que está fuera.
- * - Sin profundidad, sin stencil, sin antialias, DPR limitado a 2.
+ * - EN REPOSO, A MEDIA CADENCIA. La silueta respira despacio: basta pintar un
+ *   fotograma de cada dos. Durante un enfoque o un relevo, todos.
+ * - CON FRENO. Si el dispositivo no llega a tiempo, primero baja la
+ *   resolución de los lienzos y después deja de pintar en reposo.
+ * - El desenfoque sale de los mipmaps de la textura (una lectura), no de un
+ *   núcleo de muchas muestras.
  *
  * SI ALGO FALLA (sin WebGL, contexto perdido, movimiento reducido) no se monta
  * nada y quedan las fotos normales: el sitio funciona igual sin esto.
  */
 
 import { gsap } from "gsap";
+import { CONTORNOS, MUESTRAS_CONTORNO } from "./blob";
 
-type Fuente = HTMLImageElement | HTMLVideoElement;
-type Punto = [number, number];
+type Imagen = HTMLImageElement | HTMLCanvasElement;
+type Fuente = Imagen | HTMLVideoElement;
 
 export type OpcionesTinta = {
   /** Una imagen por persona. En los retratos sueltos, una sola. */
-  fuentes: HTMLImageElement[];
-  /** 0 = impreso en tinta, 1 = a color. Estado inicial. */
-  color?: number;
+  fuentes: Imagen[];
+  /** 0 = vidrio esmerilado en tinta, 1 = enfocado y a color. Estado inicial. */
+  foco?: number;
 };
 
 export type Tinta = {
-  /**
-   * Pasa de tinta a color (o al revés) desde un punto, en coordenadas 0-1.
-   * `segundos` es lo que tarda un revelado completo.
-   */
-  revelar(activo: boolean, origen?: Punto, segundos?: number): gsap.core.Tween;
-  /** Releva a la persona en pantalla por otra, con el frente líquido. */
-  relevar(indice: number, origen?: Punto): gsap.core.Tween;
+  /** Enfoca la gota (o la deja fuera de foco). `segundos` es lo que tarda. */
+  enfocar(activo: boolean, segundos?: number): gsap.core.Tween;
+  /** Releva a la persona en pantalla por otra, con un cambio de foco. */
+  relevar(indice: number): gsap.core.Tween;
   /** Cambia de persona sin animación. */
   fijar(indice: number): void;
   /** Acercamiento de una de las fuentes (1 = sin acercar). */
   acercar(indice: number, valor: number): void;
   /** Usa un vídeo como imagen de esa persona, o vuelve a su foto con null. */
   usarVideo(indice: number, video: HTMLVideoElement | null): void;
-  /** Remueve la imagen: posición 0-1 y desplazamiento desde el último aviso. */
-  remover(x: number, y: number, dx: number, dy: number): void;
   readonly lienzo: HTMLCanvasElement;
   destruir(): void;
 };
@@ -76,132 +77,163 @@ void main() {
   gl_Position = vec4(aPos, 0.0, 1.0);
 }`;
 
-const ESTELAS = 6;
-
 const FRAGMENTOS = /* glsl */ `
 precision highp float;
 varying vec2 vUv;
 
 uniform sampler2D uA;
 uniform sampler2D uB;
+uniform sampler2D uRadios;
 uniform vec2 uEscalaA;
 uniform vec2 uEscalaB;
 uniform float uZoomA;
 uniform float uZoomB;
 uniform float uRelevo;
-uniform float uColor;
-uniform vec2 uOrigenRelevo;
-uniform vec2 uOrigenColor;
-uniform float uLado;
-uniform vec4 uEstela[${ESTELAS}];
+uniform float uFoco;
+uniform float uInercia;
+uniform float uConContorno;
 uniform vec3 uSombra;
 uniform vec3 uMedio;
 uniform vec3 uLuz;
 
-float azar(vec2 p) {
-  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+const float PI = 3.14159265;
+const float MUESTRAS = ${MUESTRAS_CONTORNO}.0;
+// Ancho de la zona curva del borde, en fracción del lado.
+const float CANTO = 0.17;
+
+float leerRadio(float indice) {
+  vec4 t = texture2D(uRadios, vec2((indice + 0.5) / MUESTRAS, 0.5));
+  // Dos bytes por radio: uno solo daría escalones visibles en el brillo.
+  return (t.r * 65280.0 + t.g * 255.0) / 65535.0 * 0.75;
 }
 
-float ruido(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
-  return mix(
-    mix(azar(i), azar(i + vec2(1.0, 0.0)), f.x),
-    mix(azar(i + vec2(0.0, 1.0)), azar(i + vec2(1.0, 1.0)), f.x),
-    f.y
-  );
+// Radio de la silueta en una dirección, interpolado entre dos muestras.
+float radioEn(float angulo) {
+  float x = (angulo + PI) / (2.0 * PI) * MUESTRAS - 0.5;
+  float i = floor(x);
+  return mix(leerRadio(i), leerRadio(i + 1.0), x - i);
 }
 
-// Tres octavas: suficiente para un borde orgánico, barato en móvil.
-float nube(vec2 p) {
-  return ruido(p) * 0.55 + ruido(p * 2.03 + 7.1) * 0.3 + ruido(p * 4.1 + 3.7) * 0.15;
+vec3 leer(sampler2D t, vec2 uv, vec2 escala, float zoom, float nivel) {
+  return texture2D(t, (uv - 0.5) * escala / zoom + 0.5, nivel).rgb;
 }
 
-vec3 muestra(sampler2D t, vec2 uv, vec2 escala, float zoom) {
-  return texture2D(t, (uv - 0.5) * escala / zoom + 0.5).rgb;
+// Una lectura a través de la gota: cada canal se desvía un poco distinto.
+vec3 lente(sampler2D t, vec2 uv, vec2 escala, float zoom, vec2 desvio, float dispersion, float desenfoque) {
+  vec2 rojo = desvio * (1.0 - dispersion);
+  vec2 azul = desvio * (1.0 + dispersion);
+  if (desenfoque < 0.015) {
+    return vec3(
+      leer(t, uv + rojo, escala, zoom, 0.0).r,
+      leer(t, uv + desvio, escala, zoom, 0.0).g,
+      leer(t, uv + azul, escala, zoom, 0.0).b
+    );
+  }
+  // Desenfoque: un nivel más pequeño de la textura y cuatro lecturas en aspa
+  // para que no se vean los bloques del nivel.
+  float nivel = desenfoque * 5.2;
+  float r = desenfoque * 0.022;
+  vec3 c = vec3(0.0);
+  vec2 o = vec2(r, r * 0.4);
+  c += vec3(leer(t, uv + rojo + o, escala, zoom, nivel).r, leer(t, uv + desvio + o, escala, zoom, nivel).g, leer(t, uv + azul + o, escala, zoom, nivel).b);
+  o = vec2(-r * 0.4, r);
+  c += vec3(leer(t, uv + rojo + o, escala, zoom, nivel).r, leer(t, uv + desvio + o, escala, zoom, nivel).g, leer(t, uv + azul + o, escala, zoom, nivel).b);
+  o = vec2(-r, -r * 0.4);
+  c += vec3(leer(t, uv + rojo + o, escala, zoom, nivel).r, leer(t, uv + desvio + o, escala, zoom, nivel).g, leer(t, uv + azul + o, escala, zoom, nivel).b);
+  o = vec2(r * 0.4, -r);
+  c += vec3(leer(t, uv + rojo + o, escala, zoom, nivel).r, leer(t, uv + desvio + o, escala, zoom, nivel).g, leer(t, uv + azul + o, escala, zoom, nivel).b);
+  return c * 0.25;
 }
 
 void main() {
-  vec2 uv = vUv;
+  vec2 p = vUv - 0.5;
+  float distancia = length(p);
+  vec2 fuera = p / max(distancia, 0.0001);
 
-  // ESTELA: cada muestra reciente del puntero empuja la imagen a su alrededor.
-  vec2 empuje = vec2(0.0);
-  for (int i = 0; i < ${ESTELAS}; i++) {
-    vec2 d = uv - uEstela[i].xy;
-    empuje += uEstela[i].zw * exp(-dot(d, d) * 38.0);
-  }
+  // PERFIL DE LA GOTA: plana en el centro, curva al acercarse al borde.
+  float radio = uConContorno > 0.5 ? radioEn(atan(p.y, p.x)) : 0.44;
+  float interior = clamp((radio - distancia) / CANTO, 0.0, 1.0);
+  float curva = pow(1.0 - interior, 1.7);
 
-  // RELEVO: frente que crece desde un punto; el ruido le quita lo circular.
-  float n = nube(uv * 2.3);
-  float radio = uRelevo * 2.3 - 0.4;
-  float distancia = distance(uv, uOrigenRelevo) + (n - 0.5) * 0.75;
-  float dentro = 1.0 - smoothstep(radio - 0.08, radio, distancia);
-  // Cerca del frente la imagen se estira hacia fuera, como empujada por él.
-  float banda = exp(-pow((distancia - radio) * 4.5, 2.0)) * sin(3.14159 * uRelevo);
-  vec2 hacia = normalize(uv - uOrigenRelevo + 0.0001);
-  vec2 uvFinal = uv - empuje + hacia * banda * 0.075;
+  float movimiento = abs(uInercia);
+  float velo = 1.0 - uFoco;
 
-  vec3 color = muestra(uA, uvFinal, uEscalaA, uZoomA);
+  // REFRACCIÓN: el canto desvía la imagen hacia el centro. El vidrio fuera de
+  // foco es más grueso; al enfocar, se afina. La inercia del scroll la
+  // desplaza entera, un poco, dentro de la gota.
+  vec2 desvio = -fuera * curva * (mix(0.05, 0.085, velo) + movimiento * 0.03);
+  desvio.y -= uInercia * 0.028 * (1.0 - curva);
+  float dispersion = (mix(0.2, 0.34, velo) + movimiento * 0.3) * curva;
+
+  vec3 color;
   if (uRelevo > 0.0) {
-    color = mix(color, muestra(uB, uvFinal, uEscalaB, uZoomB), dentro);
+    // RELEVO: cambio de foco. La que sale se desenfoca y se acerca; la que
+    // entra llega desde el desenfoque. A medio camino, las dos son luz.
+    float sale = smoothstep(0.0, 0.6, uRelevo);
+    float entra = 1.0 - smoothstep(0.4, 1.0, uRelevo);
+    vec3 a = lente(uA, vUv, uEscalaA, uZoomA * (1.0 + sale * 0.14), desvio * (1.0 + sale * 1.6), dispersion + sale * 0.35, max(velo, sale));
+    vec3 b = lente(uB, vUv, uEscalaB, uZoomB * (1.0 + entra * 0.14), desvio * (1.0 + entra * 1.6), dispersion + entra * 0.35, max(velo, entra));
+    color = mix(a, b, smoothstep(0.32, 0.68, uRelevo));
+  } else {
+    color = lente(uA, vUv, uEscalaA, uZoomA, desvio, dispersion, velo);
   }
 
-  // REVELADO: el mismo tipo de frente, de tinta a color.
-  if (uColor < 1.0) {
-    float radioColor = uColor * 2.3 - 0.4;
-    float distanciaColor = distance(uv, uOrigenColor) + (nube(uv * 2.3 + 19.0) - 0.5) * 0.75;
-    float vivo = 1.0 - smoothstep(radioColor - 0.1, radioColor, distanciaColor);
-
-    // TINTA: luminancia a tres tonos de la marca.
+  // TINTA: fuera de foco, la gota toma los tres tonos de la marca.
+  if (velo > 0.001) {
     float luz = dot(color, vec3(0.299, 0.587, 0.114));
-    luz = smoothstep(0.03, 0.97, luz);
+    luz = smoothstep(0.02, 0.98, luz);
     vec3 tinta = mix(uSombra, uMedio, smoothstep(0.0, 0.55, luz));
     tinta = mix(tinta, uLuz, smoothstep(0.42, 1.0, luz));
-
-    // Trama de puntos a 45 grados, como una impresión a una tinta. El tamaño
-    // va en píxeles de pantalla para que no cambie con el tamaño del retrato.
-    vec2 celda = mat2(0.7071, -0.7071, 0.7071, 0.7071) * (vUv * uLado / 5.5);
-    float punto = length(fract(celda) - 0.5);
-    float trama = smoothstep(0.02, -0.02, punto - (1.0 - luz) * 0.52);
-    tinta = mix(tinta, uSombra, trama * 0.28);
-
-    color = mix(tinta, color, vivo);
+    color = mix(color, tinta, smoothstep(0.0, 1.0, velo));
   }
+
+  // LUZ: la normal se inclina hacia fuera en el canto. La luz viene de
+  // arriba a la izquierda (en pantalla, -x y -y).
+  vec3 normal = normalize(vec3(fuera * curva * 1.35, 0.62));
+  vec3 luzDir = normalize(vec3(-0.55, -0.7, 0.55));
+  float brillo = pow(max(dot(normal, luzDir), 0.0), 14.0) * smoothstep(0.0, 0.85, curva);
+  float rebote = pow(max(dot(normal, normalize(vec3(0.55, 0.7, 0.5))), 0.0), 7.0) * curva;
+  float sombra = curva * curva * (0.5 + 0.5 * dot(fuera, vec2(0.62, 0.78))) * 0.26;
+
+  color *= 1.0 - sombra;
+  color += vec3(1.0) * brillo * 0.5 + vec3(0.82, 0.88, 1.0) * rebote * 0.16;
 
   gl_FragColor = vec4(color, 1.0);
 }`;
 
 // Tres tonos de la marca: azul hondo, el azul del fondo y una lavanda clara.
-// El tono medio es el del fondo de la página a propósito: los medios tonos de
-// la foto se funden con ella y el retrato parece salir del papel.
+// El tono medio es el del fondo de la página a propósito: fuera de foco, los
+// medios tonos de la foto se funden con ella.
 const TONOS = {
   sombra: [0.016, 0.016, 0.54],
   medio: [0.255, 0.255, 0.976],
   luz: [0.86, 0.88, 1.0],
 };
 
+/** Lado de las texturas de foto: potencia de dos, para poder usar mipmaps. */
+const LADO_TEXTURA = 1024;
+/** Cuántas texturas se conservan como mucho (cada una ocupa unos 5 MB). */
+const TOPE_TEXTURAS = 10;
+/** Escalones de resolución de los lienzos cuando el dispositivo va justo. */
+const CALIDADES = [1, 0.75, 0.5];
+
+type Textura = { textura: WebGLTexture; escala: [number, number]; uso: number };
+
 type Pieza = {
   contenedor: HTMLElement;
+  blob: Element | null;
   lienzo: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
-  fotos: HTMLImageElement[];
+  fotos: Imagen[];
   videos: (HTMLVideoElement | null)[];
   zooms: number[];
   a: number;
   b: number;
   relevo: number;
-  color: number;
-  origenRelevo: Punto;
-  origenColor: Punto;
-  /** x, y, dx, dy por cada muestra reciente del puntero. */
-  estela: Float32Array;
-  siguienteEstela: number;
-  removida: boolean;
+  foco: number;
   visible: boolean;
   sucia: boolean;
   pintada: boolean;
-  lado: number;
   tweens: Set<gsap.core.Tween>;
 };
 
@@ -224,7 +256,7 @@ export function obtenerTinta(): Motor | null {
     if (!motor) descartado = true;
   }
   // `gl` en <html> es la señal para el CSS: esconde las fotos que el lienzo
-  // va a sustituir, para que no se vean a color un instante antes de la tinta.
+  // va a sustituir, para que no se vean nítidas un instante antes del vidrio.
   // Astro reemplaza los atributos de <html> al navegar, así que se repone aquí.
   document.documentElement.classList.toggle("gl", motor !== null);
   return motor;
@@ -274,72 +306,156 @@ function crearMotor(): Motor | null {
 
   const u = (nombre: string) => gl.getUniformLocation(programa, nombre);
   const uniformes = {
-    a: u("uA"),
-    b: u("uB"),
     escalaA: u("uEscalaA"),
     escalaB: u("uEscalaB"),
     zoomA: u("uZoomA"),
     zoomB: u("uZoomB"),
     relevo: u("uRelevo"),
-    color: u("uColor"),
-    origenRelevo: u("uOrigenRelevo"),
-    origenColor: u("uOrigenColor"),
-    lado: u("uLado"),
-    estela: u("uEstela"),
+    foco: u("uFoco"),
+    inercia: u("uInercia"),
+    conContorno: u("uConContorno"),
   };
-  gl.uniform1i(uniformes.a, 0);
-  gl.uniform1i(uniformes.b, 1);
+  gl.uniform1i(u("uA"), 0);
+  gl.uniform1i(u("uB"), 1);
+  gl.uniform1i(u("uRadios"), 2);
   gl.uniform3fv(u("uSombra"), TONOS.sombra);
   gl.uniform3fv(u("uMedio"), TONOS.medio);
   gl.uniform3fv(u("uLuz"), TONOS.luz);
 
-  // ---- Texturas ------------------------------------------------------------
-  const texturas = new Map<Fuente, { textura: WebGLTexture; ancho: number; alto: number }>();
+  // ---- Contorno: una tira de MUESTRAS x 1 con el radio en cada dirección ----
+  const tiraRadios = gl.createTexture();
+  const bytesRadios = new Uint8Array(MUESTRAS_CONTORNO * 4);
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, tiraRadios);
+  // Sin filtrar: los radios van en dos bytes y el filtro los mezclaría mal.
+  // La interpolación entre vecinos la hace el shader.
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, MUESTRAS_CONTORNO, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, bytesRadios);
 
-  function subir(fuente: Fuente): { textura: WebGLTexture; ancho: number; alto: number } | null {
-    const esVideo = fuente instanceof HTMLVideoElement;
-    const ancho = esVideo ? fuente.videoWidth : fuente.naturalWidth;
-    const alto = esVideo ? fuente.videoHeight : fuente.naturalHeight;
-    if (!ancho || !alto) return null;
-    if (!esVideo && !fuente.complete) return null;
-    if (esVideo && fuente.readyState < 2) return null;
-
-    let entrada = texturas.get(fuente);
-    const nueva = !entrada;
-    if (!entrada) {
-      const textura = gl!.createTexture()!;
-      gl!.bindTexture(gl!.TEXTURE_2D, textura);
-      // Sin mipmaps y con bordes fijos: es lo que admite WebGL 1 para
-      // texturas que no son potencia de dos, como cualquier foto.
-      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR);
-      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
-      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
-      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
-      entrada = { textura, ancho, alto };
-      texturas.set(fuente, entrada);
+  function subirContorno(radios: Float32Array) {
+    for (let i = 0; i < MUESTRAS_CONTORNO; i++) {
+      const valor = Math.round(Math.min(1, Math.max(0, radios[i]! / 0.75)) * 65535);
+      bytesRadios[i * 4] = valor >> 8;
+      bytesRadios[i * 4 + 1] = valor & 255;
     }
-    // Las fotos se suben una vez; el vídeo, en cada fotograma que se pinta.
-    if (nueva || esVideo) {
+    gl!.activeTexture(gl!.TEXTURE2);
+    gl!.texSubImage2D(gl!.TEXTURE_2D, 0, 0, 0, MUESTRAS_CONTORNO, 1, gl!.RGBA, gl!.UNSIGNED_BYTE, bytesRadios);
+  }
+
+  // ---- Texturas ------------------------------------------------------------
+  const texturas = new Map<Fuente, Textura>();
+  /** Lienzo de trabajo: la foto se recorta a cuadrado y a potencia de dos. */
+  const taller = document.createElement("canvas");
+  taller.width = taller.height = LADO_TEXTURA;
+  const tallerCtx = taller.getContext("2d");
+  let reloj = 0;
+  /** Subir una foto cuesta unos milisegundos: una por fotograma como mucho. */
+  let cupo = 1;
+
+  const piezas = new Set<Pieza>();
+
+  function soltarTexturasViejas() {
+    if (texturas.size <= TOPE_TEXTURAS) return;
+    const enUso = new Set<Fuente>();
+    for (const pieza of piezas) {
+      if (!pieza.visible) continue;
+      for (const f of [...pieza.fotos, ...pieza.videos]) if (f) enUso.add(f);
+    }
+    const candidatas = [...texturas.entries()]
+      .filter(([fuente]) => !enUso.has(fuente))
+      .sort((x, y) => x[1].uso - y[1].uso);
+    for (const [fuente, entrada] of candidatas) {
+      if (texturas.size <= TOPE_TEXTURAS) break;
+      gl!.deleteTexture(entrada.textura);
+      texturas.delete(fuente);
+    }
+  }
+
+  function subir(fuente: Fuente): Textura | null {
+    const esVideo = fuente instanceof HTMLVideoElement;
+    let entrada = texturas.get(fuente);
+
+    if (esVideo) {
+      if (fuente.readyState < 2 || !fuente.videoWidth) return null;
+      gl!.activeTexture(gl!.TEXTURE0);
+      if (!entrada) {
+        const textura = gl!.createTexture()!;
+        gl!.bindTexture(gl!.TEXTURE_2D, textura);
+        // El vídeo no es potencia de dos y cambia en cada fotograma: sin
+        // mipmaps. Se ve nítido; durante un relevo, se funde sin desenfoque.
+        gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR);
+        gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
+        gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
+        gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
+        entrada = { textura, escala: [1, 1], uso: 0 };
+        texturas.set(fuente, entrada);
+      }
       gl!.bindTexture(gl!.TEXTURE_2D, entrada.textura);
       try {
         gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGB, gl!.RGB, gl!.UNSIGNED_BYTE, fuente);
       } catch {
         return null;
       }
-      entrada.ancho = ancho;
-      entrada.alto = alto;
+      // Que el vídeo cubra el cuadrado sin deformarse.
+      const { videoWidth: ancho, videoHeight: alto } = fuente;
+      entrada.escala = ancho > alto ? [alto / ancho, 1] : [1, ancho / alto];
+      entrada.uso = ++reloj;
+      return entrada;
     }
+
+    if (entrada) {
+      entrada.uso = ++reloj;
+      return entrada;
+    }
+
+    const ancho = fuente instanceof HTMLImageElement ? fuente.naturalWidth : fuente.width;
+    const alto = fuente instanceof HTMLImageElement ? fuente.naturalHeight : fuente.height;
+    if (!ancho || !alto || !tallerCtx) return null;
+    if (fuente instanceof HTMLImageElement && !fuente.complete) return null;
+    if (cupo <= 0) return null;
+    cupo--;
+
+    // Recorte centrado a cuadrado, ya al tamaño de la textura. Se dibuja la
+    // imagen ENTERA dando solo el destino, sin rectángulo de origen: en una
+    // <img> con srcset, `naturalWidth` viene corregido por densidad y no
+    // coincide con los píxeles reales, así que un rectángulo de origen
+    // calculado con él recorta un trozo ampliado. La proporción sí es fiable.
+    const proporcion = ancho / alto;
+    const dw = proporcion >= 1 ? LADO_TEXTURA * proporcion : LADO_TEXTURA;
+    const dh = proporcion >= 1 ? LADO_TEXTURA : LADO_TEXTURA / proporcion;
+    tallerCtx.drawImage(fuente, (LADO_TEXTURA - dw) / 2, (LADO_TEXTURA - dh) / 2, dw, dh);
+
+    const textura = gl!.createTexture()!;
+    gl!.activeTexture(gl!.TEXTURE0);
+    gl!.bindTexture(gl!.TEXTURE_2D, textura);
+    try {
+      gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGB, gl!.RGB, gl!.UNSIGNED_BYTE, taller);
+    } catch {
+      gl!.deleteTexture(textura);
+      return null;
+    }
+    // Los mipmaps son el desenfoque: cada nivel es la foto a la mitad.
+    gl!.generateMipmap(gl!.TEXTURE_2D);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR_MIPMAP_LINEAR);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
+
+    entrada = { textura, escala: [1, 1], uso: ++reloj };
+    texturas.set(fuente, entrada);
+    soltarTexturasViejas();
     return entrada;
   }
 
-  /** Escala de UV para que la imagen cubra el cuadrado sin deformarse. */
-  const cubrir = (ancho: number, alto: number): Punto =>
-    ancho > alto ? [alto / ancho, 1] : [1, ancho / alto];
-
   // ---- Piezas ---------------------------------------------------------------
-  const piezas = new Set<Pieza>();
   let vivo = true;
   let cuadro = 0;
+  let nivelCalidad = 0;
+  /** Último recurso del freno: no pintar en reposo, solo cuando algo cambia. */
+  let ahorro = false;
 
   const observador = new IntersectionObserver(
     (entradas) => {
@@ -365,13 +481,12 @@ function crearMotor(): Motor | null {
   });
 
   function ajustar(pieza: Pieza) {
-    const escala = Math.min(window.devicePixelRatio || 1, 2);
+    const escala = Math.min(window.devicePixelRatio || 1, 2) * CALIDADES[nivelCalidad]!;
     const lado = Math.max(2, Math.round(pieza.contenedor.clientWidth * escala));
     if (pieza.lienzo.width !== lado) {
       pieza.lienzo.width = pieza.lienzo.height = lado;
       pieza.pintada = false;
     }
-    pieza.lado = pieza.contenedor.clientWidth;
     // El lienzo compartido crece hasta la pieza más grande y ya no encoge:
     // cambiarle el tamaño en cada dibujo reharía sus búferes cada vez.
     if (base.width < lado) base.width = base.height = lado;
@@ -380,12 +495,15 @@ function crearMotor(): Motor | null {
 
   const fuenteDe = (pieza: Pieza, i: number): Fuente => pieza.videos[i] ?? pieza.fotos[i]!;
 
-  function pintar(pieza: Pieza): boolean {
+  function pintar(pieza: Pieza, inercia: number): boolean {
     const a = subir(fuenteDe(pieza, pieza.a)) ?? subir(pieza.fotos[pieza.a]!);
     if (!a) return false;
     const enRelevo = pieza.relevo > 0;
     const b = enRelevo ? (subir(fuenteDe(pieza, pieza.b)) ?? subir(pieza.fotos[pieza.b]!)) : null;
     if (enRelevo && !b) return false;
+
+    const contorno = pieza.blob ? CONTORNOS.get(pieza.blob) : undefined;
+    if (contorno) subirContorno(contorno);
 
     const lado = pieza.lienzo.width;
     gl!.viewport(0, 0, lado, lado);
@@ -394,16 +512,14 @@ function crearMotor(): Motor | null {
     gl!.activeTexture(gl!.TEXTURE1);
     gl!.bindTexture(gl!.TEXTURE_2D, (b ?? a).textura);
 
-    gl!.uniform2fv(uniformes.escalaA, cubrir(a.ancho, a.alto));
-    gl!.uniform2fv(uniformes.escalaB, b ? cubrir(b.ancho, b.alto) : [1, 1]);
+    gl!.uniform2fv(uniformes.escalaA, a.escala);
+    gl!.uniform2fv(uniformes.escalaB, (b ?? a).escala);
     gl!.uniform1f(uniformes.zoomA, pieza.zooms[pieza.a] ?? 1);
     gl!.uniform1f(uniformes.zoomB, pieza.zooms[pieza.b] ?? 1);
     gl!.uniform1f(uniformes.relevo, pieza.relevo);
-    gl!.uniform1f(uniformes.color, pieza.color);
-    gl!.uniform2fv(uniformes.origenRelevo, pieza.origenRelevo);
-    gl!.uniform2fv(uniformes.origenColor, pieza.origenColor);
-    gl!.uniform1f(uniformes.lado, pieza.lado);
-    gl!.uniform4fv(uniformes.estela, pieza.estela);
+    gl!.uniform1f(uniformes.foco, pieza.foco);
+    gl!.uniform1f(uniformes.inercia, inercia);
+    gl!.uniform1f(uniformes.conContorno, contorno ? 1 : 0);
     gl!.drawArrays(gl!.TRIANGLES, 0, 3);
 
     // El viewport de WebGL nace abajo a la izquierda; en coordenadas de
@@ -418,43 +534,67 @@ function crearMotor(): Motor | null {
     return true;
   }
 
+  // ---- Bucle ---------------------------------------------------------------
   let ultimo = 0;
+  let numero = 0;
+  let scrollPrevio = window.scrollY;
+  let inercia = 0;
+  // Freno: media móvil de lo que tarda cada fotograma mientras se pinta.
+  let mediaMs = 16;
+  let medidos = 0;
+  const sinFreno = Boolean((window as { __TINTA_SIN_FRENO?: boolean }).__TINTA_SIN_FRENO);
+
+  function frenar(dtMs: number) {
+    if (sinFreno) return;
+    mediaMs = mediaMs * 0.92 + dtMs * 0.08;
+    if (++medidos < 50 || mediaMs < 27) return;
+    medidos = 0;
+    mediaMs = 16;
+    if (nivelCalidad < CALIDADES.length - 1) {
+      nivelCalidad++;
+      for (const pieza of piezas) ajustar(pieza);
+    } else {
+      ahorro = true;
+    }
+  }
+
   function bucle(ms: number) {
     cuadro = 0;
     if (!vivo) return;
-    const dt = Math.min(0.05, ultimo ? (ms - ultimo) / 1000 : 0.016);
+    const dtMs = ultimo ? ms - ultimo : 16;
+    const dt = Math.min(0.05, dtMs / 1000);
     ultimo = ms;
+    numero++;
+    cupo = 1;
+
+    // INERCIA: velocidad del scroll, suavizada y acotada a -1..1.
+    const y = window.scrollY;
+    const objetivo = gsap.utils.clamp(-1, 1, (y - scrollPrevio) / Math.max(dt, 0.001) / 2600);
+    scrollPrevio = y;
+    inercia += (objetivo - inercia) * (1 - Math.pow(0.0008, dt));
+    if (Math.abs(inercia) < 0.002) inercia = 0;
+
+    let pintadas = 0;
     let pendiente = false;
 
     for (const pieza of piezas) {
-      // La estela se apaga sola, igual de rápido a 60 que a 120 Hz.
-      if (pieza.removida) {
-        const freno = Math.pow(0.0025, dt);
-        let fuerza = 0;
-        for (let i = 0; i < ESTELAS; i++) {
-          pieza.estela[i * 4 + 2]! *= freno;
-          pieza.estela[i * 4 + 3]! *= freno;
-          fuerza += Math.abs(pieza.estela[i * 4 + 2]!) + Math.abs(pieza.estela[i * 4 + 3]!);
-        }
-        pieza.removida = fuerza > 0.0004;
-        if (!pieza.removida) pieza.estela.fill(0);
-        pieza.sucia = true;
-      }
-
       if (!pieza.visible) continue;
-      // Un vídeo en marcha cambia en cada fotograma aunque nada más lo haga:
-      // mientras corra, la pieza se pinta siempre y el bucle no se detiene.
+
       const video = pieza.videos[pieza.a];
       const conVideo = Boolean(video && !video.paused && !video.ended);
-      if (conVideo) pieza.sucia = true;
+      const enMovimiento = pieza.sucia || pieza.tweens.size > 0 || inercia !== 0 || conVideo;
+      // En reposo la silueta respira despacio: un fotograma de cada dos.
+      const respira = !ahorro && pieza.blob !== null && numero % 2 === 0;
 
-      if (pieza.sucia) {
+      if (enMovimiento || respira) {
         // Si la imagen aún no cargó, se reintenta en el siguiente fotograma.
-        pieza.sucia = !pintar(pieza);
+        pieza.sucia = !pintar(pieza, inercia);
+        pintadas++;
       }
-      if (pieza.sucia || pieza.removida || conVideo || pieza.tweens.size > 0) pendiente = true;
+      if (enMovimiento || !ahorro) pendiente = true;
     }
 
+    if (pintadas > 0) frenar(dtMs);
     if (pendiente) pedir();
     else ultimo = 0;
   }
@@ -462,6 +602,10 @@ function crearMotor(): Motor | null {
   function pedir() {
     if (vivo && !cuadro) cuadro = requestAnimationFrame(bucle);
   }
+
+  // Con el freno echado no hay bucle en reposo: el scroll lo despierta.
+  const alMover = () => pedir();
+  window.addEventListener("scroll", alMover, { passive: true });
 
   base.addEventListener("webglcontextlost", (evento) => {
     // Sin contexto no hay nada que pintar: se retira todo y vuelven las fotos.
@@ -485,6 +629,7 @@ function crearMotor(): Motor | null {
 
     const pieza: Pieza = {
       contenedor,
+      blob: contenedor.closest("[data-blob]"),
       lienzo,
       ctx,
       fotos,
@@ -493,16 +638,10 @@ function crearMotor(): Motor | null {
       a: 0,
       b: 0,
       relevo: 0,
-      color: opciones.color ?? 0,
-      origenRelevo: [0.5, 0.5],
-      origenColor: [0.5, 0.5],
-      estela: new Float32Array(ESTELAS * 4),
-      siguienteEstela: 0,
-      removida: false,
+      foco: opciones.foco ?? 0,
       visible: false,
       sucia: true,
       pintada: false,
-      lado: 0,
       tweens: new Set(),
     };
     piezas.add(pieza);
@@ -517,7 +656,9 @@ function crearMotor(): Motor | null {
     // La foto puede llegar después (las de abajo cargan en diferido).
     const avisos = new AbortController();
     for (const foto of fotos) {
-      if (!foto.complete) foto.addEventListener("load", marcar, { signal: avisos.signal });
+      if (foto instanceof HTMLImageElement && !foto.complete) {
+        foto.addEventListener("load", marcar, { signal: avisos.signal });
+      }
     }
 
     const animar = (variables: gsap.TweenVars) => {
@@ -536,26 +677,23 @@ function crearMotor(): Motor | null {
       return tween;
     };
 
-    let revelado: gsap.core.Tween | null = null;
+    let enfoque: gsap.core.Tween | null = null;
     let relevoEnCurso: gsap.core.Tween | null = null;
 
     return {
       lienzo,
 
-      revelar(activo, origen, segundos = 1.5) {
-        revelado?.kill();
-        // El punto de partida solo se mueve cuando no se nota: con el retrato
-        // entero en tinta o entero a color.
-        if (origen && (pieza.color <= 0.001 || pieza.color >= 0.999)) pieza.origenColor = origen;
-        revelado = animar(
+      enfocar(activo, segundos = 1.3) {
+        enfoque?.kill();
+        enfoque = animar(
           activo
-            ? { color: 1, duration: segundos * (1 - pieza.color) + 0.2, ease: "power2.out" }
-            : { color: 0, duration: 0.9 * pieza.color + 0.1, ease: "power2.inOut" },
+            ? { foco: 1, duration: segundos * (1 - pieza.foco) + 0.15, ease: "power3.out" }
+            : { foco: 0, duration: 0.8 * pieza.foco + 0.1, ease: "power2.inOut" },
         );
-        return revelado;
+        return enfoque;
       },
 
-      relevar(indice, origen) {
+      relevar(indice) {
         // Si había un relevo a medias, se da por terminado antes de empezar otro.
         if (relevoEnCurso) {
           relevoEnCurso.kill();
@@ -564,10 +702,9 @@ function crearMotor(): Motor | null {
         }
         pieza.b = indice;
         pieza.relevo = 0.0001;
-        if (origen) pieza.origenRelevo = origen;
         relevoEnCurso = animar({
           relevo: 1,
-          duration: 1.6,
+          duration: 1.5,
           ease: "power2.inOut",
           onComplete() {
             pieza.a = indice;
@@ -598,18 +735,6 @@ function crearMotor(): Motor | null {
         marcar();
       },
 
-      remover(x, y, dx, dy) {
-        const i = pieza.siguienteEstela * 4;
-        pieza.estela[i] = x;
-        pieza.estela[i + 1] = y;
-        // Tope: un puntero que cruza de golpe no debe romper la imagen.
-        pieza.estela[i + 2] = gsap.utils.clamp(-0.05, 0.05, dx);
-        pieza.estela[i + 3] = gsap.utils.clamp(-0.05, 0.05, dy);
-        pieza.siguienteEstela = (pieza.siguienteEstela + 1) % ESTELAS;
-        pieza.removida = true;
-        marcar();
-      },
-
       destruir() {
         avisos.abort();
         pieza.tweens.forEach((t) => t.kill());
@@ -635,6 +760,7 @@ function crearMotor(): Motor | null {
     destruir() {
       vivo = false;
       cancelAnimationFrame(cuadro);
+      window.removeEventListener("scroll", alMover);
       observador.disconnect();
       medidor.disconnect();
       for (const pieza of [...piezas]) {
@@ -645,6 +771,7 @@ function crearMotor(): Motor | null {
       piezas.clear();
       for (const { textura } of texturas.values()) gl.deleteTexture(textura);
       texturas.clear();
+      gl.deleteTexture(tiraRadios);
       document.documentElement.classList.remove("gl");
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     },

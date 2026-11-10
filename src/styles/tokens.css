@@ -171,11 +171,11 @@ a {
 }
 
 /*
- * TINTA (lib/tinta.ts). El lienzo se coloca sobre la foto y la sustituye.
+ * EL VIDRIO (lib/tinta.ts). El lienzo se coloca sobre la foto y la sustituye.
  *
  * `html.gl` se pone antes del primer pintado si el navegador admite WebGL:
- * esconde las fotos que van a salir impresas en tinta, para que no asomen a
- * color un instante. La de la ficha (`data-tinta="color"`) no se esconde
+ * esconde las fotos que van a salir fuera de foco, para que no asomen
+ * nítidas un instante. La de la ficha (`data-tinta="color"`) no se esconde
  * hasta que su lienzo ha dibujado, porque las dos se ven igual.
  * Sin WebGL o con movimiento reducido no hay `gl` y quedan las fotos.
  */
