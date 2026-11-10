@@ -15,3 +15,15 @@ El logo se conserva sin redibujarlo. Sigue pendiente recibir el original vectori
 Pendiente. Guardar el logo oficial en versión clara (para fondo azul) como
 `intervalores.svg` (o `.webp` / `.png`) en esta carpeta. El sitio lo toma solo;
 mientras falte, muestra el nombre en texto y el build avisa.
+
+## Iconos
+
+Los iconos de enviar, teléfono y reproducir (`src/components/Icono.astro`) son
+del conjunto **Plump Solid - Free**, de [Streamline](https://www.streamlinehq.com/icons/plump-solid-free),
+con licencia [Creative Commons Atribución 4.0](https://creativecommons.org/licenses/by/4.0/).
+La licencia pide reconocer la autoría: este archivo es ese reconocimiento. Si
+el sitio llega a tener una página de créditos, hay que repetirlo allí.
+
+El de reproducir es el triángulo del icono "Button Play Circle", sin su círculo.
+El logotipo de WhatsApp es marca de WhatsApp LLC y se usa solo para indicar
+que el mensaje se envía por esa aplicación.

@@ -84,6 +84,8 @@ type BlobVivo = {
   /** Posición actual de cada vértice (x, y) en el viewBox. */
   posiciones: Float32Array;
   agitado: boolean;
+  /** Forma de fondo (`data-blob-quieto`): respira, pero no responde al puntero. */
+  quieto: boolean;
 };
 
 /**
@@ -150,6 +152,7 @@ export function animarBlobs(raiz: ParentNode = document): ControlBlobs {
       velocidades: new Float32Array(vertices.length),
       posiciones: new Float32Array(vertices.length * 2),
       agitado: false,
+      quieto: elemento.hasAttribute("data-blob-quieto"),
     });
   }
 
@@ -315,7 +318,7 @@ export function animarBlobs(raiz: ParentNode = document): ControlBlobs {
     for (const vivo of vivos) {
       if (!vivo.visible) continue;
       if (vivo.morfo) avanzarMorfo(vivo, tiempo);
-      if (GOTA_INTERACTIVA) avanzarGota(vivo, tiempo + vivo.desfase, dt);
+      if (GOTA_INTERACTIVA && !vivo.quieto) avanzarGota(vivo, tiempo + vivo.desfase, dt);
 
       const d = construirPath(vivo.vertices, tiempo + vivo.desfase, null, vivo.encaje, vivo.empujes);
 

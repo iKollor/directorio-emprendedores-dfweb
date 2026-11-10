@@ -6,16 +6,22 @@
  * la persona que llega aquí no sabe cómo presentarse, y el emprendedor no
  * sabe de dónde salió el mensaje.
  *
+ * EL MENSAJE ES EL BOTÓN. Se ve como lo que es: un mensaje de chat ya escrito
+ * con su botón verde de enviar, y el sello de WhatsApp en la esquina. Quien
+ * ha usado WhatsApp sabe qué pasa al tocarlo sin leer ninguna instrucción
+ * (Ley de Jakob: ver "Criterio de diseño" en CLAUDE.md). Antes había, además
+ * del mensaje, una línea explicándolo y un botón grande "Escribir por
+ * WhatsApp": tres piezas para decir lo que esta dice sola.
+ *
+ * Todo el bloque es un único enlace. Su nombre accesible dice lo que el
+ * icono dice a la vista.
+ *
  * Cuando no hay número (hay fichas sin contacto en los datos de origen), no
  * se muestra un botón muerto: se ofrece a Diseña Futuro como intermediario.
  *
- * EL MENSAJE SE VE ANTES DE ENVIARLO. Encima del botón va el texto exacto que
- * se abrirá en WhatsApp, como una nota pegada (el mismo recurso que la
- * etiqueta del hero). Quien duda en escribirle a un desconocido ve que no
- * tiene que redactar nada ni comprometerse a nada: solo enviar.
- *
  * Las piezas llevan `data-paso` para que la ficha las haga entrar en orden.
  */
+import Icono from "./Icono.astro";
 
 type Props = {
   nombre: string;
@@ -37,26 +43,29 @@ const enlace = whatsapp ? `${whatsapp}?text=${encodeURIComponent(mensaje)}` : nu
 {
   enlace ? (
     <div class="contacto">
-      <figure class="nota" data-paso>
-        <blockquote>{mensaje}</blockquote>
-        <figcaption>Este mensaje ya va escrito. Solo falta enviarlo.</figcaption>
-      </figure>
-
       <a
-        class="pildora-cta grande"
+        class="mensaje"
         href={enlace}
         target="_blank"
         rel="noopener noreferrer"
+        aria-label={`Enviar a ${primerNombre} por WhatsApp este mensaje: ${mensaje}`}
         data-paso
       >
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="currentColor">
-          <path d="M17.47 14.38c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.67.15s-.77.96-.94 1.16c-.17.2-.35.22-.64.07-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.47-1.75-1.64-2.05-.17-.3-.02-.46.13-.6.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.6-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.7.63.71.23 1.36.2 1.87.12.57-.09 1.75-.72 2-1.41.25-.69.25-1.28.17-1.41-.07-.13-.27-.2-.57-.35z" />
-          <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.46 1.32 4.96L2 22l5.25-1.38a9.87 9.87 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 18.15h-.01a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.11.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.24-8.23a8.18 8.18 0 0 1 5.82 2.42 8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.7 8.23-8.24 8.23z" />
-        </svg>
-        Escribir por WhatsApp
+        <span class="burbuja">
+          <span class="sello"><Icono nombre="whatsapp" /></span>
+          {mensaje}
+        </span>
+        <span class="enviar"><Icono nombre="enviar" /></span>
       </a>
 
-      {telefono && <p class="numero" data-paso>{telefono}</p>}
+      {
+        telefono && (
+          <a class="numero" href={`tel:${telefono.replace(/\s/g, "")}`} data-paso>
+            <Icono nombre="telefono" />
+            {telefono}
+          </a>
+        )
+      }
     </div>
   ) : (
     <div class="contacto">
@@ -81,7 +90,7 @@ const enlace = whatsapp ? `${whatsapp}?text=${encodeURIComponent(mensaje)}` : nu
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.75rem;
+    gap: 0.9rem;
   }
 
   .grande {
@@ -89,40 +98,107 @@ const enlace = whatsapp ? `${whatsapp}?text=${encodeURIComponent(mensaje)}` : nu
     padding: 1em 1.8em;
   }
 
-  /*
-   * Nota pegada: hueso, algo girada y con una esquina recta, que es lo que
-   * la hace leerse como un mensaje y no como una tarjeta más.
-   */
-  .nota {
-    max-width: 30ch;
-    margin: 0 0 0.5rem;
+  /* ---- El mensaje, que es el botón ---------------------------------------- */
+  .mensaje {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.7rem;
+    max-width: 100%;
+    color: inherit;
+    text-decoration: none;
   }
 
-  /* El giro va en el interior: el nodo de fuera lo mueve la animación de entrada. */
-  .nota blockquote {
-    rotate: -1.5deg;
-    transform-origin: 0 100%;
-    margin: 0;
-    padding: 0.9rem 1.15rem 1rem;
-    border-radius: 1.25rem 1.25rem 1.25rem 0.3rem;
+  /*
+   * Burbuja de chat: hueso, algo girada y con la esquina de abajo a la
+   * derecha recta, la que apunta al botón de enviar. El giro va aquí dentro
+   * porque el nodo de fuera lo mueve la animación de entrada.
+   */
+  .burbuja {
+    position: relative;
+    max-width: 30ch;
+    padding: 1rem 1.15rem 1rem;
+    border-radius: 1.25rem 1.25rem 0.3rem 1.25rem;
     background: var(--df-bone);
     color: var(--df-ink);
     font-size: var(--txt-m);
     line-height: 1.35;
-    box-shadow: 0 1.25rem 2.5rem -1rem rgb(7 49 165 / 0.6);
+    rotate: -1.5deg;
+    transform-origin: 100% 100%;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1.25rem 2.5rem -1rem rgb(7 49 165 / 0.6);
+    transition: rotate var(--dur-media) var(--ease-suave);
   }
 
-  .nota figcaption {
-    margin: 0.7rem 0 0 0.2rem;
+  /* Sello de WhatsApp, montado sobre la esquina: dice por dónde se envía. */
+  .sello {
+    position: absolute;
+    top: -0.7rem;
+    left: -0.7rem;
+    display: grid;
+    place-items: center;
+    width: 1.9rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--whatsapp);
+    color: #fff;
+    font-size: 1.15rem;
+    box-shadow: 0 0 0 3px var(--df-bone);
+  }
+
+  /* El botón verde de enviar, como en WhatsApp. */
+  .enviar {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 3.25rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--whatsapp);
+    color: #fff;
+    font-size: 1.35rem;
+    box-shadow: var(--gota), 0 0.8em 1.4em -0.8em rgb(4 4 138 / 0.85);
+    transition: scale var(--dur-media) var(--ease-suave);
+  }
+
+  /* El avión queda un pelo a la izquierda de su caja: se centra a ojo. */
+  .enviar :global(.icono) {
+    translate: 0.06em 0;
+    transition: translate var(--dur-media) var(--ease-suave);
+  }
+
+  .mensaje:hover .burbuja,
+  .mensaje:focus-visible .burbuja {
+    rotate: 0deg;
+  }
+
+  .mensaje:hover .enviar,
+  .mensaje:focus-visible .enviar {
+    scale: 1.1;
+  }
+
+  .mensaje:hover .enviar :global(.icono),
+  .mensaje:focus-visible .enviar :global(.icono) {
+    translate: 0.18em 0;
+  }
+
+  /* El número se puede tocar para llamar: el auricular lo dice. */
+  .numero {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    min-height: 44px;
+    color: inherit;
     font-size: var(--txt-s);
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
     opacity: 0.85;
   }
 
-  .numero {
-    margin: 0;
-    font-size: var(--txt-s);
-    opacity: 0.7;
-    font-variant-numeric: tabular-nums;
+  .numero:hover,
+  .numero:focus-visible {
+    opacity: 1;
+    color: var(--df-yellow);
   }
 
   .sin-numero {

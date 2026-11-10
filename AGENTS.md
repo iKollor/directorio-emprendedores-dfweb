@@ -45,13 +45,37 @@ Tampoco hay nada que siga al cursor por la página.
 píldoras y puntos llevan el brillo y la sombra interior de una gota
 (`--gota` en `src/styles/tokens.css`), hechos con sombras, no con WebGL.
 
-**El fondo es agua.** `src/lib/fondo.ts` dibuja la red de luz del fondo de
-una piscina (cáusticas), calculada como óptica: una suma de ondas y cuánto
-concentran la luz. Cuánto se nota es `INTENSIDAD` (0.5): casi invisible se
-rechazó por aburrido y a tope, por demasiado visible. El contraste se gana
-hacia el azul hondo, nunca aclarando: los hilos de luz tienen un tope (`CLARO`) con el que el texto
-hueso queda en 4.7:1. Si se toca ese tope, hay que volver a medirlo (mínimo
-4.5:1).
+**El fondo es el de Diseña Futuro: plano, con formas.** Su sitio es azul
+liso con formas grandes de color que asoman por los bordes, trazos gruesos en
+arco y una estrella verde. Eso es `src/components/Forma.astro`. Nada de
+texturas, degradados ni fondos animados con shaders: se probaron dos (uno
+casi invisible y uno de agua con cáusticas) y los dos se rechazaron por no
+ser de la marca. Las formas de color claro (rosa, cian, amarillo, verde)
+van solo donde no puede caer texto, como detrás de un retrato; donde puede
+pasar texto por encima, van en azul hondo.
+
+**Patrones conocidos antes que rótulos (Ley de Jakob).** La gente pasa casi
+todo su tiempo en otras aplicaciones y espera que esta funcione igual, así
+que una acción que ya reconoce por su forma no necesita explicación ni un
+botón con texto. El ejemplo que fija el criterio: el mensaje de WhatsApp de
+la ficha es una burbuja de chat con su botón verde de enviar y el sello de
+WhatsApp en la esquina; quien ha usado WhatsApp sabe qué pasa al tocarlo.
+Antes eran tres piezas: el mensaje, una línea que lo explicaba y un botón
+"Escribir por WhatsApp". Al añadir o revisar cualquier acción:
+
+- Si existe un patrón que la gente ya conoce (enviar un mensaje, llamar a un
+  número, reproducir un vídeo, pasar al siguiente, volver arriba), se usa
+  ese patrón con su icono y no se escribe lo que el icono ya dice.
+- El icono es un significante: tiene que ser el que se usa en todas partes
+  para eso, no uno ingenioso. Todos salen de `src/components/Icono.astro`,
+  de una sola familia.
+- El texto que se quita de la pantalla pasa al nombre accesible
+  (`aria-label` o `.solo-lectores`). Nunca un icono sin nombre.
+- Un elemento, una acción: si la burbuja, la flecha y el retrato llevan al
+  mismo sitio, son un solo enlace.
+- No se quita el texto que pidió Diseña Futuro ("¡Conócelo!", "¡Conoce a los
+  emprendedores!"), aunque un icono pudiera sustituirlo.
+- Para acciones redondas de icono hay una sola pieza: `.boton-icono`.
 
 **El rostro, al centro.** Las fotos son apaisadas y la cara cae arriba, justo
 en el canto de la gota. Cada persona lleva en el JSON un campo `rostro`
@@ -72,15 +96,15 @@ No usar:
 - Acercamientos lentos hechos con `transform`: avanzan fracciones de píxel
   por fotograma y tiemblan. Van en el shader.
 
-Rendimiento, que es parte del diseño: dos contextos WebGL en total (los
-retratos comparten uno; el fondo tiene el suyo, a media resolución y
-30 fotogramas por segundo), se pinta solo lo visible, en reposo a media cadencia, y un freno baja la resolución si el
+Rendimiento, que es parte del diseño: un solo contexto WebGL para todos
+los retratos, se pinta solo lo visible, en reposo a media cadencia, y un freno baja la resolución si el
 dispositivo no llega. Sin WebGL o con movimiento reducido quedan las fotos
 normales. Cualquier cambio en `tinta.ts` debe conservar eso.
 
 Referencias: [refracción y dispersión, Maxime Heckel](https://blog.maximeheckel.com/posts/refraction-dispersion-and-other-shader-light-effects/),
 [vidrio refractivo con SDF](https://zenn.dev/orectic/articles/liquid-glass-webgl-refraction?locale=en),
-[Impeccable](https://impeccable.style/slop) y la skill `frontend-design`.
+[Impeccable](https://impeccable.style/slop), la skill `frontend-design` y la
+[Ley de Jakob](https://lawsofux.com/jakobs-law/).
 
 ## Documentation
 

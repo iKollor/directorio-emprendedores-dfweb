@@ -5,6 +5,7 @@ import ReelVideos from "../components/ReelVideos.astro";
 import NombreEscuela from "../components/NombreEscuela.astro";
 import CintaPalabras from "../components/CintaPalabras.astro";
 import BlobHero from "../components/BlobHero.astro";
+import Forma from "../components/Forma.astro";
 import { getEmprendedores } from "../lib/directorio";
 
 const emprendedores = await getEmprendedores();
@@ -46,8 +47,12 @@ const descripcion =
       </div>
     </div>
     <div class="hero-escenario">
+      {/* Formas de fondo, al modo de Diseña Futuro (ver Forma.astro). */}
+      <div class="forma-rosa"><Forma tipo="blob" color="var(--df-pink)" semilla="hero-rosa" flota={0.1} /></div>
+      <div class="forma-arco"><Forma tipo="arco" color="var(--df-blue-deep)" flota={-0.06} /></div>
       <BlobHero emprendedores={emprendedores} />
     </div>
+    <div class="forma-honda"><Forma tipo="blob" color="var(--df-blue-deep)" semilla="hero-honda" flota={0.07} /></div>
     <p class="hero-lugar" data-anim="subir" data-anim-retraso="1.3">Ideas locales. Nuevas oportunidades.</p>
   </section>
 
@@ -83,10 +88,45 @@ const descripcion =
   }
 
   .hero-escenario {
+    position: relative;
     grid-area: escenario;
     justify-self: end;
     width: min(76vw, 420px);
     margin-inline-end: calc(var(--gutter) * -0.4);
+  }
+
+  /*
+   * FORMAS DE FONDO. Las de color claro (rosa) van pegadas al retrato, donde
+   * no cae texto; la azul honda puede quedar bajo texto sin quitarle
+   * contraste. Todas detrás del contenido del hero (z-index negativo dentro
+   * de su propio contexto de apilado).
+   */
+  .forma-rosa,
+  .forma-arco,
+  .forma-honda {
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Asoma por detrás del retrato y se sale por la derecha de la pantalla. */
+  .forma-rosa {
+    width: 78%;
+    top: -9%;
+    right: -30%;
+  }
+
+  .forma-arco {
+    width: 112%;
+    top: -15%;
+    left: -10%;
+  }
+
+  /* Esquina inferior izquierda, medio fuera de la pantalla. */
+  .forma-honda {
+    width: clamp(220px, 32vw, 500px);
+    left: clamp(-300px, -19vw, -130px);
+    bottom: clamp(-330px, -21vw, -140px);
   }
 
   .hero-lugar {

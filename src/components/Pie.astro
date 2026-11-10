@@ -1,4 +1,5 @@
 ---
+import Forma from "./Forma.astro";
 import Marca from "./Marca.astro";
 import NombreEscuela from "./NombreEscuela.astro";
 
@@ -13,6 +14,8 @@ const SITIOS = [
 ---
 
 <footer class="pie" id="sobre-la-escuela">
+  {/* La estrella verde de Diseña Futuro, montada sobre el borde del pie. */}
+  <div class="pie-estrella"><Forma tipo="estrella" color="var(--df-green)" semilla="pie" flota={0.1} /></div>
   {/* El lema ya estaba aquí, en letra pequeña bajo el logo. Ahora cierra la página. */}
   <p class="pie-lema" data-anim="lineas">Las oportunidades crecen <strong>cuando nos conectamos.</strong></p>
   <div class="pie-principal">
@@ -37,7 +40,10 @@ const SITIOS = [
   </div>
   <div class="pie-base">
     <p>© {new Date().getFullYear()} Diseña Futuro · Intervalores</p>
-    <a href="#inicio">Volver arriba <span aria-hidden="true">↑</span></a>
+    <a class="arriba" href="#inicio">
+      <span class="solo-lectores">Volver arriba</span>
+      <span class="boton-icono" aria-hidden="true">↑</span>
+    </a>
   </div>
 </footer>
 
@@ -60,6 +66,9 @@ const SITIOS = [
   .pie-base { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem 2rem; border-top: 1px solid rgb(239 238 237 / .25); padding-top: 1.5rem; font-size: var(--txt-s); }
   .pie-base p { margin: 0; }
   .pie-base a { display: inline-flex; gap: 1rem; align-items: center; min-height: 44px; text-decoration: none; }
+  .arriba:hover .boton-icono, .arriba:focus-visible .boton-icono { scale: 1.1; }
+  /* Arriba a la derecha, medio fuera del pie: en esa esquina no hay texto. */
+  .pie-estrella { position: absolute; right: clamp(0.5rem, 5vw, 5rem); top: clamp(-7.5rem, -9vw, -3.25rem); width: clamp(112px, 19vw, 250px); pointer-events: none; }
   @media (max-width: 900px) { .pie-principal { grid-template-columns: 1fr 1fr; } .pie-marca { grid-column: 1 / -1; } }
   @media (max-width: 540px) { .pie-principal { grid-template-columns: 1fr; padding-bottom: 2rem; } .pie-base { align-items: flex-start; flex-direction: column; gap: .5rem; } }
 </style>

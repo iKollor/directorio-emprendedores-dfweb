@@ -1,6 +1,7 @@
 ---
 import Base from "../../layouts/Base.astro";
 import Blob from "../../components/Blob.astro";
+import Forma from "../../components/Forma.astro";
 import BotonWhatsapp from "../../components/BotonWhatsapp.astro";
 import { Image } from "astro:assets";
 import { MOSTRAR_COMUNIDAD, categoria } from "../../data/taxonomia";
@@ -57,6 +58,9 @@ const datosEstructurados = {
     </nav>
 
     <div class="cuerpo" id="contenido">
+      <div class="columna-retrato">
+      {/* Una forma en el color de su categoría asoma por detrás del retrato. */}
+      <div class="forma-ficha"><Forma tipo="blob" color={cat.color} semilla={`ficha-${e.slug}`} flota={0.08} /></div>
       <div class="retrato" transition:name={`retrato-${e.slug}`}>
         <Blob
           slug={e.slug}
@@ -71,6 +75,7 @@ const datosEstructurados = {
           tinta="color"
           rostro={e.rostro}
         />
+      </div>
       </div>
 
       <div class="texto">
@@ -129,6 +134,7 @@ const datosEstructurados = {
               <strong transition:name={`nombre-${siguiente.slug}`}>{siguiente.nombre}</strong>
               <span class="oficio-siguiente">{siguiente.emprendimiento}</span>
             </span>
+            <span class="boton-icono ir" aria-hidden="true">→</span>
             <span class="mini" transition:name={`retrato-${siguiente.slug}`}>
               <Blob
                 slug={siguiente.slug}
@@ -152,6 +158,10 @@ const datosEstructurados = {
 
 <style>
   .ficha {
+    /* Contexto de apilado propio: la forma de fondo queda detrás del
+       contenido pero delante del azul de la página. */
+    position: relative;
+    z-index: 1;
     padding-block: clamp(1.5rem, 4vw, 3rem) clamp(4rem, 10vw, 8rem);
     padding-inline: var(--gutter);
   }
@@ -184,9 +194,37 @@ const datosEstructurados = {
       gap: clamp(3rem, 6vw, 6rem);
     }
 
-    .retrato {
+    .columna-retrato {
       position: sticky;
       top: 6vh;
+    }
+  }
+
+  .columna-retrato {
+    position: relative;
+  }
+
+  /*
+   * Teléfono: arriba a la derecha del retrato, saliéndose de la pantalla.
+   * Abajo quedaría debajo de la píldora de categoría y del nombre.
+   */
+  .forma-ficha {
+    position: absolute;
+    z-index: -1;
+    width: 66%;
+    right: -24%;
+    top: -10%;
+    pointer-events: none;
+  }
+
+  /* Escritorio: abajo a la izquierda, donde la columna del retrato está sola. */
+  @media (min-width: 900px) {
+    .forma-ficha {
+      width: 72%;
+      right: auto;
+      top: auto;
+      left: -30%;
+      bottom: -12%;
     }
   }
 
@@ -274,7 +312,7 @@ const datosEstructurados = {
 
   .enlace-siguiente {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
     gap: clamp(1rem, 4vw, 3rem);
     color: inherit;
@@ -321,6 +359,22 @@ const datosEstructurados = {
   .mini {
     display: block;
     width: clamp(110px, 22vw, 280px);
+  }
+
+  .enlace-siguiente:hover .ir,
+  .enlace-siguiente:focus-visible .ir {
+    scale: 1.12;
+  }
+
+  /* En el teléfono no caben frase, flecha y retrato: la flecha baja. */
+  @media (max-width: 599px) {
+    .enlace-siguiente {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .ir {
+      grid-row: 2;
+    }
   }
 
   .galeria :global(img) {

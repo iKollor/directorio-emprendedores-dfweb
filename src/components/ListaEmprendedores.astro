@@ -15,6 +15,7 @@
  * retiró a pedido de Diseña Futuro: se leía como una mancha que perseguía a
  * quien navegaba.
  */
+import Forma from "./Forma.astro";
 import TarjetaEmprendedor from "./TarjetaEmprendedor.astro";
 import {
   CLAVES_CATEGORIA_REALES,
@@ -39,6 +40,12 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
 ---
 
 <section class="listado" id="contenido" aria-labelledby="titulo-listado">
+  {/*
+    Solo trazos en azul hondo, en los bordes: aquí hay texto y retratos por
+    toda la página, y una forma de color claro debajo los dejaría sin leer.
+  */}
+  <div class="arco-der"><Forma tipo="arco" color="var(--df-blue-deep)" flota={0.12} /></div>
+  <div class="arco-izq"><Forma tipo="arco" color="var(--df-blue-deep)" flota={-0.1} /></div>
   <div class="listado-cabecera">
     {/*
       Un solo titular, sin rótulo pequeño encima: la frase de arriba se
@@ -123,6 +130,26 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     z-index: 1;
     padding-block: clamp(2rem, 5vw, 4rem) clamp(5rem, 10vw, 9rem);
     padding-inline: var(--gutter);
+  }
+
+  .arco-der,
+  .arco-izq {
+    position: absolute;
+    z-index: -1;
+    width: clamp(220px, 34vw, 520px);
+    pointer-events: none;
+  }
+
+  .arco-der {
+    top: 14%;
+    right: clamp(-210px, -13vw, -80px);
+    rotate: 118deg;
+  }
+
+  .arco-izq {
+    top: 58%;
+    left: clamp(-210px, -13vw, -80px);
+    rotate: -52deg;
   }
 
   .listado-cabecera { position: relative; z-index: 2; display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2.5rem; }

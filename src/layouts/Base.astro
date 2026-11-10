@@ -83,7 +83,6 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       } from "../lib/scroll";
       import { animarBlobs, type ControlBlobs } from "../lib/blobRuntime";
       import { animarTextos } from "../lib/animaciones";
-      import { montarFondo, soltarFondo } from "../lib/fondo";
       import { montarRetratos } from "../lib/retratos";
       import { obtenerTinta, soltarTinta } from "../lib/tinta";
       import type { TransitionBeforePreparationEvent } from "astro:transitions/client";
@@ -148,6 +147,33 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         primeraCarga = false;
       }
 
+      /**
+       * Formas de fondo (Forma.astro): las marcadas con `data-flota` se
+       * desplazan un poco mientras cruzan la pantalla, cada una a su ritmo.
+       * Atado al scroll: quietas si nadie se mueve.
+       */
+      let formas: gsap.Context | null = null;
+
+      function montarFormas() {
+        formas?.revert();
+        formas = null;
+        if (sinMovimiento()) return;
+        formas = gsap.context(() => {
+          for (const forma of document.querySelectorAll<HTMLElement>("[data-flota]")) {
+            const recorrido = Number(forma.dataset.flota) * 100;
+            gsap.fromTo(
+              forma,
+              { yPercent: -recorrido },
+              {
+                yPercent: recorrido,
+                ease: "none",
+                scrollTrigger: { trigger: forma, start: "top bottom", end: "bottom top", scrub: true },
+              },
+            );
+          }
+        });
+      }
+
       /** Animaciones de texto y entrada declaradas con data-anim. */
       let soltarTextos: (() => void) | null = null;
 
@@ -170,10 +196,8 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       let tipoNavegacion = "push";
 
       document.addEventListener("astro:after-swap", () => {
-        // Repone `gl` en <html> y vuelve a colgar el fondo en el <body>
-        // nuevo, antes de que se pinte la página.
+        // Repone `gl` en <html> antes de que se pinte la página nueva.
         obtenerTinta();
-        montarFondo();
         if (tipoNavegacion !== "traverse" && !location.hash) window.scrollTo(0, 0);
         ScrollTrigger.refresh();
       });
@@ -185,10 +209,10 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
 
       document.addEventListener("astro:page-load", () => {
         obtenerScroll()?.start();
-        montarFondo();
         montarBlobs();
         montarTextos();
         montarTinta();
+        montarFormas();
         ScrollTrigger.refresh();
       });
 
@@ -199,6 +223,8 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         soltarTextos = null;
         soltarRetratos?.();
         soltarRetratos = null;
+        formas?.revert();
+        formas = null;
       });
 
       window
@@ -208,15 +234,14 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
           else void arrancar();
           montarBlobs();
           montarTextos();
+          montarFormas();
           // Con movimiento reducido se retira la tinta y vuelven las fotos.
           if (sinMovimiento()) {
             soltarRetratos?.();
             soltarRetratos = null;
             soltarTinta();
-            soltarFondo();
           } else {
             montarTinta();
-            montarFondo();
           }
         });
     </script>
