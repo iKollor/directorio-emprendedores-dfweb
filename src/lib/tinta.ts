@@ -491,7 +491,9 @@ function crearMotor(): Motor | null {
   function ajustar(pieza: Pieza) {
     const escala = Math.min(window.devicePixelRatio || 1, 2) * CALIDADES[nivelCalidad]!;
     const lado = Math.max(2, Math.round(pieza.contenedor.clientWidth * escala));
-    if (pieza.lienzo.width !== lado) {
+    // Las dos medidas: un lienzo nace de 300 × 150, y si el lado pedido era
+    // justo 300 el ancho ya coincidía y el alto se quedaba en 150.
+    if (pieza.lienzo.width !== lado || pieza.lienzo.height !== lado) {
       pieza.lienzo.width = pieza.lienzo.height = lado;
       pieza.pintada = false;
     }

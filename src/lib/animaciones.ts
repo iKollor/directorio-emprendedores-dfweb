@@ -16,6 +16,8 @@
  *   data-anim="pop"        igual que subir, para botones y píldoras
  *   data-anim="revelar"    los hijos se destapan de abajo arriba (clip-path)
  *   data-anim="subrayado"  el subrayado amarillo se dibuja de izquierda a derecha
+ *   data-anim="forma"      formas de fondo (Forma.astro): el blob y la estrella
+ *                          crecen desde su centro; el arco se dibuja
  *
  * Modificadores:
  *   data-anim-hijos="sel"  anima los hijos que cumplen el selector, en cascada
@@ -162,6 +164,39 @@ const FABRICAS: Record<string, Fabrica> = {
       duration: 1.1,
       ease: CURVA,
       stagger: 0.12,
+      delay: retraso,
+      clearProps: LIMPIAR,
+      scrollTrigger: disparador(el),
+    });
+  },
+
+  forma(el, retraso) {
+    const trazo = el.querySelector<SVGPathElement>("[data-trazo]");
+    if (trazo) {
+      // El trazo mide 100 (pathLength) y un hueco de 200 lo esconde entero.
+      // Se aparta con holgura: justo al límite asomaba la punta redonda como
+      // un punto suelto. Y en centenas, no en unidades: GSAP redondea este
+      // valor y con un trazo de longitud 1 lo dejaba clavado en el límite.
+      const oculto = el.dataset.animDesde === "fin" ? -115 : 115;
+      gsap.fromTo(
+        trazo,
+        { strokeDasharray: "100 200", strokeDashoffset: oculto },
+        {
+          strokeDashoffset: 0,
+          duration: 1.6,
+          ease: CURVA,
+          delay: retraso,
+          clearProps: "strokeDasharray,strokeDashoffset",
+          scrollTrigger: disparador(el),
+        },
+      );
+      return;
+    }
+    gsap.from(el, {
+      autoAlpha: 0,
+      scale: 0.55,
+      duration: 1.5,
+      ease: CURVA,
       delay: retraso,
       clearProps: LIMPIAR,
       scrollTrigger: disparador(el),

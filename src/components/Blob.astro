@@ -118,7 +118,7 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
             sizes={sizes}
             loading={prioritaria ? "eager" : "lazy"}
             fetchpriority={prioritaria ? "high" : "auto"}
-            decoding="async"
+            decoding={tinta === "color" ? "sync" : "async"}
             data-rostro={rostro ? `${rostro.x},${rostro.y},${rostro.zoom}` : undefined}
             style={rostro ? `object-position: ${rostro.x * 100}% ${rostro.y * 100}%` : undefined}
           />

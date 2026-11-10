@@ -206,6 +206,15 @@ html.gl [data-tinta]:not([data-tinta="color"]) img,
 }
 
 /*
+ * El retrato que aterriza desde una ficha (lib/viaje.ts lo nombra en línea)
+ * enseña su foto hasta que el lienzo ha dibujado: viene a color y, vacío, se
+ * vería desaparecer en pleno vuelo.
+ */
+html.gl [style*="view-transition-name"] [data-tinta]:not([data-tinta-lista]) img {
+  opacity: 1;
+}
+
+/*
  * Rescate: si el script no llegara a montar el lienzo, la foto vuelve a los
  * tres segundos. Nunca se queda un retrato vacío.
  */
@@ -246,15 +255,65 @@ html.gl [data-tinta]:not(:has(.lienzo-tinta)) img {
 
 /*
  * NAVEGACIÓN ENTRE PÁGINAS. El retrato y el nombre de la persona viajan desde
- * su tarjeta hasta su ficha (transition:name). Ese viaje es la transición: no
- * hay cortinas ni círculos encima. Aquí solo se le da tiempo y una curva
- * suave, porque el salto de 250 ms por defecto no deja ver de dónde viene.
+ * donde se pulsó hasta su ficha, y de vuelta. Ese viaje es la transición: no
+ * hay cortinas ni círculos encima. Quién viaja lo decide src/lib/viaje.ts,
+ * que nombra `retrato` y `nombre` solo a esas dos piezas.
+ *
+ * UNA PÁGINA CADA VEZ. La que se va se apaga deprisa y la que llega se
+ * enciende después: nunca se ven las dos a medias una sobre otra. Antes se
+ * fundían durante 0,6 s y quedaban textos fantasma de la anterior.
+ *
+ * UNA SOLA IMAGEN POR PIEZA. De las piezas que viajan vuela la imagen de la
+ * página nueva, entera desde el primer fotograma. La vieja no se funde con
+ * ella: el nombre cambia de tamaño entre páginas y se veía doble.
  */
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-group(*) {
-    animation-duration: 0.6s;
+    animation-duration: 0.65s;
     animation-timing-function: var(--ease-suave);
   }
+
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    mix-blend-mode: normal;
+  }
+
+  /* Lo que se va; también un retrato o un nombre que no tiene a dónde ir. */
+  ::view-transition-old(root),
+  ::view-transition-old(retrato):only-child,
+  ::view-transition-old(nombre):only-child {
+    animation: vista-sale 0.16s linear both;
+  }
+
+  /* Lo que llega, cuando lo anterior ya casi no se ve. */
+  ::view-transition-new(root),
+  ::view-transition-new(retrato):only-child,
+  ::view-transition-new(nombre):only-child {
+    animation: vista-entra 0.5s 0.12s var(--ease-suave) both;
+  }
+
+  /*
+   * Las dos piezas que viajan: solo la imagen nueva, entera y sin fundido.
+   * La vieja se quita ya; debajo de la nueva asomaría como un halo, porque
+   * no tienen el mismo contorno.
+   */
+  ::view-transition-old(retrato):not(:only-child),
+  ::view-transition-old(nombre):not(:only-child) {
+    display: none;
+  }
+
+  ::view-transition-new(retrato):not(:only-child),
+  ::view-transition-new(nombre):not(:only-child) {
+    animation: none;
+  }
+}
+
+@keyframes vista-sale {
+  to { opacity: 0; }
+}
+
+@keyframes vista-entra {
+  from { opacity: 0; }
 }
 
 /*

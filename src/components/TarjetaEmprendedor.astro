@@ -7,15 +7,22 @@
  * negocio que no podemos describir.
  */
 import Blob from "./Blob.astro";
+import Forma from "./Forma.astro";
+import type { Acento } from "../lib/acentos";
 import { MOSTRAR_COMUNIDAD, categoria } from "../data/taxonomia";
 import { inicialesSinFoto, type Emprendedor } from "../lib/directorio";
 
 type Props = {
   emprendedor: Emprendedor;
   indice: number;
+  /**
+   * Forma de Diseña Futuro que asoma por detrás del retrato, hacia el borde
+   * de la página. La reparte lib/acentos.ts: solo algunas tarjetas la llevan.
+   */
+  acento?: Acento | null;
 };
 
-const { emprendedor: e, indice } = Astro.props;
+const { emprendedor: e, indice, acento = null } = Astro.props;
 const cat = categoria(e.categoria);
 
 const Envoltura = e.fichaPendiente ? "div" : "a";
@@ -27,11 +34,26 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
   id={e.slug}
   class:list={["tarjeta", { pendiente: e.fichaPendiente }]}
   data-tarjeta
+  data-viaja-a={e.fichaPendiente ? undefined : e.slug}
   data-comunidad={MOSTRAR_COMUNIDAD ? e.comunidad : undefined}
   data-categoria={e.categoria}
   style={`--acento:${cat.color}; --acento-texto:${cat.colorTexto}; --acento-hondo:${cat.colorHondo};`}
 >
-  <div class="retrato" transition:name={`retrato-${e.slug}`}>
+  <div class="escena">
+  {
+    acento && (
+      <div class:list={["acento", acento.tipo, acento.lado]}>
+        <Forma
+          tipo={acento.tipo}
+          color={acento.color}
+          semilla={`acento-${e.slug}`}
+          giro={acento.tipo === "arco" && acento.lado === "der" ? 90 : 0}
+          flota={acento.tipo === "arco" ? -0.05 : 0.07}
+        />
+      </div>
+    )
+  }
+  <div class="retrato" data-viaja="retrato">
     <Blob
       slug={e.slug}
       foto={e.foto}
@@ -49,6 +71,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
       rostro={e.rostro}
     />
   </div>
+  </div>
 
   <div class="texto">
     <p class="etiquetas">
@@ -56,7 +79,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
       <span class="pildora categoria">{cat.etiqueta}</span>
     </p>
 
-    <h3 class="nombre" transition:name={`nombre-${e.slug}`}>{e.nombre}</h3>
+    <h3 class="nombre" data-viaja="nombre">{e.nombre}</h3>
 
     {e.emprendimiento && <p class="emprendimiento">{e.emprendimiento}</p>}
 
@@ -85,6 +108,50 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
   /* Quien aún no tiene ficha se ve, pero un paso atrás. */
   .pendiente :global(.monograma) {
     color: rgb(239 238 237 / 0.45);
+  }
+
+  .escena {
+    position: relative;
+  }
+
+  /*
+   * FORMA DE ACENTO. Va detrás del retrato y asoma hacia fuera, hacia el
+   * borde de la página: nunca hacia abajo, donde está el texto de la tarjeta,
+   * ni hacia la otra columna. Los porcentajes son del retrato, así que
+   * acompaña su tamaño en cualquier pantalla.
+   */
+  .acento {
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .acento.blob {
+    width: 54%;
+    top: -9%;
+  }
+
+  .acento.blob.izq {
+    left: -22%;
+  }
+
+  .acento.blob.der {
+    top: 16%;
+    right: -24%;
+  }
+
+  /* El trazo abraza una esquina de arriba del retrato. */
+  .acento.arco {
+    width: 112%;
+    top: -12%;
+  }
+
+  .acento.arco.izq {
+    left: -11%;
+  }
+
+  .acento.arco.der {
+    right: -11%;
   }
 
   .retrato {
@@ -142,6 +209,8 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
   }
 
   .nombre {
+    /* Ceñido al texto: es la caja que vuela hasta la ficha (lib/viaje.ts). */
+    width: fit-content;
     text-wrap: pretty;
     font-size: var(--txt-l);
     font-weight: 700;

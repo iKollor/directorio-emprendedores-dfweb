@@ -23,6 +23,7 @@ import {
   MOSTRAR_COMUNIDAD,
   categoria,
 } from "../data/taxonomia";
+import { acentoDe } from "../lib/acentos";
 import type { Emprendedor } from "../lib/directorio";
 
 type Props = { emprendedores: Emprendedor[] };
@@ -36,16 +37,20 @@ const categoriasPresentes = CLAVES_CATEGORIA_REALES.filter((c) =>
 const comunidadesPresentes = MOSTRAR_COMUNIDAD
   ? COMUNIDADES.filter((c) => emprendedores.some((e) => e.comunidad === c))
   : [];
-
 ---
 
 <section class="listado" id="contenido" aria-labelledby="titulo-listado">
   {/*
-    Solo trazos en azul hondo, en los bordes: aquí hay texto y retratos por
-    toda la página, y una forma de color claro debajo los dejaría sin leer.
+    FORMAS. Cada una acompaña a algo: aquí, un blob cian con su trazo ocupa
+    el hueco que deja el titular a la derecha; más abajo, algunas tarjetas
+    llevan una forma detrás del retrato (lib/acentos.ts). Antes había dos
+    trazos sueltos pegados a los bordes de la página, que no acompañaban a
+    nada.
   */}
-  <div class="arco-der"><Forma tipo="arco" color="var(--df-blue-deep)" flota={0.12} /></div>
-  <div class="arco-izq"><Forma tipo="arco" color="var(--df-blue-deep)" flota={-0.1} /></div>
+  <div class="formas-cabecera">
+    <div class="fc-blob"><Forma tipo="blob" color="var(--df-cyan)" semilla="lista-cian" flota={0.08} /></div>
+    <div class="fc-arco"><Forma tipo="arco" color="var(--df-blue-deep)" giro={160} flota={-0.05} retraso={0.3} /></div>
+  </div>
   <div class="listado-cabecera">
     {/*
       Un solo titular, sin rótulo pequeño encima: la frase de arriba se
@@ -110,7 +115,7 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
       emprendedores.map((e, i) => (
         <div class="celda" data-columna={i % 2 === 0 ? "izq" : "der"}>
           <div class="flota">
-            <TarjetaEmprendedor emprendedor={e} indice={i} />
+            <TarjetaEmprendedor emprendedor={e} indice={i} acento={acentoDe(i)} />
           </div>
         </div>
       ))
@@ -132,27 +137,37 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     padding-inline: var(--gutter);
   }
 
-  .arco-der,
-  .arco-izq {
+  /*
+   * A la derecha del titular, saliéndose de la pantalla. El cian es un color
+   * claro: solo aparece cuando el titular deja ese hueco libre, y termina
+   * antes de la fila de filtros.
+   */
+  .formas-cabecera {
+    display: none;
     position: absolute;
     z-index: -1;
-    width: clamp(220px, 34vw, 520px);
+    top: -3.5rem;
+    right: -8vw;
+    width: clamp(190px, 21vw, 330px);
+    aspect-ratio: 1;
     pointer-events: none;
   }
 
-  .arco-der {
-    top: 14%;
-    right: clamp(-210px, -13vw, -80px);
-    rotate: 118deg;
+  @media (min-width: 1000px) {
+    .formas-cabecera {
+      display: block;
+    }
   }
 
-  .arco-izq {
-    top: 58%;
-    left: clamp(-210px, -13vw, -80px);
-    rotate: -52deg;
+  .fc-arco {
+    position: absolute;
+    width: 128%;
+    top: -6%;
+    left: -34%;
   }
 
-  .listado-cabecera { position: relative; z-index: 2; display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2.5rem; }
+  /* El texto de apoyo va siempre debajo del titular: la derecha queda libre. */
+  .listado-cabecera { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 1.5rem; margin-bottom: 2.5rem; }
   .listado-cabecera h2 { max-width: 16em; font-size: var(--txt-xl); font-weight: 300; line-height: 0.98; }
   .listado-cabecera h2 strong { font-weight: 700; }
   .listado-cabecera > p { margin: 0; font-size: var(--txt-s); }
@@ -646,7 +661,11 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
       const tarjeta = celda.querySelector<HTMLElement>("[data-tarjeta]");
       if (!tarjeta || celda.classList.contains("oculta")) continue;
 
-      const lineas = tarjeta.querySelectorAll<HTMLElement>(".etiquetas > *, .texto > :not(.etiquetas)");
+      // El nombre que llega volando desde su ficha (lib/viaje.ts) no entra
+      // otra vez: esconderlo aquí lo haría parpadear en pleno vuelo.
+      const lineas = [
+        ...tarjeta.querySelectorAll<HTMLElement>(".etiquetas > *, .texto > :not(.etiquetas)"),
+      ].filter((linea) => !linea.style.getPropertyValue("view-transition-name"));
       const texto = tarjeta.querySelector<HTMLElement>(".texto");
       if (!texto) continue;
 

@@ -9,6 +9,9 @@
  *   data-tinta="color"  retrato de la ficha: enfocado. En la primera carga de
  *                       la página llega fuera de foco y enfoca una vez.
  *
+ * El retrato que aterriza volando desde una ficha (lib/viaje.ts) llega
+ * enfocado, como salió, y solo después se comporta como los demás.
+ *
  * NADA SIGUE AL PUNTERO NI SE DEFORMA CON ÉL. Pasar por encima de un retrato
  * solo lo enfoca, igual que llegar a él con el scroll o con el teclado.
  *
@@ -83,11 +86,12 @@ export function montarRetratos(raiz: ParentNode, primeraCarga: boolean): () => v
 
   function montar(contenedor: HTMLElement, fuente: HTMLImageElement | HTMLCanvasElement) {
     const modo = contenedor.dataset.tinta;
+    const aterriza = modo !== "color" && Boolean(contenedor.closest('[style*="view-transition-name"]'));
     const tinta = motor!.montar(contenedor, {
       fuentes: [fuente],
       // Al llegar a la ficha desde el listado el retrato ya viene enfocado:
-      // no se desenfoca para volver a enfocarlo.
-      foco: modo === "color" && !primeraCarga ? 1 : 0,
+      // no se desenfoca para volver a enfocarlo. Lo mismo al volver.
+      foco: (modo === "color" && !primeraCarga) || aterriza ? 1 : 0,
     });
     if (!tinta) return;
     tintas.push(tinta);
@@ -100,7 +104,9 @@ export function montarRetratos(raiz: ParentNode, primeraCarga: boolean): () => v
     // ---- foco: enfoca mientras está en la zona central o recibe atención ----
     let enZona = false;
     let encima = false;
-    let activo = false;
+    let activo = aterriza;
+    // Ya en su sitio, si nadie lo mira, vuelve a la tinta como sus vecinos.
+    if (aterriza) esperas.push(gsap.delayedCall(1.2, () => actualizar()));
     const actualizar = () => {
       const ahora = enZona || encima;
       if (ahora === activo) return;

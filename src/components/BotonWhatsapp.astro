@@ -6,12 +6,13 @@
  * la persona que llega aquí no sabe cómo presentarse, y el emprendedor no
  * sabe de dónde salió el mensaje.
  *
- * EL MENSAJE ES EL BOTÓN. Se ve como lo que es: un mensaje de chat ya escrito
- * con su botón verde de enviar, y el sello de WhatsApp en la esquina. Quien
- * ha usado WhatsApp sabe qué pasa al tocarlo sin leer ninguna instrucción
- * (Ley de Jakob: ver "Criterio de diseño" en CLAUDE.md). Antes había, además
- * del mensaje, una línea explicándolo y un botón grande "Escribir por
- * WhatsApp": tres piezas para decir lo que esta dice sola.
+ * EL MENSAJE ES EL BOTÓN. Se ve como lo que es: la caja de escribir de
+ * WhatsApp con el mensaje ya puesto y, dentro de ella, a la derecha, su
+ * botón verde de enviar; el sello de WhatsApp va en la esquina. Quien ha
+ * usado WhatsApp sabe qué pasa al tocarlo sin leer ninguna instrucción (Ley
+ * de Jakob: ver "Criterio de diseño" en CLAUDE.md). Antes había, además del
+ * mensaje, una línea explicándolo y un botón grande "Escribir por WhatsApp":
+ * tres piezas para decir lo que esta dice sola.
  *
  * Todo el bloque es un único enlace. Su nombre accesible dice lo que el
  * icono dice a la vista.
@@ -51,11 +52,11 @@ const enlace = whatsapp ? `${whatsapp}?text=${encodeURIComponent(mensaje)}` : nu
         aria-label={`Enviar a ${primerNombre} por WhatsApp este mensaje: ${mensaje}`}
         data-paso
       >
-        <span class="burbuja">
+        <span class="caja">
           <span class="sello"><Icono nombre="whatsapp" /></span>
-          {mensaje}
+          <span class="escrito">{mensaje}</span>
+          <span class="enviar"><Icono nombre="enviar" /></span>
         </span>
-        <span class="enviar"><Icono nombre="enviar" /></span>
       </a>
 
       {
@@ -100,41 +101,51 @@ const enlace = whatsapp ? `${whatsapp}?text=${encodeURIComponent(mensaje)}` : nu
 
   /* ---- El mensaje, que es el botón ---------------------------------------- */
   .mensaje {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.7rem;
+    display: block;
     max-width: 100%;
     color: inherit;
     text-decoration: none;
   }
 
   /*
-   * Burbuja de chat: hueso, algo girada y con la esquina de abajo a la
-   * derecha recta, la que apunta al botón de enviar. El giro va aquí dentro
-   * porque el nodo de fuera lo mueve la animación de entrada.
+   * La caja de escribir de WhatsApp: el texto a la izquierda y el botón de
+   * enviar dentro, abajo a la derecha. El radio de la caja es el del botón
+   * más su separación, para que las dos curvas vayan paralelas. El giro va
+   * aquí dentro porque el nodo de fuera lo mueve la animación de entrada.
    */
-  .burbuja {
+  .caja {
+    --boton: 3rem;
+    --aire: 0.5rem;
     position: relative;
-    max-width: 30ch;
-    padding: 1rem 1.15rem 1rem;
-    border-radius: 1.25rem 1.25rem 0.3rem 1.25rem;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    width: fit-content;
+    max-width: 100%;
+    padding: var(--aire);
+    border-radius: calc(var(--boton) / 2 + var(--aire));
     background: var(--df-bone);
     color: var(--df-ink);
-    font-size: var(--txt-m);
-    line-height: 1.35;
     rotate: -1.5deg;
-    transform-origin: 100% 100%;
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.9),
       0 1.25rem 2.5rem -1rem rgb(7 49 165 / 0.6);
     transition: rotate var(--dur-media) var(--ease-suave);
   }
 
+  .escrito {
+    max-width: 28ch;
+    /* Con el aire de la caja, el texto queda a la altura del botón. */
+    padding: 0.45rem 0 0.5rem 0.75rem;
+    font-size: var(--txt-m);
+    line-height: 1.35;
+  }
+
   /* Sello de WhatsApp, montado sobre la esquina: dice por dónde se envía. */
   .sello {
     position: absolute;
-    top: -0.7rem;
-    left: -0.7rem;
+    top: -0.6rem;
+    left: -0.6rem;
     display: grid;
     place-items: center;
     width: 1.9rem;
@@ -151,13 +162,13 @@ const enlace = whatsapp ? `${whatsapp}?text=${encodeURIComponent(mensaje)}` : nu
     display: grid;
     place-items: center;
     flex: none;
-    width: 3.25rem;
+    width: var(--boton);
     aspect-ratio: 1;
     border-radius: 50%;
     background: var(--whatsapp);
     color: #fff;
-    font-size: 1.35rem;
-    box-shadow: var(--gota), 0 0.8em 1.4em -0.8em rgb(4 4 138 / 0.85);
+    font-size: 1.3rem;
+    box-shadow: var(--gota);
     transition: scale var(--dur-media) var(--ease-suave);
   }
 
@@ -167,14 +178,14 @@ const enlace = whatsapp ? `${whatsapp}?text=${encodeURIComponent(mensaje)}` : nu
     transition: translate var(--dur-media) var(--ease-suave);
   }
 
-  .mensaje:hover .burbuja,
-  .mensaje:focus-visible .burbuja {
+  .mensaje:hover .caja,
+  .mensaje:focus-visible .caja {
     rotate: 0deg;
   }
 
   .mensaje:hover .enviar,
   .mensaje:focus-visible .enviar {
-    scale: 1.1;
+    scale: 1.08;
   }
 
   .mensaje:hover .enviar :global(.icono),

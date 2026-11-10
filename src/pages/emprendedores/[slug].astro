@@ -49,7 +49,7 @@ const datosEstructurados = {
 ---
 
 <Base titulo={e.nombre} descripcion={descripcion} imagen={e.foto.src}>
-  <main class="ficha" style={`--acento:${cat.color}; --acento-texto:${cat.colorTexto};`}>
+  <main class="ficha" data-ficha={e.slug} style={`--acento:${cat.color}; --acento-texto:${cat.colorTexto};`}>
     <nav class="volver" data-anim="subir">
       {/* Vuelve al listado en la tarjeta de esta persona, no al inicio. */}
       <a href={`/#${e.slug}`}>
@@ -61,7 +61,7 @@ const datosEstructurados = {
       <div class="columna-retrato">
       {/* Una forma en el color de su categoría asoma por detrás del retrato. */}
       <div class="forma-ficha"><Forma tipo="blob" color={cat.color} semilla={`ficha-${e.slug}`} flota={0.08} /></div>
-      <div class="retrato" transition:name={`retrato-${e.slug}`}>
+      <div class="retrato" data-viaja="retrato">
         <Blob
           slug={e.slug}
           foto={e.foto}
@@ -84,7 +84,7 @@ const datosEstructurados = {
           <span class="pildora categoria">{cat.etiqueta}</span>
         </p>
 
-        <h1 transition:name={`nombre-${e.slug}`}>{e.nombre}</h1>
+        <h1 data-viaja="nombre">{e.nombre}</h1>
         <p class="emprendimiento" data-anim="lineas" data-anim-retraso="0.25">{e.emprendimiento}</p>
 
         <div class="descripcion" data-anim="desenfoque" data-anim-retraso="0.4">
@@ -122,20 +122,19 @@ const datosEstructurados = {
     {
       /*
        * La ficha no termina en un callejón: presenta a la siguiente persona
-       * en una sola frase que es el enlace. Su nombre y su retrato comparten
-       * transition:name con los de su ficha, así que al pulsar son ellos los
-       * que suben a ocupar el sitio del titular y del retrato.
+       * en una sola frase que es el enlace. Al pulsar, su nombre y su retrato
+       * suben a ocupar el sitio del titular y del retrato (lib/viaje.ts).
        */
       siguiente && catSiguiente && (
         <nav class="siguiente" aria-label="Siguiente emprendedor" data-siguiente>
-          <a class="enlace-siguiente" href={`/emprendedores/${siguiente.slug}/`} style={`--acento:${catSiguiente.color};`}>
+          <a class="enlace-siguiente" href={`/emprendedores/${siguiente.slug}/`} data-viaja-a={siguiente.slug} style={`--acento:${catSiguiente.color};`}>
             <span class="frase">
               Conoce también a
-              <strong transition:name={`nombre-${siguiente.slug}`}>{siguiente.nombre}</strong>
+              <strong data-viaja="nombre">{siguiente.nombre}</strong>
               <span class="oficio-siguiente">{siguiente.emprendimiento}</span>
             </span>
             <span class="boton-icono ir" aria-hidden="true">→</span>
-            <span class="mini" transition:name={`retrato-${siguiente.slug}`}>
+            <span class="mini" data-viaja="retrato">
               <Blob
                 slug={siguiente.slug}
                 foto={siguiente.foto}
@@ -205,6 +204,16 @@ const datosEstructurados = {
   }
 
   /*
+   * En el teléfono el retrato va a su tamaño entero, como en el listado: así
+   * llega volando desde su tarjeta sin cambiar de proporción.
+   */
+  @media (max-width: 767px) {
+    .retrato :global(.marco) {
+      scale: 1;
+    }
+  }
+
+  /*
    * Teléfono: arriba a la derecha del retrato, saliéndose de la pantalla.
    * Abajo quedaría debajo de la píldora de categoría y del nombre.
    */
@@ -259,6 +268,8 @@ const datosEstructurados = {
   }
 
   h1 {
+    /* Ceñido al texto: es la caja que llega volando (lib/viaje.ts). */
+    width: fit-content;
     font-size: var(--txt-xl);
     font-weight: 700;
     line-height: 0.95;
@@ -356,9 +367,17 @@ const datosEstructurados = {
     color: var(--df-yellow);
   }
 
+  /*
+   * Grande: es media invitación, y pequeño se perdía en el ancho del bloque.
+   * La gota no llena su caja (lleva aire para respirar y girar), así que la
+   * caja se monta sobre sus vecinos con margen negativo: lo que se ve llena
+   * el hueco, no su caja.
+   */
   .mini {
+    --lado: clamp(130px, 42vw, 540px);
     display: block;
-    width: clamp(110px, 22vw, 280px);
+    width: var(--lado);
+    margin: calc(var(--lado) * -0.1);
   }
 
   .enlace-siguiente:hover .ir,

@@ -53,8 +53,8 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
 
 {
   escenas.length > 0 && (
-    <div class="escenario" data-escenario data-anim="pop" data-anim-retraso="0.2">
-      <div class="marco" data-marco>
+    <div class="escenario" data-escenario data-viaja-ambito data-anim="pop" data-anim-retraso="0.2">
+      <div class="marco" data-marco data-viaja="retrato">
         <div
           class="blob"
           data-blob
@@ -102,6 +102,9 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
         </div>
       </div>
 
+      {/* Lo que vaya por encima del retrato y por detrás del cartel. */}
+      <slot name="encima" />
+
       {/*
         EL CARTEL es una sola pieza que se queda en su sitio: cambia de tamaño
         y su contenido rueda por dentro, tras su propio borde. La inclinación
@@ -116,11 +119,12 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
             class="rotulo"
             href={`/emprendedores/${e.slug}/`}
             data-rotulo
+            data-viaja-a={e.slug}
             inert={i !== 0}
             style={`--acento:${cat.color}; --acento-texto:${cat.colorTexto};`}
           >
             <span class="cat">{cat.etiqueta}</span>
-            <strong>{e.nombre}</strong>
+            <strong data-viaja="nombre">{e.nombre}</strong>
             <span class="oficio">{e.emprendimiento}</span>
             <span class="ir" aria-hidden="true">¡Conócelo! →</span>
           </a>
@@ -254,6 +258,8 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
   }
 
   .rotulo strong {
+    /* Ceñido al texto: es la caja que vuela hasta la ficha (lib/viaje.ts). */
+    width: fit-content;
     font-size: var(--txt-l);
     line-height: 1;
     letter-spacing: -0.02em;

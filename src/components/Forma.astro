@@ -20,6 +20,12 @@
  * texto por encima, la forma va en azul hondo, que lo deja legible.
  *
  * `flota` la desplaza un poco con el scroll (lo aplica Base.astro).
+ *
+ * ENTRADA. Cada pieza entra una vez, cuando asoma en pantalla, con la curva
+ * de todo el sitio (`forma` en lib/animaciones.ts): el blob y la estrella
+ * crecen desde su centro y el arco se dibuja de punta a punta. `retraso` la
+ * ordena con lo que tenga alrededor. La entrada va en el nodo de dentro: el
+ * de fuera es del desplazamiento con el scroll.
  */
 import { construirPath, generarBlob } from "../lib/blob";
 
@@ -30,8 +36,22 @@ type Props = {
   semilla?: string;
   /** Fracción de su alto que se desplaza al cruzar la pantalla; 0 = fija. */
   flota?: number;
+  /** Grados que gira el arco sobre su centro: es siempre el mismo trazo. */
+  giro?: number;
+  /** Segundos que espera su entrada. */
+  retraso?: number;
+  /** El arco se dibuja desde su principio o desde su final. */
+  desde?: "inicio" | "fin";
 };
-const { tipo = "blob", color = "var(--df-pink)", semilla = "forma", flota = 0 } = Astro.props;
+const {
+  tipo = "blob",
+  color = "var(--df-pink)",
+  semilla = "forma",
+  flota = 0,
+  giro = 0,
+  retraso = 0,
+  desde = "inicio",
+} = Astro.props;
 
 const blob = tipo === "blob" ? generarBlob(semilla, { lados: 7, irregularidad: 0.14, radio: 40, lado: 96 }) : null;
 const desfase = [...semilla].reduce((n, c) => n + c.charCodeAt(0), 0) % 40;
@@ -52,6 +72,8 @@ const estrella = Array.from({ length: PUNTAS * 2 }, (_, i) => {
     blob && (
       <div
         class="vivo"
+        data-anim="forma"
+        data-anim-retraso={retraso || undefined}
         data-blob
         data-blob-quieto
         data-vertices={JSON.stringify(blob.vertices)}
@@ -66,14 +88,26 @@ const estrella = Array.from({ length: PUNTAS * 2 }, (_, i) => {
   }
   {
     tipo === "arco" && (
-      <svg viewBox="0 0 100 100" focusable="false">
-        <path class="trazo" d="M7 84 C 2 38, 40 6, 94 22" />
+      <svg
+        viewBox="0 0 100 100"
+        focusable="false"
+        data-anim="forma"
+        data-anim-retraso={retraso || undefined}
+        data-anim-desde={desde}
+      >
+        <path
+          class="trazo"
+          data-trazo
+          d="M7 84 C 2 38, 40 6, 94 22"
+          pathLength="100"
+          transform={giro ? `rotate(${giro} 50 50)` : undefined}
+        />
       </svg>
     )
   }
   {
     tipo === "estrella" && (
-      <svg viewBox="0 0 100 100" focusable="false">
+      <svg viewBox="0 0 100 100" focusable="false" data-anim="forma" data-anim-retraso={retraso || undefined}>
         <polygon points={estrella} />
       </svg>
     )
