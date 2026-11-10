@@ -171,6 +171,7 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     display: none;
     border-radius: var(--radio-pildora);
     background: var(--df-bone);
+    box-shadow: var(--gota);
     pointer-events: none;
   }
 
@@ -275,7 +276,6 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   import { Flip } from "gsap/Flip";
   import { ScrollTrigger } from "gsap/ScrollTrigger";
   import Snap from "lenis/snap";
-  import { montarGelatina } from "../lib/gelatina";
   import { obtenerScroll, sinMovimiento } from "../lib/scroll";
 
   gsap.registerPlugin(Flip, ScrollTrigger);
@@ -365,7 +365,6 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     const limpiarBoton = seccion.querySelector<HTMLButtonElement>("[data-limpiar]");
 
     montarVideos(grid, signal);
-    montarGelatina(grid.querySelectorAll<HTMLElement>("a[data-tarjeta]"), signal);
 
     // ---- Píldora deslizante de los filtros --------------------------------
     const grupos = [...seccion.querySelectorAll<HTMLFieldSetElement>("[data-filtros] fieldset")];

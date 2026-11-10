@@ -43,6 +43,8 @@ type Props = {
    * (ficha individual).
    */
   tinta?: "foco" | "color";
+  /** Dónde está el rostro en la foto, para centrarlo (lib/directorio.ts). */
+  rostro?: { x: number; y: number; zoom: number };
 };
 
 const {
@@ -56,6 +58,7 @@ const {
   videoModo = "hover",
   iniciales = null,
   tinta = "foco",
+  rostro,
 } = Astro.props;
 
 // Las iniciales van en el color de la categoría. Sobre el fondo azul hondo
@@ -115,6 +118,8 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
             loading={prioritaria ? "eager" : "lazy"}
             fetchpriority={prioritaria ? "high" : "auto"}
             decoding="async"
+            data-rostro={rostro ? `${rostro.x},${rostro.y},${rostro.zoom}` : undefined}
+            style={rostro ? `object-position: ${rostro.x * 100}% ${rostro.y * 100}%` : undefined}
           />
         )
       }

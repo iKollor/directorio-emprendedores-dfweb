@@ -69,6 +69,7 @@ const datosEstructurados = {
           videoModo="auto"
           iniciales={inicialesSinFoto(e)}
           tinta="color"
+          rostro={e.rostro}
         />
       </div>
 
@@ -136,6 +137,7 @@ const datosEstructurados = {
                 color={catSiguiente.color}
                 sizes="(max-width: 899px) 40vw, 280px"
                 iniciales={inicialesSinFoto(siguiente)}
+                rostro={siguiente.rostro}
               />
             </span>
           </a>
@@ -147,22 +149,6 @@ const datosEstructurados = {
   <script is:inline type="application/ld+json" set:html={JSON.stringify(datosEstructurados)} />
 </Base>
 
-<script>
-  // El retrato de la siguiente persona cambia de forma al pasar el puntero,
-  // igual que en el listado.
-  import { montarGelatina } from "../../lib/gelatina";
-
-  let eventos: AbortController | null = null;
-
-  function iniciar() {
-    eventos?.abort();
-    eventos = new AbortController();
-    montarGelatina(document.querySelectorAll<HTMLElement>("[data-siguiente] a"), eventos.signal);
-  }
-
-  document.addEventListener("astro:page-load", iniciar);
-  document.addEventListener("astro:before-swap", () => eventos?.abort());
-</script>
 
 <style>
   .ficha {
@@ -231,6 +217,7 @@ const datosEstructurados = {
   .categoria {
     background: var(--acento);
     color: var(--acento-texto);
+    box-shadow: var(--gota);
   }
 
   h1 {

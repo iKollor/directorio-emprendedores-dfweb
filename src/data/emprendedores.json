@@ -15,7 +15,11 @@
     "publicado": true,
     "fichaPendiente": false,
     "oficio": "Construcción y remodelación",
-    "resumen": "Construcción, remodelación, cubiertas metálicas y soldadura. También alquila encofrado para columnas, compactador, concretera y generador eléctrico, y ofrece servicio de transporte."
+    "resumen": "Construcción, remodelación, cubiertas metálicas y soldadura. También alquila encofrado para columnas, compactador, concretera y generador eléctrico, y ofrece servicio de transporte.",
+    "rostro": {
+      "x": 0.52,
+      "y": 0.31
+    }
   },
   {
     "slug": "alexandra-medina",
@@ -53,7 +57,11 @@
     "publicado": true,
     "fichaPendiente": false,
     "oficio": "Maquillaje, peluquería y belleza",
-    "resumen": "Maquillaje, peinados, manicura, pedicura, diseño de cejas, pestañas y tratamientos capilares, en su local o a domicilio. Tiene 8 años de experiencia."
+    "resumen": "Maquillaje, peinados, manicura, pedicura, diseño de cejas, pestañas y tratamientos capilares, en su local o a domicilio. Tiene 8 años de experiencia.",
+    "rostro": {
+      "x": 0.53,
+      "y": 0.27
+    }
   },
   {
     "slug": "jairon-espinoza",

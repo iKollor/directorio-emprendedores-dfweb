@@ -117,15 +117,20 @@ function curvar(pts: { x: number; y: number }[]): string {
  */
 const ENCAJE_NEUTRO: Encaje = { sx: 1, sy: 1, cx: 0, cy: 0 };
 
-/** Los puntos de control de la silueta en el instante `t`, en el viewBox 0-100. */
+/**
+ * Los puntos de control de la silueta en el instante `t`, en el viewBox 0-100.
+ * `empujes` suma un desplazamiento radial a cada vértice: es por donde entra
+ * la física de la gota (lib/blobRuntime.ts).
+ */
 function puntosDe(
   vertices: Vertice[],
   t: number,
   deformacion: Deformacion | null | undefined,
   encaje: Encaje,
+  empujes?: ArrayLike<number> | null,
 ): { x: number; y: number }[] {
-  return vertices.map((v) => {
-    let radio = v.radio;
+  return vertices.map((v, i) => {
+    let radio = v.radio + (empujes ? (empujes[i] ?? 0) : 0);
 
     for (const o of v.osc) radio += o.amp * Math.sin(o.vel * t + o.fase);
 
@@ -155,8 +160,27 @@ export function construirPath(
   t: number,
   deformacion?: Deformacion | null,
   encaje: Encaje = ENCAJE_NEUTRO,
+  empujes?: ArrayLike<number> | null,
 ): string {
-  return curvar(puntosDe(vertices, t, deformacion, encaje));
+  return curvar(puntosDe(vertices, t, deformacion, encaje, empujes));
+}
+
+/**
+ * Posición de cada vértice en el viewBox, sin curva: es lo que necesita la
+ * física de la gota para saber a qué distancia del puntero está cada uno.
+ */
+export function situarVertices(
+  vertices: Vertice[],
+  t: number,
+  encaje: Encaje,
+  empujes: ArrayLike<number> | null,
+  destino: Float32Array,
+): void {
+  const pts = puntosDe(vertices, t, null, encaje, empujes);
+  for (let i = 0; i < pts.length; i++) {
+    destino[i * 2] = pts[i]!.x;
+    destino[i * 2 + 1] = pts[i]!.y;
+  }
 }
 
 /**
@@ -180,6 +204,12 @@ export const MUESTRAS_CONTORNO = 64;
 /** Contorno vigente de cada blob, escrito por blobRuntime en cada fotograma. */
 export const CONTORNOS = new WeakMap<Element, Float32Array>();
 
+/**
+ * Blobs cuya silueta se está moviendo deprisa (los toca el puntero o aún
+ * tiemblan). El material los repinta en cada fotograma mientras estén aquí.
+ */
+export const AGITADOS = new WeakSet<Element>();
+
 const PASOS_POR_TRAMO = 7;
 let angulos = new Float32Array(0);
 let radios = new Float32Array(0);
@@ -189,8 +219,9 @@ export function muestrearContorno(
   t: number,
   encaje: Encaje,
   destino: Float32Array,
+  empujes?: ArrayLike<number> | null,
 ): void {
-  const pts = puntosDe(vertices, t, null, encaje);
+  const pts = puntosDe(vertices, t, null, encaje, empujes);
   const n = pts.length;
   const total = n * PASOS_POR_TRAMO;
   if (angulos.length !== total) {

@@ -81,6 +81,8 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
                   loading={i === 0 ? "eager" : "lazy"}
                   fetchpriority={i === 0 ? "high" : "auto"}
                   decoding="async"
+                  data-rostro={`${e.rostro.x},${e.rostro.y},${e.rostro.zoom}`}
+                  style={`object-position: ${e.rostro.x * 100}% ${e.rostro.y * 100}%`}
                 />
                 {e.video && (
                   <video
@@ -100,7 +102,15 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
         </div>
       </div>
 
-      <div class="rotulos">
+      {/*
+        EL CARTEL es una sola pieza que se queda en su sitio: cambia de tamaño
+        y su contenido rueda por dentro, tras su propio borde. La inclinación
+        y el gesto al pasar el puntero son del cartel (CSS); la animación solo
+        toca su ancho y alto y mueve los textos de dentro. Antes cada persona
+        tenía su propia tarjeta inclinada y se animaba entera: la animación
+        le borraba la inclinación y el gesto del puntero tras el primer cambio.
+      */}
+      <div class="rotulos" data-cartel>
         {escenas.map(({ e, cat }, i) => (
           <a
             class="rotulo"
@@ -180,13 +190,35 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     opacity: 1;
   }
 
-  /* Etiqueta tipo pegatina, inclinada, sobre el borde inferior del blob. */
+  /* Cartel tipo pegatina, inclinado, sobre el borde inferior del blob. */
   .rotulos {
     position: absolute;
     left: -2%;
     bottom: 4%;
     z-index: 2;
     display: grid;
+    /* Recorta el contenido que entra y sale rodando. */
+    overflow: hidden;
+    border-radius: 1.25rem;
+    background: var(--df-bone);
+    color: var(--df-ink);
+    rotate: -3deg;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1.25rem 2.5rem -1rem rgb(7 49 165 / 0.6);
+    transition: rotate var(--dur-media) var(--ease-suave), scale var(--dur-media) var(--ease-suave);
+  }
+
+  .rotulos:has(.rotulo:hover),
+  .rotulos:has(.rotulo:focus-visible) {
+    rotate: 0deg;
+    scale: 1.04;
+  }
+
+  /* El foco se dibuja en el cartel: dentro quedaría recortado. */
+  .rotulos:has(.rotulo:focus-visible) {
+    outline: 3px solid var(--df-yellow);
+    outline-offset: 4px;
   }
 
   .rotulo {
@@ -197,23 +229,16 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     width: max-content;
     max-width: min(78vw, 22rem);
     padding: 0.9rem 1.2rem 1rem;
-    border-radius: 1.25rem;
-    background: var(--df-bone);
-    color: var(--df-ink);
+    color: inherit;
     text-decoration: none;
-    rotate: -3deg;
-    box-shadow: 0 1.25rem 2.5rem -1rem rgb(7 49 165 / 0.6);
-    transition: rotate var(--dur-media) var(--ease-suave), scale var(--dur-media) var(--ease-suave);
+  }
+
+  .rotulo:focus-visible {
+    outline: none;
   }
 
   .rotulo[inert] {
     visibility: hidden;
-  }
-
-  .rotulo:hover,
-  .rotulo:focus-visible {
-    rotate: 0deg;
-    scale: 1.04;
   }
 
   .cat {
@@ -223,6 +248,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     border-radius: var(--radio-pildora);
     background: var(--acento);
     color: var(--acento-texto);
+    box-shadow: var(--gota);
     font-size: 0.75rem;
     font-weight: 600;
   }
@@ -247,9 +273,12 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
 
   /* En móvil la etiqueta no puede tapar media cara. */
   @media (max-width: 899px) {
+    .rotulos {
+      border-radius: 1rem;
+    }
+
     .rotulo {
       padding: 0.6rem 0.85rem 0.7rem;
-      border-radius: 1rem;
     }
 
     .cat {
@@ -293,6 +322,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
     const escenas = [...escenario.querySelectorAll<HTMLElement>("[data-escena]")];
     const rotulos = [...escenario.querySelectorAll<HTMLElement>("[data-rotulo]")];
     const recorte = escenario.querySelector<HTMLElement>(".recorte");
+    const cartel = escenario.querySelector<HTMLElement>("[data-cartel]");
 
     const reducido = sinMovimiento();
     let actual = 0;
@@ -394,7 +424,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       zooms.set(
         i,
         gsap.to(lente, {
-          valor: 1.13,
+          valor: 1.07,
           duration: DURACION + 4,
           ease: "none",
           paused: detenido,
@@ -416,6 +446,14 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       if (detenido) reloj.pause();
     }
 
+    // ---- Cartel -------------------------------------------------------------
+    /** Tamaño que pide el contenido de una persona. */
+    const medir = (i: number) => ({ width: rotulos[i]!.offsetWidth, height: rotulos[i]!.offsetHeight });
+    /** Ajusta el cartel a la persona en pantalla, sin animar. */
+    const ajustarCartel = () => {
+      if (cartel && !transicion?.isActive()) gsap.set(cartel, medir(actual));
+    };
+
     // ---- Cambio de persona -------------------------------------------------
     function irA(siguiente: number, inmediato = false) {
       if (siguiente === actual) return;
@@ -435,6 +473,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
         gsap.set([entra, sale], { clearProps: "opacity,zIndex" });
         rotulos.forEach((r, j) => (r.inert = j !== siguiente));
         gsap.set([rotuloSale, rotuloEntra], { clearProps: "transform,opacity,visibility" });
+        if (cartel) gsap.set(cartel, medir(siguiente));
         tinta?.usarVideo(antes, null);
         soltarZoom(antes);
         const v = video(antes);
@@ -471,18 +510,20 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
           .fromTo(entra, { opacity: 0 }, { opacity: 1, duration: 1.1, ease: "power2.inOut" }, 0);
       }
 
-      // La etiqueta acompaña al cambio: la anterior se va hacia arriba y la
-      // nueva sube desde abajo. Mismo recorrido y misma curva que el resto
-      // de entradas del sitio; nada gira ni rebota.
+      // El cartel no se mueve de su sitio. El nombre anterior sale rodando
+      // hacia arriba por dentro, el cartel toma el tamaño del nuevo y el
+      // nuevo sube desde abajo. Ocurre a mitad del cambio de foco, cuando la
+      // imagen es puro desenfoque: nombre y cara cambian a la vez.
+      const destino = medir(siguiente);
       transicion
-        .to(rotuloSale, { y: -18, autoAlpha: 0, duration: 0.32, ease: "power2.in" }, 0)
+        .to(rotuloSale, { yPercent: -60, autoAlpha: 0, duration: 0.34, ease: "power2.in" }, 0.22)
         .fromTo(
           rotuloEntra,
-          { y: 22, autoAlpha: 0 },
-          { y: 0, autoAlpha: 1, duration: 0.9, ease: "expo.out" },
-          // Entra cuando la anterior ya se fue: dos nombres a medias no se leen.
-          0.36,
+          { yPercent: 60, autoAlpha: 0 },
+          { yPercent: 0, autoAlpha: 1, duration: 0.85, ease: "expo.out" },
+          0.56,
         );
+      if (cartel) transicion.to(cartel, { ...destino, duration: 0.8, ease: "expo.out" }, 0.5);
     }
 
     // ---- Arranque: una persona al azar -------------------------------------
@@ -502,6 +543,13 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
 
     const eventos = new AbortController();
     const { signal } = eventos;
+
+    // El cartel se mide al montar, al cargar la tipografía (cambia el ancho
+    // del nombre) y al cambiar el tamaño de la ventana.
+    ajustarCartel();
+    void document.fonts.ready.then(() => !signal.aborted && ajustarCartel());
+    const vigiaCartel = new ResizeObserver(ajustarCartel);
+    vigiaCartel.observe(escenario);
 
     // Se pausa fuera de pantalla, con la pestaña oculta o con el puntero encima
     // (para poder leer y hacer clic sin que la persona cambie).
@@ -544,6 +592,8 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
 
     soltar = () => {
       eventos.abort();
+      vigiaCartel.disconnect();
+      if (cartel) gsap.set(cartel, { clearProps: "width,height" });
       vista.kill();
       transicion?.kill();
       forma.kill();
@@ -551,7 +601,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
       reloj?.kill();
       zooms.forEach((z) => z.kill());
       zooms.clear();
-      gsap.killTweensOf([...escenas, ...rotulos]);
+      gsap.killTweensOf([...escenas, ...rotulos, cartel]);
       escenas.forEach((e) => e.querySelector("video")?.pause());
       tinta?.destruir();
     };

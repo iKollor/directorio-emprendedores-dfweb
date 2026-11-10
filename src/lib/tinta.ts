@@ -41,7 +41,7 @@
  */
 
 import { gsap } from "gsap";
-import { CONTORNOS, MUESTRAS_CONTORNO } from "./blob";
+import { AGITADOS, CONTORNOS, MUESTRAS_CONTORNO } from "./blob";
 
 type Imagen = HTMLImageElement | HTMLCanvasElement;
 type Fuente = Imagen | HTMLVideoElement;
@@ -98,8 +98,9 @@ uniform vec3 uLuz;
 
 const float PI = 3.14159265;
 const float MUESTRAS = ${MUESTRAS_CONTORNO}.0;
-// Ancho de la zona curva del borde, en fracción del lado.
-const float CANTO = 0.17;
+// Ancho de la zona curva del borde, en fracción del lado. Estrecho a
+// propósito: el volumen se lee en el filo y la cara queda fuera de él.
+const float CANTO = 0.115;
 
 float leerRadio(float indice) {
   vec4 t = texture2D(uRadios, vec2((indice + 0.5) / MUESTRAS, 0.5));
@@ -161,9 +162,11 @@ void main() {
   // REFRACCIÓN: el canto desvía la imagen hacia el centro. El vidrio fuera de
   // foco es más grueso; al enfocar, se afina. La inercia del scroll la
   // desplaza entera, un poco, dentro de la gota.
-  vec2 desvio = -fuera * curva * (mix(0.05, 0.085, velo) + movimiento * 0.03);
-  desvio.y -= uInercia * 0.028 * (1.0 - curva);
-  float dispersion = (mix(0.2, 0.34, velo) + movimiento * 0.3) * curva;
+  // Enfocada, el desvío es leve: el volumen lo dan sobre todo la luz y la
+  // sombra, que no mueven la imagen.
+  vec2 desvio = -fuera * curva * (mix(0.02, 0.055, velo) + movimiento * 0.02);
+  desvio.y -= uInercia * 0.022 * (1.0 - curva);
+  float dispersion = (mix(0.3, 0.36, velo) + movimiento * 0.3) * curva;
 
   vec3 color;
   if (uRelevo > 0.0) {
@@ -418,15 +421,20 @@ function crearMotor(): Motor | null {
     if (cupo <= 0) return null;
     cupo--;
 
-    // Recorte centrado a cuadrado, ya al tamaño de la textura. Se dibuja la
+    // Recorte a cuadrado, ya al tamaño de la textura, con el rostro en el
+    // centro (`data-rostro="x,y,zoom"`, de lib/directorio.ts). Se dibuja la
     // imagen ENTERA dando solo el destino, sin rectángulo de origen: en una
     // <img> con srcset, `naturalWidth` viene corregido por densidad y no
     // coincide con los píxeles reales, así que un rectángulo de origen
     // calculado con él recorta un trozo ampliado. La proporción sí es fiable.
+    const [rx = 0.5, ry = 0.5, rz = 1] = (fuente.dataset.rostro ?? "").split(",").map(Number).filter(Number.isFinite);
     const proporcion = ancho / alto;
-    const dw = proporcion >= 1 ? LADO_TEXTURA * proporcion : LADO_TEXTURA;
-    const dh = proporcion >= 1 ? LADO_TEXTURA : LADO_TEXTURA / proporcion;
-    tallerCtx.drawImage(fuente, (LADO_TEXTURA - dw) / 2, (LADO_TEXTURA - dh) / 2, dw, dh);
+    const dw = (proporcion >= 1 ? LADO_TEXTURA * proporcion : LADO_TEXTURA) * rz;
+    const dh = (proporcion >= 1 ? LADO_TEXTURA : LADO_TEXTURA / proporcion) * rz;
+    // El rostro va al centro, sin dejar que la foto descubra un borde vacío.
+    const dx = Math.min(0, Math.max(LADO_TEXTURA - dw, LADO_TEXTURA / 2 - rx * dw));
+    const dy = Math.min(0, Math.max(LADO_TEXTURA - dh, LADO_TEXTURA / 2 - ry * dh));
+    tallerCtx.drawImage(fuente, dx, dy, dw, dh);
 
     const textura = gl!.createTexture()!;
     gl!.activeTexture(gl!.TEXTURE0);
@@ -582,7 +590,10 @@ function crearMotor(): Motor | null {
 
       const video = pieza.videos[pieza.a];
       const conVideo = Boolean(video && !video.paused && !video.ended);
-      const enMovimiento = pieza.sucia || pieza.tweens.size > 0 || inercia !== 0 || conVideo;
+      // Si el puntero está moviendo la silueta, el canto tiene que seguirla
+      // fotograma a fotograma, también con el freno echado.
+      const agitada = pieza.blob !== null && AGITADOS.has(pieza.blob);
+      const enMovimiento = pieza.sucia || pieza.tweens.size > 0 || inercia !== 0 || conVideo || agitada;
       // En reposo la silueta respira despacio: un fotograma de cada dos.
       const respira = !ahorro && pieza.blob !== null && numero % 2 === 0;
 
@@ -603,9 +614,11 @@ function crearMotor(): Motor | null {
     if (vivo && !cuadro) cuadro = requestAnimationFrame(bucle);
   }
 
-  // Con el freno echado no hay bucle en reposo: el scroll lo despierta.
+  // Con el freno echado no hay bucle en reposo: lo despiertan el scroll y el
+  // puntero (que puede estar moviendo la silueta de una gota).
   const alMover = () => pedir();
   window.addEventListener("scroll", alMover, { passive: true });
+  window.addEventListener("pointermove", alMover, { passive: true });
 
   base.addEventListener("webglcontextlost", (evento) => {
     // Sin contexto no hay nada que pintar: se retira todo y vuelven las fotos.
@@ -761,6 +774,7 @@ function crearMotor(): Motor | null {
       vivo = false;
       cancelAnimationFrame(cuadro);
       window.removeEventListener("scroll", alMover);
+      window.removeEventListener("pointermove", alMover);
       observador.disconnect();
       medidor.disconnect();
       for (const pieza of [...piezas]) {

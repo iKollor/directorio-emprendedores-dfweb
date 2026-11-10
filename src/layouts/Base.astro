@@ -83,6 +83,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       } from "../lib/scroll";
       import { animarBlobs, type ControlBlobs } from "../lib/blobRuntime";
       import { animarTextos } from "../lib/animaciones";
+      import { montarFondo, soltarFondo } from "../lib/fondo";
       import { montarRetratos } from "../lib/retratos";
       import { obtenerTinta, soltarTinta } from "../lib/tinta";
       import type { TransitionBeforePreparationEvent } from "astro:transitions/client";
@@ -169,8 +170,10 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       let tipoNavegacion = "push";
 
       document.addEventListener("astro:after-swap", () => {
-        // Repone `gl` en <html> antes de que se pinte la página nueva.
+        // Repone `gl` en <html> y vuelve a colgar el fondo en el <body>
+        // nuevo, antes de que se pinte la página.
         obtenerTinta();
+        montarFondo();
         if (tipoNavegacion !== "traverse" && !location.hash) window.scrollTo(0, 0);
         ScrollTrigger.refresh();
       });
@@ -182,6 +185,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
 
       document.addEventListener("astro:page-load", () => {
         obtenerScroll()?.start();
+        montarFondo();
         montarBlobs();
         montarTextos();
         montarTinta();
@@ -209,8 +213,10 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
             soltarRetratos?.();
             soltarRetratos = null;
             soltarTinta();
+            soltarFondo();
           } else {
             montarTinta();
+            montarFondo();
           }
         });
     </script>

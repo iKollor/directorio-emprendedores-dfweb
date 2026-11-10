@@ -46,6 +46,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
       video={e.fichaPendiente ? null : e.video}
       videoModo="hover"
       iniciales={inicialesSinFoto(e)}
+      rostro={e.rostro}
     />
   </div>
 
@@ -137,6 +138,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
   .categoria {
     background: var(--acento);
     color: var(--acento-texto);
+    box-shadow: var(--gota);
   }
 
   .nombre {

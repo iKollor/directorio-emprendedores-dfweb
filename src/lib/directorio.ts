@@ -48,11 +48,30 @@ export type Emprendedor = {
   foto: ImageMetadata;
   telefono: string | null;
   whatsapp: string | null;
+  /**
+   * Dónde está el rostro en la foto y cuánto acercarse a él (ver `ROSTRO`).
+   * Sirve para que quede en el centro del retrato y no en el borde.
+   */
+  rostro: Rostro;
   /** Vídeo de presentación propio, o null si todavía no lo hay. */
   video: string | null;
   /** Fotos de sus productos o servicios, en orden de nombre de archivo. */
   galeria: ImageMetadata[];
 };
+
+/**
+ * EL ROSTRO, AL CENTRO. Las fotos de origen son apaisadas y de clase, no
+ * retratos: la cara suele quedar en el tercio superior. Recortadas al centro,
+ * caía en el borde de la gota, que es justo donde el vidrio curva la imagen.
+ *
+ * `x` e `y` van de 0 a 1 sobre el archivo de la foto tal como está en el
+ * repositorio (x=0 izquierda, y=0 arriba). `zoom` es cuánto se acerca el
+ * encuadre para poder llevar esa cara al centro. Se fija por persona con el
+ * campo `rostro` del JSON; sin él vale este valor, pensado para una cara en
+ * el tercio superior.
+ */
+export type Rostro = { x: number; y: number; zoom: number };
+const ROSTRO: Rostro = { x: 0.5, y: 0.34, zoom: 1.35 };
 
 /**
  * Astro necesita las imágenes importadas estáticamente para optimizarlas en
@@ -143,6 +162,7 @@ function normalizar(crudo: Crudo): Emprendedor | null {
     fichaPendiente,
     fotoPendiente: !propia,
     foto: propia ?? fotoNeutra,
+    rostro: { ...ROSTRO, ...("rostro" in crudo && crudo.rostro ? crudo.rostro : {}) },
     // Sin ficha no se ofrece contacto: no se manda gente a un negocio sin describir.
     telefono: fichaPendiente ? null : crudo.telefono,
     whatsapp: fichaPendiente ? null : crudo.whatsapp,

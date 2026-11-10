@@ -26,16 +26,34 @@ puntos que crecen ni disolvencias: eso es lenguaje de editor de vídeo.
 
 **Un material.** Todo efecto de imagen es `src/lib/tinta.ts` (WebGL, un solo
 shader). No añadas otro: si hace falta algo nuevo, es un parámetro de ese
-material. Cuándo enfoca cada retrato está en `src/lib/retratos.ts`; el hero,
+material. El canto de la gota es fino a propósito: el volumen lo dan la luz
+y la sombra, que no mueven la imagen. Cuándo enfoca cada retrato está en `src/lib/retratos.ts`; el hero,
 en `BlobHero.astro`. La silueta que usa el shader sale de `src/lib/blob.ts`.
 
 **Una curva.** Todo lo que entra sube un poco y se asienta con `expo.out`
 (`CURVA` en `src/lib/animaciones.ts`). Sin rebotes, giros ni desenfoques de
 texto. El único elástico del sitio es el contorno de los blobs.
 
-**Nada responde al puntero salvo enfocar.** Pasar por encima de un retrato lo
-enfoca, igual que llegar con el scroll o el teclado. Nada sigue al cursor ni
-deforma la imagen con él: lo pidió quitar Diseña Futuro y se volvió a pedir.
+**El puntero mueve el borde, nunca la imagen.** Pasar por encima de un
+retrato lo enfoca, y al acercarse a su borde la gota responde como una gota:
+el borde se estira hacia el puntero, conserva su volumen y tiembla al
+soltarla (`src/lib/blobRuntime.ts`, se apaga con `GOTA_INTERACTIVA`). La foto
+de dentro no se deforma con el puntero: eso se pidió quitar expresamente.
+Tampoco hay nada que siga al cursor por la página.
+
+**La misma luz en todo.** La luz viene de arriba a la izquierda. Botones,
+píldoras y puntos llevan el brillo y la sombra interior de una gota
+(`--gota` en `src/styles/tokens.css`), hechos con sombras, no con WebGL.
+
+**El fondo es agua.** `src/lib/fondo.ts` dibuja zonas apenas más hondas y un
+veteado de luz en el azul de la marca. No puede bajar el contraste del texto:
+el azul de la marca es su tono más claro salvo un 3 % de veteado. Si se
+tocan sus valores, hay que recalcular el contraste del texto hueso (4.5:1).
+
+**El rostro, al centro.** Las fotos son apaisadas y la cara cae arriba, justo
+en el canto de la gota. Cada persona lleva en el JSON un campo `rostro`
+(`x`, `y` de 0 a 1 sobre su foto) y el encuadre se centra ahí; ver `ROSTRO`
+en `src/lib/directorio.ts`. Al añadir una foto, hay que ponerlo.
 
 No usar:
 
@@ -51,8 +69,9 @@ No usar:
 - Acercamientos lentos hechos con `transform`: avanzan fracciones de píxel
   por fotograma y tiemblan. Van en el shader.
 
-Rendimiento, que es parte del diseño: un solo contexto WebGL, se pinta solo
-lo visible, en reposo a media cadencia, y un freno baja la resolución si el
+Rendimiento, que es parte del diseño: dos contextos WebGL en total (los
+retratos comparten uno; el fondo tiene el suyo, a un tercio de resolución y
+30 fotogramas por segundo), se pinta solo lo visible, en reposo a media cadencia, y un freno baja la resolución si el
 dispositivo no llega. Sin WebGL o con movimiento reducido quedan las fotos
 normales. Cualquier cambio en `tinta.ts` debe conservar eso.
 
