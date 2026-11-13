@@ -218,7 +218,16 @@ const datosEstructurados = {
 
     .columna-retrato {
       justify-self: end;
-      width: min(100%, 64vh, calc((100svh - 16rem) / 0.88));
+      width: min(100%, 78vh, calc((100svh - 16rem) / 0.88));
+    }
+
+    /*
+     * En la ficha la gota va a su tamaño entero. La escala propia de cada
+     * una (0,9 a 1, sembrada por su nombre) da variedad en el listado; aquí
+     * solo la encogía, y a quien le tocaba la menor se le veía pequeño.
+     */
+    .retrato :global(.marco) {
+      scale: 1;
     }
   }
 
