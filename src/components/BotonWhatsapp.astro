@@ -169,15 +169,20 @@ const enlace = whatsapp ? `${whatsapp}?text=${encodeURIComponent(mensaje)}` : nu
     color: #fff;
     font-size: 1.3rem;
     box-shadow: var(--gota);
-    transition: scale var(--dur-media) var(--ease-suave);
+    transition: background-color var(--dur-media) var(--ease-suave);
   }
 
   /* El avión queda un pelo a la izquierda de su caja: se centra a ojo. */
   .enviar :global(.icono) {
     translate: 0.06em 0;
-    transition: translate var(--dur-media) var(--ease-suave);
   }
 
+  /*
+   * Al pasar el puntero, la caja se endereza y el botón se oscurece, como
+   * un botón al tocarlo. Ni crece ni mueve el avión: crecer lo sacaba de la
+   * curva de la esquina (sus radios van paralelos) y el avión desplazado
+   * quedaba descentrado. En WhatsApp el botón de enviar tampoco se mueve.
+   */
   .mensaje:hover .caja,
   .mensaje:focus-visible .caja {
     rotate: 0deg;
@@ -185,12 +190,7 @@ const enlace = whatsapp ? `${whatsapp}?text=${encodeURIComponent(mensaje)}` : nu
 
   .mensaje:hover .enviar,
   .mensaje:focus-visible .enviar {
-    scale: 1.08;
-  }
-
-  .mensaje:hover .enviar :global(.icono),
-  .mensaje:focus-visible .enviar :global(.icono) {
-    translate: 0.18em 0;
+    background-color: color-mix(in oklab, var(--whatsapp), black 14%);
   }
 
   /* El número se puede tocar para llamar: el auricular lo dice. */
