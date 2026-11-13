@@ -199,16 +199,26 @@ const datosEstructurados = {
     }
 
     /*
-     * El retrato arranca a la altura del texto y la gota cabe entera en la
-     * primera pantalla: en pantallas anchas y bajas se cortaba por abajo.
-     * Sobre el retrato quedan unos 16rem (cabecera y "Todos los
-     * emprendedores"), y la gota ocupa hasta el 88 % de su caja.
+     * Retrato y texto se alinean por lo que se ve, no por sus cajas: la gota
+     * solo ocupa del 8 al 88 % de la suya, así que alineada arriba quedaba
+     * más baja que el texto y se salía por abajo. Las dos columnas se
+     * centran en vertical, y el lado de la gota se ajusta para que su alto
+     * visible ronde el del bloque de texto y quepa entera en la primera
+     * pantalla (sobre ella quedan unos 16rem de cabecera).
+     *
+     * Pegada al texto (a la derecha de su columna): con el hueco a los dos
+     * lados, retrato y texto se leían como dos piezas sueltas.
      *
      * No es `sticky`: la columna del retrato es la más alta de la fila, así
      * que no tendría recorrido, y su `top: 6vh` la bajaba 57 px.
      */
+    .cuerpo {
+      align-items: center;
+    }
+
     .columna-retrato {
-      width: min(100%, calc((100svh - 16rem) / 0.88));
+      justify-self: end;
+      width: min(100%, 64vh, calc((100svh - 16rem) / 0.88));
     }
   }
 
@@ -235,14 +245,18 @@ const datosEstructurados = {
     pointer-events: none;
   }
 
-  /* Escritorio: abajo a la izquierda, donde la columna del retrato está sola. */
+  /*
+   * Escritorio: asoma por abajo a la izquierda de la gota, más pequeña que
+   * ella. A su tamaño de antes, con la gota ya ajustada al texto, quedaba
+   * tan grande como el retrato y flotando en mitad del hueco.
+   */
   @media (min-width: 900px) {
     .forma-ficha {
-      width: 72%;
+      width: 58%;
       right: auto;
       top: auto;
       left: -30%;
-      bottom: -12%;
+      bottom: -6%;
     }
   }
 
