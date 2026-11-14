@@ -103,6 +103,11 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
        * página sin que Lenis ni ScrollTrigger se enteren: las animaciones de
        * entrada no disparan y las tarjetas se quedan invisibles. Hay que pasar
        * los anclas por Lenis.
+       *
+       * En fase de captura, antes que el router de Astro: si él llega
+       * primero, salta al ancla de golpe y Lenis, que aún se cree donde
+       * estaba, calcula el destino desde la posición vieja y devuelve la
+       * página atrás. El "volver arriba" del pie subía 16 px y regresaba.
        */
       document.addEventListener("click", evento => {
         const objetivo = evento.target as HTMLElement | null;
@@ -117,7 +122,10 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
 
         const lenis = obtenerScroll();
         if (lenis) {
-          lenis.scrollTo(destino, { offset: -16 });
+          // Destino en píxeles desde la posición real: no depende de lo que
+          // Lenis crea que es el scroll actual.
+          const destinoY = destino.getBoundingClientRect().top + window.scrollY - 16;
+          lenis.scrollTo(Math.max(0, destinoY));
         } else {
           // Sin Lenis (movimiento reducido) el scroll nativo es el correcto.
           destino.scrollIntoView({ behavior: "auto", block: "start" });
@@ -127,7 +135,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         destino.setAttribute("tabindex", "-1");
         destino.focus({ preventScroll: true });
         history.replaceState(null, "", `#${id}`);
-      });
+      }, true);
 
       /**
        * El motor de siluetas se registra aquí, una sola vez y sobre todo el

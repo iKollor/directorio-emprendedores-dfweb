@@ -33,8 +33,8 @@
  *   fotograma de cada dos. Durante un enfoque o un relevo, todos.
  * - CON FRENO. Si el dispositivo no llega a tiempo, primero baja la
  *   resolución de los lienzos y después deja de pintar en reposo.
- * - El desenfoque sale de los mipmaps de la textura (una lectura), no de un
- *   núcleo de muchas muestras.
+ * - El desenfoque sale de los mipmaps de la textura más un anillo de ocho
+ *   lecturas, no de un núcleo de muchas muestras.
  *
  * SI ALGO FALLA (sin WebGL, contexto perdido, movimiento reducido) no se monta
  * nada y quedan las fotos normales: el sitio funciona igual sin esto.
@@ -130,20 +130,26 @@ vec3 lente(sampler2D t, vec2 uv, vec2 escala, float zoom, vec2 desvio, float dis
       leer(t, uv + azul, escala, zoom, 0.0).b
     );
   }
-  // Desenfoque: un nivel más pequeño de la textura y cuatro lecturas en aspa
-  // para que no se vean los bloques del nivel.
-  float nivel = desenfoque * 5.2;
-  float r = desenfoque * 0.022;
-  vec3 c = vec3(0.0);
-  vec2 o = vec2(r, r * 0.4);
-  c += vec3(leer(t, uv + rojo + o, escala, zoom, nivel).r, leer(t, uv + desvio + o, escala, zoom, nivel).g, leer(t, uv + azul + o, escala, zoom, nivel).b);
-  o = vec2(-r * 0.4, r);
-  c += vec3(leer(t, uv + rojo + o, escala, zoom, nivel).r, leer(t, uv + desvio + o, escala, zoom, nivel).g, leer(t, uv + azul + o, escala, zoom, nivel).b);
-  o = vec2(-r, -r * 0.4);
-  c += vec3(leer(t, uv + rojo + o, escala, zoom, nivel).r, leer(t, uv + desvio + o, escala, zoom, nivel).g, leer(t, uv + azul + o, escala, zoom, nivel).b);
-  o = vec2(r * 0.4, -r);
-  c += vec3(leer(t, uv + rojo + o, escala, zoom, nivel).r, leer(t, uv + desvio + o, escala, zoom, nivel).g, leer(t, uv + azul + o, escala, zoom, nivel).b);
-  return c * 0.25;
+  // Desenfoque: un nivel más pequeño de la textura, leído en un anillo de
+  // ocho puntos alrededor del centro. Antes eran el nivel 5,2 (la foto a
+  // 32 px de lado) y cuatro lecturas muy juntas: en los retratos grandes cada
+  // píxel de ese nivel ocupaba unos 25 de pantalla y se veían los bloques.
+  // Ahora el nivel llega a 4,4 (unos 48 px) y el anillo, a 1,25 píxeles de
+  // ese nivel, reparte el resto del desenfoque: igual de esmerilado, sin
+  // bloques.
+  // La dispersión de color solo se lee en el centro: desenfocada no se ve.
+  float nivel = desenfoque * 4.4;
+  float r = desenfoque * 0.026;
+  vec3 c = 2.0 * vec3(
+    leer(t, uv + rojo, escala, zoom, nivel).r,
+    leer(t, uv + desvio, escala, zoom, nivel).g,
+    leer(t, uv + azul, escala, zoom, nivel).b
+  );
+  for (int i = 0; i < 8; i++) {
+    float a = float(i) * 0.785398 + 0.392699;
+    c += leer(t, uv + desvio + vec2(cos(a), sin(a)) * r, escala, zoom, nivel);
+  }
+  return c * 0.1;
 }
 
 void main() {
