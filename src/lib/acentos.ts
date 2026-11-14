@@ -11,7 +11,13 @@
  * lado: abajo está el texto de la tarjeta. El trazo va en azul hondo.
  */
 
-export type Acento = { tipo: "blob" | "arco"; color: string; lado: "izq" | "der" };
+/**
+ * El lado hacia el que asoma no va aquí: lo decide la columna en la que cae
+ * la tarjeta (`data-columna` de su celda), que cambia al filtrar. Fijado de
+ * antemano, al filtrar una tarjeta pasaba de columna y su forma quedaba
+ * asomando hacia el centro de la página.
+ */
+export type Acento = { tipo: "blob" | "arco"; color: string };
 
 const COLORES = ["var(--df-pink)", "var(--df-yellow)", "var(--df-cyan)"];
 
@@ -19,11 +25,10 @@ export function acentoDe(indice: number): Acento | null {
   const turno = indice % 4;
   if (turno !== 1 && turno !== 2) return null;
 
-  const lado = indice % 2 === 0 ? "izq" : "der";
   const esTrazo = indice % 8 === 1 || indice % 8 === 6;
-  if (esTrazo) return { tipo: "arco", color: "var(--df-blue-deep)", lado };
+  if (esTrazo) return { tipo: "arco", color: "var(--df-blue-deep)" };
 
   // Los blobs rotan de color según cuántos van antes en la lista.
   const anteriores = Math.floor(indice / 8) * 2 + (indice % 8 > 2 ? 1 : 0);
-  return { tipo: "blob", color: COLORES[anteriores % COLORES.length]!, lado };
+  return { tipo: "blob", color: COLORES[anteriores % COLORES.length]! };
 }

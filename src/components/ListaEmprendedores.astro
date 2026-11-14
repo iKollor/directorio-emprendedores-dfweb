@@ -586,6 +586,15 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
 
       if (conteo) contar(conteo, visibles);
       vacio?.toggleAttribute("hidden", visibles > 0);
+
+      /*
+       * Las tarjetas ya están en su sitio final (Flip aún no las ha devuelto
+       * a la posición vieja): se recalculan ahí las zonas de enfoque de los
+       * retratos (lib/retratos.ts). Si no, las que entraban en pantalla
+       * llegaban desenfocadas, en tinta, y enfocaban de golpe al terminar el
+       * reacomodo: un salto de desenfoque en cada cambio de categoría.
+       */
+      ScrollTrigger.refresh();
       limpiarBoton?.toggleAttribute("hidden", activos.comunidad === "todas" && activos.categoria === "todas");
 
       const rematar = () => {
