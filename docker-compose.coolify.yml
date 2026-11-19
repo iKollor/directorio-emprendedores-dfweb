@@ -1,0 +1,55 @@
+# El directorio completo en Coolify (build pack "Docker Compose").
+#
+# Es el mismo que docker-compose.yml, sin los `ports`: en Coolify los
+# dominios se ponen en cada servicio y su proxy lleva el del sitio al puerto
+# 4321 y el del panel al 3000 (en el campo del dominio: https://…:4321).
+#
+# Las variables se rellenan en Coolify (Environment Variables):
+#   PAYLOAD_SECRET, CLAVE_VISTA_PREVIA   claves largas y distintas
+#                                        (openssl rand -hex 32)
+#   SITIO_URL, CMS_URL_PUBLICA           direcciones públicas, sin barra final
+services:
+  cms:
+    build:
+      context: ./cms
+      # La raíz del repositorio, de donde sale la semilla del primer arranque
+      # (Coolify no monta carpetas del repositorio, así que va en la imagen).
+      additional_contexts:
+        raiz: .
+    restart: unless-stopped
+    environment:
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:?falta PAYLOAD_SECRET}
+      CLAVE_VISTA_PREVIA: ${CLAVE_VISTA_PREVIA:?falta CLAVE_VISTA_PREVIA}
+      SITIO_URL: ${SITIO_URL:?falta SITIO_URL}
+      CMS_URL_PUBLICA: ${CMS_URL_PUBLICA:?falta CMS_URL_PUBLICA}
+      # Al publicar, el panel avisa al sitio para que se reconstruya.
+      AVISO_PUBLICAR_URL: http://sitio:4322/
+    volumes:
+      # La base de datos y todo lo subido: lo único que hay que respaldar.
+      - datos_cms:/app/datos
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/categorias?limit=1').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  sitio:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      cms:
+        condition: service_healthy
+    environment:
+      CMS_URL: http://cms:3000
+      CLAVE_VISTA_PREVIA: ${CLAVE_VISTA_PREVIA:?falta CLAVE_VISTA_PREVIA}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4321/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      # La primera construcción del sitio se hace al arrancar y tarda.
+      start_period: 900s
+
+volumes:
+  datos_cms:
