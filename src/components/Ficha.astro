@@ -12,9 +12,11 @@ import Base from "../layouts/Base.astro";
 import Blob from "./Blob.astro";
 import Forma from "./Forma.astro";
 import BotonWhatsapp from "./BotonWhatsapp.astro";
+import RecargaVistaPrevia from "./RecargaVistaPrevia.astro";
 import { Image, getImage } from "astro:assets";
 import { MOSTRAR_COMUNIDAD, categoria } from "../data/taxonomia";
 import { inicialesSinFoto, paraImage, type Emprendedor } from "../lib/directorio";
+import { getSitio } from "../lib/sitio";
 
 type Props = {
   emprendedor: Emprendedor;
@@ -25,6 +27,7 @@ type Props = {
 };
 
 const { emprendedor: e, siguiente, vistaPrevia = false } = Astro.props;
+const textos = (await getSitio(Astro.locals)).ficha;
 const cat = categoria(e.categoria);
 const catSiguiente = siguiente ? categoria(siguiente.categoria) : null;
 
@@ -61,7 +64,7 @@ const datosEstructurados = {
     <nav class="volver" data-anim="subir">
       {/* Vuelve al listado en la tarjeta de esta persona, no al inicio. */}
       <a href={`/#${e.slug}`}>
-        <span aria-hidden="true">←</span> Todos los emprendedores
+        <span aria-hidden="true">←</span> {textos.volver}
       </a>
     </nav>
 
@@ -108,7 +111,7 @@ const datosEstructurados = {
     {
       e.galeria.length > 0 && (
         <section class="galeria" aria-labelledby="titulo-galeria">
-          <h2 id="titulo-galeria" data-anim="letras">Su trabajo</h2>
+          <h2 id="titulo-galeria" data-anim="letras">{textos.tituloGaleria}</h2>
           <ul data-anim="revelar" data-anim-hijos>
             {e.galeria.map((foto, i) => (
               <li>
@@ -137,7 +140,7 @@ const datosEstructurados = {
         <nav class="siguiente" aria-label="Siguiente emprendedor" data-siguiente>
           <a class="enlace-siguiente" href={`/emprendedores/${siguiente.slug}/`} data-viaja-a={siguiente.slug} style={`--acento:${catSiguiente.color};`}>
             <span class="frase">
-              Conoce también a
+              {textos.siguiente}
               <strong data-viaja="nombre">{siguiente.nombre}</strong>
               <span class="oficio-siguiente">{siguiente.emprendimiento}</span>
             </span>
@@ -161,34 +164,7 @@ const datosEstructurados = {
 
   {!vistaPrevia && <script is:inline type="application/ld+json" set:html={JSON.stringify(datosEstructurados)} />}
 
-  {
-    /*
-     * El panel avisa a esta ventana cada vez que guarda (también cuando
-     * guarda solo mientras se escribe). Se vuelve a pedir la página, que es
-     * la manera de ver la ficha de verdad, y se conserva la altura a la que
-     * se estaba mirando.
-     */
-    vistaPrevia && (
-      <script is:inline>
-        (() => {
-          const CLAVE = "vista-previa:altura";
-          const altura = Number(sessionStorage.getItem(CLAVE));
-          sessionStorage.removeItem(CLAVE);
-          if (altura) addEventListener("load", () => scrollTo(0, altura), { once: true });
-
-          let espera;
-          addEventListener("message", (aviso) => {
-            if (aviso.data?.type !== "payload-document-event") return;
-            clearTimeout(espera);
-            espera = setTimeout(() => {
-              sessionStorage.setItem(CLAVE, String(scrollY));
-              location.reload();
-            }, 400);
-          });
-        })();
-      </script>
-    )
-  }
+  {vistaPrevia && <RecargaVistaPrevia />}
 </Base>
 
 

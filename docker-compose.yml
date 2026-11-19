@@ -24,6 +24,7 @@ services:
       # Solo para el primer arranque: los emprendedores que ya había.
       - ./src/data:/semilla/data:ro
       - ./src/assets/emprendedores:/semilla/assets/emprendedores:ro
+      - ./public/brand:/semilla/brand:ro
     ports:
       - "127.0.0.1:3000:3000"
 

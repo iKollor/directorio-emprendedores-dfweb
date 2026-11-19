@@ -1,0 +1,42 @@
+---
+/**
+ * El panel manda a la ventana de vista previa lo que hay en el formulario
+ * cada vez que cambia. Cuando cambia, se espera a que el panel lo haya
+ * guardado (guarda solo, al dejar de escribir) y se vuelve a pedir la
+ * página: es la manera de ver el sitio de verdad, no una imitación.
+ *
+ * Se recuerda lo último visto para no recargar con el mismo contenido (el
+ * panel repite el aviso al cargar) y la altura a la que se estaba mirando.
+ */
+---
+
+<script is:inline>
+  (() => {
+    const ALTURA = "vista-previa:altura";
+    const VISTO = "vista-previa:visto:" + location.pathname;
+
+    const altura = Number(sessionStorage.getItem(ALTURA));
+    sessionStorage.removeItem(ALTURA);
+    if (altura) addEventListener("load", () => scrollTo(0, altura), { once: true });
+
+    // El panel no manda nada hasta que la página le dice que está lista.
+    const panel = window.opener || (window.parent !== window ? window.parent : null);
+    panel?.postMessage({ type: "payload-live-preview", ready: true }, "*");
+
+    let espera;
+    addEventListener("message", (aviso) => {
+      if (aviso.data?.type !== "payload-live-preview") return;
+      const contenido = JSON.stringify(aviso.data.data ?? null);
+      const visto = sessionStorage.getItem(VISTO);
+      sessionStorage.setItem(VISTO, contenido);
+      if (visto === null || visto === contenido) return;
+
+      clearTimeout(espera);
+      // El panel guarda 0,8 s después de la última tecla; se le da margen.
+      espera = setTimeout(() => {
+        sessionStorage.setItem(ALTURA, String(scrollY));
+        location.reload();
+      }, 1600);
+    });
+  })();
+</script>

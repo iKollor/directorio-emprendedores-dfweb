@@ -14,7 +14,10 @@ Los datos salen del panel de `cms/` (Payload + SQLite) cuando existe
 `CMS_URL`, y de `src/data/emprendedores.json` cuando no. La única puerta es
 `src/lib/directorio.ts`. La ficha es `src/components/Ficha.astro`, compartida
 por la página pública y por la vista previa del panel
-(`src/pages/vista-previa/`). Ver "El panel de contenido" en el README.
+(`src/pages/vista-previa/`). Los textos y logos que no son de una ficha
+salen de `src/lib/sitio.ts` (de partida, `src/data/sitio.json`): ningún
+componente escribe un texto visible por su cuenta. Ver "El panel de
+contenido" en el README.
 
 ## Criterio de diseño
 

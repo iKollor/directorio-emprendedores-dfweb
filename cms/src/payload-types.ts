@@ -68,6 +68,7 @@ export interface Config {
   blocks: {};
   collections: {
     emprendedores: Emprendedore;
+    categorias: Categoria;
     medios: Medio;
     usuarios: Usuario;
     'payload-kv': PayloadKv;
@@ -78,6 +79,7 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     emprendedores: EmprendedoresSelect<false> | EmprendedoresSelect<true>;
+    categorias: CategoriasSelect<false> | CategoriasSelect<true>;
     medios: MediosSelect<false> | MediosSelect<true>;
     usuarios: UsuariosSelect<false> | UsuariosSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -89,8 +91,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    sitio: Sitio;
+  };
+  globalsSelect: {
+    sitio: SitioSelect<false> | SitioSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -141,9 +147,9 @@ export interface Emprendedore {
    */
   fichaPendiente?: boolean | null;
   /**
-   * Decide el color de su retrato y el filtro en el que aparece.
+   * Decide el color de su retrato y el filtro en el que aparece. Se pueden crear más en "Categorías".
    */
-  categoria?: ('construccion' | 'confeccion' | 'belleza' | 'comercio' | 'agropecuario') | null;
+  categoria?: (number | null) | Categoria;
   /**
    * Una línea corta. Ejemplo: "Construcción y remodelación".
    */
@@ -179,6 +185,23 @@ export interface Emprendedore {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * Los tipos de negocio. Cada categoría es un filtro del listado y da su color al retrato. Arrastra las filas para ordenar los filtros.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categorias".
+ */
+export interface Categoria {
+  id: number;
+  _order?: string | null;
+  nombre: string;
+  /**
+   * Uno de los colores de la marca.
+   */
+  color: 'amarillo' | 'verde' | 'rosa' | 'cian' | 'azul';
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Todo lo que se ha subido. Las fotos y vídeos se añaden desde la ficha de cada emprendedor.
@@ -258,6 +281,10 @@ export interface PayloadLockedDocument {
         value: number | Emprendedore;
       } | null)
     | ({
+        relationTo: 'categorias';
+        value: number | Categoria;
+      } | null)
+    | ({
         relationTo: 'medios';
         value: number | Medio;
       } | null)
@@ -328,6 +355,17 @@ export interface EmprendedoresSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categorias_select".
+ */
+export interface CategoriasSelect<T extends boolean = true> {
+  _order?: T;
+  nombre?: T;
+  color?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -409,6 +447,200 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Lo que el sitio dice fuera de las fichas. Si dejas un campo vacío, vuelve el texto original.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sitio".
+ */
+export interface Sitio {
+  id: number;
+  portada?: {
+    /**
+     * Lo que pongas entre asteriscos sale destacado: "Conoce a nuestros *emprendedores*".
+     */
+    titular?: string | null;
+    /**
+     * Lo que pongas entre asteriscos sale destacado: "Conoce a nuestros *emprendedores*".
+     */
+    intro?: string | null;
+    /**
+     * La parte entre asteriscos sale subrayada.
+     */
+    cierre?: string | null;
+    boton?: string | null;
+    /**
+     * La frase pequeña al pie de la portada.
+     */
+    lema?: string | null;
+    /**
+     * Las palabras grandes que cruzan la página al bajar. Escribe una y pulsa Intro.
+     */
+    palabras?: string[] | null;
+  };
+  organizaciones?: {
+    /**
+     * Salen en la cabecera y en el pie, en este orden. El logo de la primera lleva al inicio del sitio.
+     */
+    lista?:
+      | {
+          nombre: string;
+          /**
+           * PNG o WebP con fondo transparente, en su versión clara: va sobre el azul del sitio. Sin logo se muestra el nombre en texto.
+           */
+          logo?: (number | null) | Medio;
+          /**
+           * Aparece en "Conoce más", en el pie. Opcional.
+           */
+          url?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  listado?: {
+    /**
+     * Lo que pongas entre asteriscos sale destacado: "Conoce a nuestros *emprendedores*".
+     */
+    titular?: string | null;
+    /**
+     * Cada línea que escribas es una línea en el sitio.
+     */
+    bajada?: string | null;
+    conocelo?: string | null;
+    proximamente?: string | null;
+    notaProximamente?: string | null;
+    vacioTitulo?: string | null;
+    vacioTexto?: string | null;
+    vacioBoton?: string | null;
+  };
+  videos?: {
+    titular?: string | null;
+    bajada?: string | null;
+  };
+  ficha?: {
+    /**
+     * El mensaje que ya va escrito cuando alguien pulsa para contactar. {nombre} se cambia por el nombre de cada persona.
+     */
+    mensajeWhatsapp?: string | null;
+    /**
+     * {nombre} se cambia por el nombre de cada persona.
+     */
+    sinNumero?: string | null;
+    sinNumeroBoton?: string | null;
+    sinNumeroUrl?: string | null;
+    tituloGaleria?: string | null;
+    siguiente?: string | null;
+    volver?: string | null;
+  };
+  pie?: {
+    /**
+     * Lo que pongas entre asteriscos sale destacado: "Conoce a nuestros *emprendedores*".
+     */
+    lema?: string | null;
+    textoEscuela?: string | null;
+    tituloEnlaces?: string | null;
+    /**
+     * Va después de "©" y el año.
+     */
+    derechos?: string | null;
+  };
+  general?: {
+    /**
+     * El que se ve en la pestaña del navegador y al compartir.
+     */
+    tituloSitio?: string | null;
+    /**
+     * La que muestran Google y las redes al compartir el sitio.
+     */
+    descripcion?: string | null;
+    escuelaLinea1?: string | null;
+    escuelaLinea2?: string | null;
+    menuEmprendedores?: string | null;
+    menuEscuela?: string | null;
+  };
+  _status?: ('draft' | 'published') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sitio_select".
+ */
+export interface SitioSelect<T extends boolean = true> {
+  portada?:
+    | T
+    | {
+        titular?: T;
+        intro?: T;
+        cierre?: T;
+        boton?: T;
+        lema?: T;
+        palabras?: T;
+      };
+  organizaciones?:
+    | T
+    | {
+        lista?:
+          | T
+          | {
+              nombre?: T;
+              logo?: T;
+              url?: T;
+              id?: T;
+            };
+      };
+  listado?:
+    | T
+    | {
+        titular?: T;
+        bajada?: T;
+        conocelo?: T;
+        proximamente?: T;
+        notaProximamente?: T;
+        vacioTitulo?: T;
+        vacioTexto?: T;
+        vacioBoton?: T;
+      };
+  videos?:
+    | T
+    | {
+        titular?: T;
+        bajada?: T;
+      };
+  ficha?:
+    | T
+    | {
+        mensajeWhatsapp?: T;
+        sinNumero?: T;
+        sinNumeroBoton?: T;
+        sinNumeroUrl?: T;
+        tituloGaleria?: T;
+        siguiente?: T;
+        volver?: T;
+      };
+  pie?:
+    | T
+    | {
+        lema?: T;
+        textoEscuela?: T;
+        tituloEnlaces?: T;
+        derechos?: T;
+      };
+  general?:
+    | T
+    | {
+        tituloSitio?: T;
+        descripcion?: T;
+        escuelaLinea1?: T;
+        escuelaLinea2?: T;
+        menuEmprendedores?: T;
+        menuEscuela?: T;
+      };
+  _status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

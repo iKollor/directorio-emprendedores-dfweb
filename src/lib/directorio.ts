@@ -23,6 +23,7 @@ import {
   CATEGORIA_PENDIENTE,
   esClaveCategoria,
   esComunidad,
+  registrarCategorias,
   type ClaveCategoria,
   type Comunidad,
 } from "../data/taxonomia";
@@ -214,13 +215,17 @@ type MedioCms = {
   focalY?: number | null;
 };
 
+type CategoriaCms = { id: number | string; nombre: string; color: string };
+
+const claveCategoria = (c: CategoriaCms) => `cat-${c.id}`;
+
 type DocCms = {
   id: number | string;
   slug?: string | null;
   nombre: string;
   nombrePublico?: string | null;
   fichaPendiente?: boolean | null;
-  categoria?: string | null;
+  categoria?: CategoriaCms | number | null;
   comunidad?: string | null;
   oficio?: string | null;
   descripcion?: string | null;
@@ -254,8 +259,8 @@ function deCms(doc: DocCms): Emprendedor | null {
   const fichaPendiente = Boolean(doc.fichaPendiente);
   // Sin categoría válida no hay color ni filtro: se trata como pendiente
   // en vez de pintar una ficha a medias.
-  const categoriaValida = !fichaPendiente && esClaveCategoria(doc.categoria) && doc.categoria !== CATEGORIA_PENDIENTE;
-  const pendiente = !categoriaValida || !doc.oficio?.trim();
+  const cat = typeof doc.categoria === "object" && doc.categoria ? doc.categoria : null;
+  const pendiente = fichaPendiente || !cat || !doc.oficio?.trim();
 
   const propia = fotoDeCms(doc.foto);
   // El punto focal que se marca en el panel (0 a 100) es el rostro.
@@ -274,7 +279,7 @@ function deCms(doc: DocCms): Emprendedor | null {
     slug: doc.slug,
     nombre: nombrePublico({ nombre: doc.nombre, ...(doc.nombrePublico?.trim() ? { nombrePublico: doc.nombrePublico.trim() } : {}) }),
     comunidad: esComunidad(doc.comunidad) ? doc.comunidad : null,
-    categoria: pendiente ? CATEGORIA_PENDIENTE : (doc.categoria as ClaveCategoria),
+    categoria: pendiente ? CATEGORIA_PENDIENTE : claveCategoria(cat!),
     emprendimiento: pendiente ? null : doc.oficio!.trim(),
     parrafos: pendiente
       ? []
@@ -299,7 +304,13 @@ async function pedirAlCms<T>(ruta: string, cabeceras?: Record<string, string>): 
   return (await respuesta.json()) as T;
 }
 
+async function cargarCategorias() {
+  const { docs } = await pedirAlCms<{ docs: CategoriaCms[] }>("/api/categorias?limit=200&depth=0&sort=_order");
+  registrarCategorias(docs.map((c) => ({ clave: claveCategoria(c), etiqueta: c.nombre, color: c.color })));
+}
+
 async function cargarDelCms(): Promise<Emprendedor[]> {
+  await cargarCategorias();
   // Sin sesión, el panel solo entrega lo publicado. `_order` es el orden en
   // que el cliente ha dejado la lista.
   const { docs } = await pedirAlCms<{ docs: DocCms[] }>(
@@ -318,6 +329,11 @@ export async function getBorrador(id: string, clave: string): Promise<Emprendedo
     const doc = await pedirAlCms<DocCms>(`/api/emprendedores/${id}?depth=1&draft=true`, {
       "x-clave-vista-previa": clave,
     });
+    // La categoría puede ser nueva y no estar aún en lo publicado.
+    if (typeof doc.categoria === "object" && doc.categoria) {
+      const c = doc.categoria;
+      registrarCategorias([{ clave: claveCategoria(c), etiqueta: c.nombre, color: c.color }], false);
+    }
     // A medio escribir puede faltar la dirección: la vista previa no la necesita.
     return deCms({ ...doc, slug: doc.slug || `borrador-${doc.id}` });
   } catch {

@@ -24,11 +24,62 @@ type Crudo = {
   rostro?: { x: number; y: number }
 }
 
+/** Las categorías de partida: las claves del JSON, con su nombre y su color. */
+const CATEGORIAS: Record<string, { nombre: string; color: string }> = {
+  construccion: { nombre: 'Construcción y maquinaria', color: 'amarillo' },
+  confeccion: { nombre: 'Confección y textil', color: 'verde' },
+  belleza: { nombre: 'Belleza', color: 'rosa' },
+  comercio: { nombre: 'Comercio y servicios', color: 'cian' },
+  agropecuario: { nombre: 'Agropecuario', color: 'azul' },
+}
+
+type SitioJson = Record<string, unknown> & {
+  organizaciones?: { nombre: string; url?: string; logoArchivo?: string | null }[]
+}
+
+/** Los textos y logos de partida, desde `src/data/sitio.json`. */
+async function sembrarSitio(payload: Payload, raiz: string) {
+  const json = path.join(raiz, 'data', 'sitio.json')
+  if (!fs.existsSync(json)) return
+  const actual = await payload.findGlobal({ slug: 'sitio', draft: true })
+  if (actual?.portada?.titular) return
+
+  const { organizaciones = [], ...textos } = JSON.parse(fs.readFileSync(json, 'utf8')) as SitioJson
+  const lista = []
+  for (const org of organizaciones) {
+    let logo: number | undefined
+    // En local los logos están en `public/brand`; en el servidor, montados.
+    const archivo = org.logoArchivo
+      ? [path.join(raiz, 'brand', org.logoArchivo), path.join(raiz, '..', 'public', 'brand', org.logoArchivo)].find(
+          (ruta) => fs.existsSync(ruta),
+        )
+      : undefined
+    if (archivo) {
+      logo = (await payload.create({ collection: 'medios', data: {}, filePath: archivo })).id as number
+    }
+    lista.push({ nombre: org.nombre, url: org.url, logo })
+  }
+
+  await payload.updateGlobal({
+    slug: 'sitio',
+    data: { ...textos, organizaciones: { lista }, _status: 'published' } as never,
+  })
+  payload.logger.info('Primer arranque: textos y logos cargados.')
+}
+
 export async function sembrar(payload: Payload) {
+  const raiz = path.resolve(process.env.SEMILLA_DIR || '../src')
+  await sembrarSitio(payload, raiz)
+
   const { totalDocs } = await payload.count({ collection: 'emprendedores' })
   if (totalDocs > 0) return
 
-  const raiz = path.resolve(process.env.SEMILLA_DIR || '../src')
+  const categorias: Record<string, number> = {}
+  if ((await payload.count({ collection: 'categorias' })).totalDocs === 0) {
+    for (const [clave, datos] of Object.entries(CATEGORIAS)) {
+      categorias[clave] = (await payload.create({ collection: 'categorias', data: datos as never })).id as number
+    }
+  }
   const json = path.join(raiz, 'data', 'emprendedores.json')
   if (!fs.existsSync(json)) return
 
@@ -67,7 +118,7 @@ export async function sembrar(payload: Payload) {
         slug: crudo.slug,
         fichaPendiente: pendiente,
         comunidad: crudo.comunidad as never,
-        categoria: (pendiente ? undefined : crudo.categoria) as never,
+        categoria: pendiente ? undefined : categorias[crudo.categoria ?? ''],
         oficio: pendiente ? undefined : (crudo.oficio ?? crudo.emprendimiento ?? undefined),
         descripcion: pendiente ? undefined : (crudo.resumen ?? (crudo.parrafos ?? []).join('\n\n')),
         telefono: crudo.telefono ?? undefined,

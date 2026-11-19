@@ -1,0 +1,183 @@
+import type { Field, GlobalConfig } from 'payload'
+
+import { puedeVerBorradores, TAMANOS_VISTA_PREVIA, urlVistaPrevia } from '../acceso'
+import { avisarPublicacion } from '../avisar'
+
+/**
+ * TODO LO QUE EL SITIO DICE Y NO ES UNA FICHA: titulares, textos, botones,
+ * el mensaje de WhatsApp y los logos de las organizaciones.
+ *
+ * Los textos de partida están en `src/data/sitio.json` del sitio, con la
+ * misma forma que estos campos: el panel los carga en su primer arranque, y
+ * el sitio vuelve a ellos si aquí se deja un campo vacío.
+ */
+const NEGRITA = 'Lo que pongas entre asteriscos sale destacado: "Conoce a nuestros *emprendedores*".'
+
+const texto = (name: string, label: string, description?: string): Field => ({
+  name,
+  type: 'text',
+  label,
+  admin: description ? { description } : undefined,
+})
+
+const parrafo = (name: string, label: string, description?: string): Field => ({
+  name,
+  type: 'textarea',
+  label,
+  admin: { rows: 3, ...(description ? { description } : {}) },
+})
+
+export const Sitio: GlobalConfig = {
+  slug: 'sitio',
+  label: 'Textos y logos',
+  admin: {
+    description:
+      'Lo que el sitio dice fuera de las fichas. Si dejas un campo vacío, vuelve el texto original.',
+    livePreview: {
+      url: () => urlVistaPrevia('portada'),
+      breakpoints: TAMANOS_VISTA_PREVIA,
+    },
+  },
+  versions: { drafts: { autosave: { interval: 800 } }, max: 20 },
+  access: {
+    // Lo publicado lo lee cualquiera; el borrador, solo el panel y la vista previa.
+    read: ({ req }) => puedeVerBorradores(req) || req.query?.draft !== 'true',
+  },
+  hooks: {
+    afterChange: [
+      ({ doc }) => {
+        if (doc?._status === 'published') avisarPublicacion()
+      },
+    ],
+  },
+  fields: [
+    {
+      type: 'tabs',
+      tabs: [
+        {
+          name: 'portada',
+          label: 'Portada',
+          fields: [
+            texto('titular', 'Titular', NEGRITA),
+            parrafo('intro', 'Presentación', NEGRITA),
+            texto('cierre', 'Frase de cierre', 'La parte entre asteriscos sale subrayada.'),
+            texto('boton', 'Botón'),
+            texto('lema', 'Lema', 'La frase pequeña al pie de la portada.'),
+            {
+              name: 'palabras',
+              type: 'text',
+              hasMany: true,
+              label: 'Palabras de la cinta',
+              admin: { description: 'Las palabras grandes que cruzan la página al bajar. Escribe una y pulsa Intro.' },
+            },
+          ],
+        },
+        {
+          name: 'organizaciones',
+          label: 'Organizaciones y logos',
+          fields: [
+            {
+              name: 'lista',
+              type: 'array',
+              label: 'Organizaciones',
+              labels: { singular: 'Organización', plural: 'Organizaciones' },
+              admin: {
+                description:
+                  'Salen en la cabecera y en el pie, en este orden. El logo de la primera lleva al inicio del sitio.',
+              },
+              fields: [
+                { name: 'nombre', type: 'text', label: 'Nombre', required: true },
+                {
+                  name: 'logo',
+                  type: 'upload',
+                  relationTo: 'medios',
+                  label: 'Logo',
+                  filterOptions: { mimeType: { contains: 'image' } },
+                  admin: {
+                    description:
+                      'PNG o WebP con fondo transparente, en su versión clara: va sobre el azul del sitio. Sin logo se muestra el nombre en texto.',
+                  },
+                },
+                {
+                  name: 'url',
+                  type: 'text',
+                  label: 'Sitio web',
+                  admin: { placeholder: 'https://', description: 'Aparece en "Conoce más", en el pie. Opcional.' },
+                  validate: (valor: unknown) =>
+                    !valor || /^https?:\/\/\S+$/.test(String(valor)) ? true : 'Escribe la dirección completa, con https://',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'listado',
+          label: 'Listado',
+          fields: [
+            texto('titular', 'Titular', NEGRITA),
+            parrafo('bajada', 'Frase bajo el titular', 'Cada línea que escribas es una línea en el sitio.'),
+            texto('conocelo', 'Llamada de cada tarjeta'),
+            texto('proximamente', 'Etiqueta de quien aún no tiene ficha'),
+            texto('notaProximamente', 'Nota de quien aún no tiene ficha'),
+            texto('vacioTitulo', 'Sin resultados: titular'),
+            texto('vacioTexto', 'Sin resultados: texto'),
+            texto('vacioBoton', 'Sin resultados: botón'),
+          ],
+        },
+        {
+          name: 'videos',
+          label: 'Vídeos',
+          description: 'La franja de vídeos de la portada. Solo aparece si algún emprendedor tiene vídeo.',
+          fields: [texto('titular', 'Titular'), texto('bajada', 'Frase bajo el titular')],
+        },
+        {
+          name: 'ficha',
+          label: 'Ficha',
+          description: 'Los textos comunes a todas las fichas.',
+          fields: [
+            parrafo(
+              'mensajeWhatsapp',
+              'Mensaje de WhatsApp',
+              'El mensaje que ya va escrito cuando alguien pulsa para contactar. {nombre} se cambia por el nombre de cada persona.',
+            ),
+            texto('sinNumero', 'Si no hay teléfono: aviso', '{nombre} se cambia por el nombre de cada persona.'),
+            texto('sinNumeroBoton', 'Si no hay teléfono: botón'),
+            texto('sinNumeroUrl', 'Si no hay teléfono: a dónde lleva el botón'),
+            texto('tituloGaleria', 'Titular de las fotos de su trabajo'),
+            texto('siguiente', 'Presentación de la siguiente persona'),
+            texto('volver', 'Enlace para volver al listado'),
+          ],
+        },
+        {
+          name: 'pie',
+          label: 'Pie de página',
+          fields: [
+            texto('lema', 'Lema', NEGRITA),
+            parrafo('textoEscuela', 'Texto sobre la escuela'),
+            texto('tituloEnlaces', 'Título de los enlaces'),
+            texto('derechos', 'Línea final', 'Va después de "©" y el año.'),
+          ],
+        },
+        {
+          name: 'general',
+          label: 'General',
+          fields: [
+            texto('tituloSitio', 'Título del sitio', 'El que se ve en la pestaña del navegador y al compartir.'),
+            parrafo('descripcion', 'Descripción', 'La que muestran Google y las redes al compartir el sitio.'),
+            {
+              type: 'row',
+              fields: [
+                texto('escuelaLinea1', 'Nombre de la escuela, línea 1'),
+                texto('escuelaLinea2', 'Nombre de la escuela, línea 2'),
+              ],
+            },
+            {
+              type: 'row',
+              fields: [texto('menuEmprendedores', 'Menú: listado'), texto('menuEscuela', 'Menú: la escuela')],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+}

@@ -1,19 +1,7 @@
-import type { CollectionConfig, PayloadRequest } from 'payload'
+import type { CollectionConfig } from 'payload'
 
+import { puedeVerBorradores, TAMANOS_VISTA_PREVIA, urlVistaPrevia } from '../acceso'
 import { avisarPublicacion } from '../avisar'
-
-/**
- * Las mismas claves que `CATEGORIAS` en `src/data/taxonomia.ts` del sitio,
- * que es donde cada una tiene su color. Si se añade una categoría, va en los
- * dos sitios. "Próximamente" no es una categoría: es la casilla de abajo.
- */
-const CATEGORIAS = [
-  { label: 'Construcción y maquinaria', value: 'construccion' },
-  { label: 'Confección y textil', value: 'confeccion' },
-  { label: 'Belleza', value: 'belleza' },
-  { label: 'Comercio y servicios', value: 'comercio' },
-  { label: 'Agropecuario', value: 'agropecuario' },
-]
 
 const COMUNIDADES = ['Sabanilla', 'Los Lojas'].map((c) => ({ label: c, value: c }))
 
@@ -25,13 +13,6 @@ export const aSlug = (texto: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-
-/** El sitio pide borradores con esta clave; el panel, con la sesión. */
-const puedeVerBorradores = (req: PayloadRequest) => {
-  if (req.user) return true
-  const clave = process.env.CLAVE_VISTA_PREVIA
-  return Boolean(clave) && req.headers.get('x-clave-vista-previa') === clave
-}
 
 const soloFotos = { mimeType: { contains: 'image' } }
 const soloVideos = { mimeType: { contains: 'video' } }
@@ -50,14 +31,8 @@ export const Emprendedores: CollectionConfig = {
     description:
       'Cada persona del directorio. Arrastra las filas para cambiar el orden en que aparecen en el sitio.',
     livePreview: {
-      url: ({ data }) =>
-        `${process.env.SITIO_URL || 'http://localhost:4321'}/vista-previa/${data.id}/?clave=${encodeURIComponent(
-          process.env.CLAVE_VISTA_PREVIA || '',
-        )}`,
-      breakpoints: [
-        { name: 'movil', label: 'Móvil', width: 390, height: 844 },
-        { name: 'ordenador', label: 'Ordenador', width: 1440, height: 900 },
-      ],
+      url: ({ data }) => urlVistaPrevia(String(data.id)),
+      breakpoints: TAMANOS_VISTA_PREVIA,
     },
   },
   versions: {
@@ -109,10 +84,13 @@ export const Emprendedores: CollectionConfig = {
     },
     {
       name: 'categoria',
-      type: 'select',
+      type: 'relationship',
+      relationTo: 'categorias',
       label: 'Categoría',
-      options: CATEGORIAS,
-      admin: { condition: conFicha, description: 'Decide el color de su retrato y el filtro en el que aparece.' },
+      admin: {
+        condition: conFicha,
+        description: 'Decide el color de su retrato y el filtro en el que aparece. Se pueden crear más en "Categorías".',
+      },
       validate: (valor: unknown, { siblingData }: { siblingData: Record<string, unknown> }) =>
         valor || siblingData?.fichaPendiente ? true : 'Elige una categoría.',
     },

@@ -36,6 +36,29 @@ tamaño.
 En la lista de **Emprendedores**, arrastra las filas. Ese es el orden del
 sitio; quienes están en "Próximamente" van siempre al final.
 
+## Categorías
+
+En **Categorías** se añaden, se renombran y se ordenan los tipos de negocio.
+Cada una es un filtro del listado y da su color al retrato. El color se elige
+entre los de la marca.
+
+## Textos y logos
+
+En **Textos y logos** está todo lo que el sitio dice fuera de las fichas,
+repartido en pestañas: portada, listado, vídeos, ficha, pie y general.
+
+- Lo que pongas entre asteriscos sale destacado: `Conoce a nuestros
+  *emprendedores*`.
+- En el mensaje de WhatsApp, `{nombre}` se cambia por el nombre de cada
+  persona.
+- Si dejas un campo vacío, vuelve el texto original.
+- En **Organizaciones y logos** se cambia el logo de cada organización, su
+  nombre y su web. El logo debe ser PNG o WebP con fondo transparente, en su
+  versión clara, porque va sobre el azul del sitio.
+
+Igual que en las fichas: el ojo abre la vista previa y nada cambia en el
+sitio hasta pulsar **Publicar**.
+
 ## Antes de subir una foto o un vídeo
 
 - Que no aparezcan menores de edad.

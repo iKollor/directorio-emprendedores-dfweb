@@ -6,58 +6,66 @@
  * aro del blob, en la píldora de la ficha y en el filtro activo.
  */
 
-export const CATEGORIAS = {
-  construccion: {
-    /* Variante para el blob viajero, que pasa por detrás de texto. */
-    colorHondo: "var(--df-yellow-hondo)",
-    etiqueta: "Construcción y maquinaria",
-    color: "var(--df-yellow)",
-    // Sobre amarillo y cyan el texto blanco no pasa contraste: va tinta.
-    colorTexto: "var(--df-ink)",
-  },
-  confeccion: {
-    /* Variante para el blob viajero, que pasa por detrás de texto. */
-    colorHondo: "var(--df-green-hondo)",
-    etiqueta: "Confección y textil",
-    color: "var(--df-green)",
-    colorTexto: "var(--df-ink)",
-  },
-  belleza: {
-    /* Variante para el blob viajero, que pasa por detrás de texto. */
-    colorHondo: "var(--df-pink-hondo)",
-    etiqueta: "Belleza",
-    color: "var(--df-pink)",
-    colorTexto: "var(--df-ink)",
-  },
-  comercio: {
-    /* Variante para el blob viajero, que pasa por detrás de texto. */
-    colorHondo: "var(--df-cyan-hondo)",
-    etiqueta: "Comercio y servicios",
-    color: "var(--df-cyan)",
-    colorTexto: "var(--df-ink)",
-  },
-  agropecuario: {
-    /* Variante para el blob viajero, que pasa por detrás de texto. */
-    colorHondo: "var(--df-blue-deep)",
-    etiqueta: "Agropecuario",
-    color: "var(--df-blue-deep)",
-    colorTexto: "var(--df-bone)",
-  },
-  /**
-   * Para quienes ya están en el programa pero aún no entregaron los datos de
-   * su negocio. No es una categoría real: es un estado. Se muestra apagada y
-   * queda al final de los filtros.
-   */
-  pendiente: {
-    /* Variante para el blob viajero, que pasa por detrás de texto. */
-    colorHondo: "var(--df-blue-deep)",
-    etiqueta: "Próximamente",
-    color: "var(--df-bone)",
-    colorTexto: "var(--df-ink)",
-  },
+/**
+ * Los colores de la marca con los que se puede pintar una categoría. Cada
+ * uno lleva su variante honda (para el blob viajero, que pasa por detrás de
+ * texto) y el color de texto que pasa contraste encima: sobre amarillo, verde,
+ * rosa y cian el blanco no llega, va tinta.
+ *
+ * En el panel se elige uno de estos por su nombre (`cms/.../Categorias.ts`).
+ */
+export const COLORES = {
+  amarillo: { color: "var(--df-yellow)", colorHondo: "var(--df-yellow-hondo)", colorTexto: "var(--df-ink)" },
+  verde: { color: "var(--df-green)", colorHondo: "var(--df-green-hondo)", colorTexto: "var(--df-ink)" },
+  rosa: { color: "var(--df-pink)", colorHondo: "var(--df-pink-hondo)", colorTexto: "var(--df-ink)" },
+  cian: { color: "var(--df-cyan)", colorHondo: "var(--df-cyan-hondo)", colorTexto: "var(--df-ink)" },
+  azul: { color: "var(--df-blue-deep)", colorHondo: "var(--df-blue-deep)", colorTexto: "var(--df-bone)" },
 } as const;
 
-export type ClaveCategoria = keyof typeof CATEGORIAS;
+export type ClaveColor = keyof typeof COLORES;
+export type Categoria = { etiqueta: string; color: string; colorHondo: string; colorTexto: string };
+export type ClaveCategoria = string;
+
+export const CATEGORIA_PENDIENTE: ClaveCategoria = "pendiente";
+
+/**
+ * Para quienes ya están en el programa pero aún no entregaron los datos de
+ * su negocio. No es una categoría real: es un estado. Se muestra apagada y
+ * no lleva filtro.
+ */
+const PENDIENTE: Categoria = {
+  etiqueta: "Próximamente",
+  color: "var(--df-bone)",
+  colorHondo: "var(--df-blue-deep)",
+  colorTexto: "var(--df-ink)",
+};
+
+/**
+ * Las categorías de partida, las del JSON. Con el panel en marcha las
+ * sustituyen las suyas: `registrarCategorias()`, desde lib/directorio.ts.
+ */
+let categorias = new Map<ClaveCategoria, Categoria>([
+  ["construccion", { etiqueta: "Construcción y maquinaria", ...COLORES.amarillo }],
+  ["confeccion", { etiqueta: "Confección y textil", ...COLORES.verde }],
+  ["belleza", { etiqueta: "Belleza", ...COLORES.rosa }],
+  ["comercio", { etiqueta: "Comercio y servicios", ...COLORES.cian }],
+  ["agropecuario", { etiqueta: "Agropecuario", ...COLORES.azul }],
+]);
+
+let etiquetaPendiente = PENDIENTE.etiqueta;
+
+/** El orden en que llegan es el orden de los filtros. */
+export function registrarCategorias(lista: { clave: ClaveCategoria; etiqueta: string; color: string }[], sustituir = true) {
+  if (sustituir) categorias = new Map();
+  for (const c of lista) {
+    categorias.set(c.clave, { etiqueta: c.etiqueta, ...(COLORES[c.color as ClaveColor] ?? COLORES.amarillo) });
+  }
+}
+
+/** El texto de la etiqueta "Próximamente" se edita con los demás (lib/sitio.ts). */
+export const nombrarPendiente = (etiqueta: string) => {
+  etiquetaPendiente = etiqueta;
+};
 
 export const COMUNIDADES = ["Sabanilla", "Los Lojas"] as const;
 
@@ -72,19 +80,13 @@ export const MOSTRAR_COMUNIDAD = false;
 export type Comunidad = (typeof COMUNIDADES)[number];
 
 export const esClaveCategoria = (v: unknown): v is ClaveCategoria =>
-  typeof v === "string" && v in CATEGORIAS;
+  typeof v === "string" && (v === CATEGORIA_PENDIENTE || categorias.has(v));
 
 export const esComunidad = (v: unknown): v is Comunidad =>
   typeof v === "string" && (COMUNIDADES as readonly string[]).includes(v);
 
-export const categoria = (clave: ClaveCategoria) => CATEGORIAS[clave];
+export const categoria = (clave: ClaveCategoria): Categoria =>
+  categorias.get(clave) ?? { ...PENDIENTE, etiqueta: etiquetaPendiente };
 
-export const CATEGORIA_PENDIENTE: ClaveCategoria = "pendiente";
-
-/** Orden estable de los filtros, independiente del orden de los datos. */
-export const CLAVES_CATEGORIA = Object.keys(CATEGORIAS) as ClaveCategoria[];
-
-/** Categorías reales de negocio, sin el estado "pendiente". */
-export const CLAVES_CATEGORIA_REALES = CLAVES_CATEGORIA.filter(
-  (c) => c !== CATEGORIA_PENDIENTE,
-);
+/** Categorías reales de negocio, sin el estado "pendiente", en su orden. */
+export const clavesCategoriaReales = (): ClaveCategoria[] => [...categorias.keys()];

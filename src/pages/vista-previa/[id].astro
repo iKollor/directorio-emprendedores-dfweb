@@ -9,7 +9,9 @@
  */
 import Base from "../../layouts/Base.astro";
 import Ficha from "../../components/Ficha.astro";
+import RecargaVistaPrevia from "../../components/RecargaVistaPrevia.astro";
 import { getBorrador, getEmprendedores } from "../../lib/directorio";
+import { getSitioBorrador } from "../../lib/sitio";
 
 export const prerender = false;
 
@@ -17,6 +19,10 @@ const CLAVE = String(process.env.CLAVE_VISTA_PREVIA ?? import.meta.env.CLAVE_VIS
 const clave = Astro.url.searchParams.get("clave") ?? "";
 
 if (!CLAVE || clave !== CLAVE) return new Response("No encontrado", { status: 404 });
+
+// Los textos comunes (el mensaje de WhatsApp...) también en su última versión.
+const textos = await getSitioBorrador(CLAVE);
+if (textos) Astro.locals.sitio = textos;
 
 const borrador = await getBorrador(Astro.params.id ?? "", CLAVE);
 
@@ -49,11 +55,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
           </>
         )}
       </main>
-      <script is:inline>
-        addEventListener("message", (aviso) => {
-          if (aviso.data?.type === "payload-document-event") location.reload();
-        });
-      </script>
+<RecargaVistaPrevia />
     </Base>
   )
 }

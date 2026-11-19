@@ -3,6 +3,7 @@ import { ClientRouter } from "astro:transitions";
 import "../styles/tokens.css";
 import Marca from "../components/Marca.astro";
 import Pie from "../components/Pie.astro";
+import { getSitio } from "../lib/sitio";
 
 type Props = {
   titulo: string;
@@ -14,7 +15,8 @@ type Props = {
 
 const { titulo, descripcion, imagen, sinIndexar = false } = Astro.props;
 
-const SITIO = "Emprendedores · Diseña Futuro";
+const { general } = await getSitio(Astro.locals);
+const SITIO = general.tituloSitio;
 const tituloCompleto = titulo === SITIO ? titulo : `${titulo} · ${SITIO}`;
 const canonica = new URL(Astro.url.pathname, Astro.site ?? "https://emprendedores.disenafuturo.com");
 const og = imagen ? new URL(imagen, canonica).href : undefined;
@@ -66,8 +68,8 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
     <header class="cabecera" id="inicio">
       <Marca />
       <nav aria-label="Navegación principal">
-        <a href={Astro.url.pathname === "/" ? "#contenido" : "/#contenido"}>Emprendedores <span aria-hidden="true">↗</span></a>
-        <a href="#sobre-la-escuela">La escuela</a>
+        <a href={Astro.url.pathname === "/" ? "#contenido" : "/#contenido"}>{general.menuEmprendedores} <span aria-hidden="true">↗</span></a>
+        <a href="#sobre-la-escuela">{general.menuEscuela}</a>
       </nav>
     </header>
     <slot />

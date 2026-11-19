@@ -1,0 +1,21 @@
+---
+/**
+ * VISTA PREVIA DE LOS TEXTOS Y LOGOS. Pinta la portada con lo guardado en
+ * "Textos y logos" del panel, esté publicado o no. Los textos en borrador
+ * viajan en `Astro.locals`, de donde los toma cada componente (lib/sitio.ts).
+ */
+import Portada from "../../components/Portada.astro";
+import { getSitioBorrador } from "../../lib/sitio";
+
+export const prerender = false;
+
+const CLAVE = String(process.env.CLAVE_VISTA_PREVIA ?? import.meta.env.CLAVE_VISTA_PREVIA ?? "");
+if (!CLAVE || Astro.url.searchParams.get("clave") !== CLAVE) return new Response("No encontrado", { status: 404 });
+
+const borrador = await getSitioBorrador(CLAVE);
+if (borrador) Astro.locals.sitio = borrador;
+
+Astro.response.headers.set("Cache-Control", "no-store");
+---
+
+<Portada vistaPrevia />

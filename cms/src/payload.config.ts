@@ -6,9 +6,11 @@ import { buildConfig } from 'payload'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
+import { Categorias } from './collections/Categorias'
 import { Emprendedores } from './collections/Emprendedores'
 import { Medios } from './collections/Medios'
 import { Usuarios } from './collections/Usuarios'
+import { Sitio } from './globals/Sitio'
 import { migrations } from './migrations'
 import { DATOS_DIR } from './rutas'
 import { sembrar } from './semilla'
@@ -29,7 +31,8 @@ export default buildConfig({
   },
   // El panel, solo en español.
   i18n: { supportedLanguages: { es }, fallbackLanguage: 'es' },
-  collections: [Emprendedores, Medios, Usuarios],
+  collections: [Emprendedores, Categorias, Medios, Usuarios],
+  globals: [Sitio],
   secret: process.env.PAYLOAD_SECRET || '',
   serverURL: process.env.CMS_URL_PUBLICA || undefined,
   cors: [SITIO, PANEL],

@@ -4,15 +4,16 @@ import path from 'path'
 import { DATOS_DIR } from '../rutas'
 
 /**
- * Fotos y vídeos. Se suben desde la ficha de cada emprendedor; esta lista
- * solo hace falta para borrar lo que ya no se usa.
+ * Fotos, vídeos y logos. Se suben desde la ficha de cada emprendedor o
+ * desde los textos del sitio; esta lista solo hace falta para borrar lo que
+ * ya no se usa.
  *
  * El "punto focal" de cada foto es el rostro: el sitio centra el retrato ahí
  * (campo `rostro` del adaptador, `src/lib/directorio.ts`).
  */
 export const Medios: CollectionConfig = {
   slug: 'medios',
-  labels: { singular: 'Archivo', plural: 'Fotos y vídeos' },
+  labels: { singular: 'Archivo', plural: 'Fotos, vídeos y logos' },
   admin: {
     group: 'Ajustes',
     description: 'Todo lo que se ha subido. Las fotos y vídeos se añaden desde la ficha de cada emprendedor.',

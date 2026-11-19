@@ -40,8 +40,11 @@ escribe. No hay cuentas de GitHub ni servidor de base de datos.
 
 | Qué | Cómo |
 |---|---|
+| Fichas | Nombre, oficio, descripción, teléfono, retrato, vídeo y fotos de cada persona |
+| Categorías | Se crean y se renombran; el color se elige entre los de la marca |
+| Textos y logos | Titulares, botones, mensaje de WhatsApp, pie, y las organizaciones con su logo y su web |
 | Borradores | "Guardar borrador" no toca el sitio; "Publicar" sí |
-| Vista previa | La misma ficha del sitio (`Ficha.astro`), en un marco junto al formulario |
+| Vista previa | La ficha o la portada reales (`Ficha.astro`, `Portada.astro`), en un marco junto al formulario |
 | Rostro | El punto focal de la foto en el panel es el campo `rostro` |
 | Orden | Se arrastran las filas de la lista |
 | Publicar | El panel avisa y el sitio se reconstruye solo (unos 20 segundos) |
@@ -87,8 +90,16 @@ proxy con HTTPS (Caddy, Nginx o Coolify) con un dominio para cada uno.
   adaptador de email a `cms/src/payload.config.ts`.
 - **Cambiar campos.** Tras tocar una colección: `npm run payload
   migrate:create` dentro de `cms/` y subir la migración que genera.
-- Las categorías están en dos sitios: `src/data/taxonomia.ts` (con su color)
-  y `cms/src/collections/Emprendedores.ts` (la lista del formulario).
+- **Textos.** Los de partida están en `src/data/sitio.json`; ningún
+  componente escribe los suyos, todos pasan por `src/lib/sitio.ts`. Un campo
+  vacío en el panel vuelve al de partida. Para que un texto nuevo sea
+  editable: se añade al JSON y al global `cms/src/globals/Sitio.ts`.
+- **Colores.** El panel deja elegir entre los de la marca (`COLORES` en
+  `src/data/taxonomia.ts`), no escribir uno libre: cada color lleva su
+  variante oscura y su color de texto para que el contraste se cumpla.
+- **Lo que no se edita desde el panel:** el diseño (formas, animaciones,
+  tipografía) y los rótulos de la interfaz que solo oyen los lectores de
+  pantalla o que son parte de un control ("Todas", "Limpiar filtros").
 
 Los scripts del Excel y de Drive (`scripts/importar_excel.py`, `npm run
 fotos`) alimentan solo el JSON: con el panel en marcha ya no son la fuente.
