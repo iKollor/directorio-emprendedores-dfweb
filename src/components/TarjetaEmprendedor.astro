@@ -11,6 +11,7 @@ import Forma from "./Forma.astro";
 import type { Acento } from "../lib/acentos";
 import { MOSTRAR_COMUNIDAD, categoria } from "../data/taxonomia";
 import { inicialesSinFoto, type Emprendedor } from "../lib/directorio";
+import { getSitio } from "../lib/sitio";
 
 type Props = {
   emprendedor: Emprendedor;
@@ -23,6 +24,7 @@ type Props = {
 };
 
 const { emprendedor: e, indice, acento = null } = Astro.props;
+const textos = (await getSitio(Astro.locals)).listado;
 const cat = categoria(e.categoria);
 
 const Envoltura = e.fichaPendiente ? "div" : "a";
@@ -84,10 +86,10 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
 
     {
       e.fichaPendiente ? (
-        <p class="nota">Su ficha estará disponible pronto.</p>
+        <p class="nota">{textos.notaProximamente}</p>
       ) : (
         <p class="ver" aria-hidden="true">
-          ¡Conócelo! <span class="flecha">→</span>
+          {textos.conocelo} <span class="flecha">→</span>
         </p>
       )
     }

@@ -35,10 +35,12 @@
 import { Image } from "astro:assets";
 import { categoria } from "../data/taxonomia";
 import { construirPath, generarBlob } from "../lib/blob";
-import type { Emprendedor } from "../lib/directorio";
+import { paraImage, type Emprendedor } from "../lib/directorio";
+import { getSitio } from "../lib/sitio";
 
 type Props = { emprendedores: Emprendedor[] };
 const { emprendedores } = Astro.props;
+const { conocelo } = (await getSitio(Astro.locals)).listado;
 
 const MAXIMO = 8;
 
@@ -74,7 +76,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
             {escenas.map(({ e }, i) => (
               <div class="escena" data-escena data-activa={i === 0 ? "" : undefined}>
                 <Image
-                  src={e.foto}
+                  {...paraImage(e.foto)}
                   alt=""
                   widths={[500, 800, 1200]}
                   sizes="(max-width: 899px) 88vw, 44vw"
@@ -126,7 +128,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
             <span class="cat">{cat.etiqueta}</span>
             <strong data-viaja="nombre">{e.nombre}</strong>
             <span class="oficio">{e.emprendimiento}</span>
-            <span class="ir" aria-hidden="true">¡Conócelo! →</span>
+            <span class="ir" aria-hidden="true">{conocelo} →</span>
           </a>
         ))}
       </div>

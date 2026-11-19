@@ -1,36 +1,61 @@
 ---
 /**
- * Marca compartida: Diseña Futuro + Intervalores, en todas las páginas.
+ * Marca compartida: los logos de las organizaciones, en todas las páginas.
  *
- * El logo de Intervalores se lee de public/brand/. Mientras no esté el archivo
- * oficial se muestra su nombre en texto y el build avisa: no se redibuja una
- * marca ajena a ojo.
+ * Salen de "Textos y logos" en el panel (lib/sitio.ts). El primero lleva al
+ * inicio. Una organización sin logo se muestra con su nombre en texto: no se
+ * redibuja una marca ajena a ojo.
  */
-import { LOGO_INTERVALORES as logoIntervalores } from "../lib/marca";
+import { Image } from "astro:assets";
+import { getSitio } from "../lib/sitio";
 
 type Props = { grande?: boolean };
 const { grande = false } = Astro.props;
+
+const { organizaciones } = await getSitio(Astro.locals);
 ---
 
 <div class:list={["marcas", { grande }]}>
-  <a class="marca" href="/" aria-label="Diseña Futuro — inicio">
-    <img src="/brand/disena-futuro.webp" alt="Diseña Futuro" width="304" height="104" />
-  </a>
-  <span class="separador" aria-hidden="true"></span>
   {
-    logoIntervalores ? (
-      <img class="aliado" src={logoIntervalores} alt="Intervalores" />
-    ) : (
-      <span class="aliado aliado-texto" data-logo-pendiente>Intervalores</span>
-    )
+    organizaciones.map((o, i) => {
+      const principal = i === 0;
+      const logo = !o.logo ? (
+        <span class="aliado aliado-texto" data-logo-pendiente>{o.nombre}</span>
+      ) : o.logo.remoto ? (
+        // Subido al panel: lo optimiza Astro, sin agrandarlo más de lo que mide.
+        <Image
+          class={principal ? undefined : "aliado"}
+          src={o.logo.src}
+          alt={o.nombre}
+          width={Math.round((o.logo.width! / o.logo.height!) * Math.min(o.logo.height!, 160))}
+          height={Math.min(o.logo.height!, 160)}
+          layout="fixed"
+          loading="eager"
+        />
+      ) : (
+        <img class={principal ? undefined : "aliado"} src={o.logo.src} alt={o.nombre} width={o.logo.width} height={o.logo.height} />
+      );
+      return (
+        <>
+          {i > 0 && <span class="separador" aria-hidden="true" />}
+          {principal ? (
+            <a class="marca" href="/" aria-label={`${o.nombre} — inicio`}>
+              {logo}
+            </a>
+          ) : (
+            logo
+          )}
+        </>
+      );
+    })
   }
 </div>
 
 <style>
   .marcas { display: inline-flex; align-items: center; gap: clamp(.75rem, 1.6vw, 1.25rem); flex-shrink: 0; }
-  .marca { display: inline-flex; }
-  .marca img { display: block; width: clamp(112px, 14vw, 184px); height: auto; }
-  .grande .marca img { width: clamp(150px, 20vw, 260px); }
+  .marca { display: inline-flex; align-items: center; text-decoration: none; }
+  .marca img { display: block; width: auto; max-width: clamp(112px, 14vw, 184px); height: auto; max-height: clamp(40px, 5vw, 64px); object-fit: contain; }
+  .grande .marca img { max-width: clamp(150px, 20vw, 260px); max-height: clamp(54px, 7vw, 90px); }
   .separador { align-self: stretch; width: 1.5px; margin-block: .35em; background: currentColor; opacity: .45; }
   img.aliado { display: block; width: auto; height: clamp(26px, 3.2vw, 40px); }
   .grande img.aliado { height: clamp(34px, 4.4vw, 54px); }

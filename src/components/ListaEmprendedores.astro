@@ -18,20 +18,22 @@
 import Forma from "./Forma.astro";
 import TarjetaEmprendedor from "./TarjetaEmprendedor.astro";
 import {
-  CLAVES_CATEGORIA_REALES,
+  clavesCategoriaReales,
   COMUNIDADES,
   MOSTRAR_COMUNIDAD,
   categoria,
 } from "../data/taxonomia";
 import { acentoDe } from "../lib/acentos";
 import type { Emprendedor } from "../lib/directorio";
+import { getSitio, lineas, trozos } from "../lib/sitio";
 
 type Props = { emprendedores: Emprendedor[] };
 const { emprendedores } = Astro.props;
+const textos = (await getSitio(Astro.locals)).listado;
 
 // Solo se ofrecen filtros de lo que realmente hay en el listado. "Próximamente"
 // es un estado, no una categoría de negocio: no lleva botón propio.
-const categoriasPresentes = CLAVES_CATEGORIA_REALES.filter((c) =>
+const categoriasPresentes = clavesCategoriaReales().filter((c) =>
   emprendedores.some((e) => e.categoria === c),
 );
 const comunidadesPresentes = MOSTRAR_COMUNIDAD
@@ -56,8 +58,8 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
       Un solo titular, sin rótulo pequeño encima: la frase de arriba se
       integró en él. Fino + grueso, como el titular del inicio.
     */}
-    <h2 id="titulo-listado" data-anim="lineas">Encuentra y conecta con el <strong>talento de nuestras comunidades.</strong></h2>
-    <p data-anim="lectura">Detrás de cada negocio,<br />hay una historia por conocer.</p>
+    <h2 id="titulo-listado" data-anim="lineas">{trozos(textos.titular).map((t) => (t.destacado ? <strong>{t.texto}</strong> : t.texto))}</h2>
+    <p data-anim="lectura">{lineas(textos.bajada).map((l, i) => (<>{i > 0 && <br />}{l}</>))}</p>
   </div>
 
   <div class="filtros" data-filtros data-anim="pop" data-anim-hijos="legend, button, [data-indicador]">
@@ -123,9 +125,9 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   </div>
 
   <div class="vacio" data-vacio hidden>
-    <h3>Aún no hay coincidencias.</h3>
-    <p>Prueba otra comunidad o categoría para conocer más negocios.</p>
-    <button class="pildora-cta" type="button" data-restablecer>Ver todos los emprendedores <span aria-hidden="true">↗</span></button>
+    <h3>{textos.vacioTitulo}</h3>
+    <p>{textos.vacioTexto}</p>
+    <button class="pildora-cta" type="button" data-restablecer>{textos.vacioBoton} <span aria-hidden="true">↗</span></button>
   </div>
 </section>
 

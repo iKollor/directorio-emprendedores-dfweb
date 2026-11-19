@@ -16,6 +16,7 @@
     "placeholders": "node scripts/placeholders.mjs && node scripts/normalizar-fotos.mjs"
   },
   "dependencies": {
+    "@astrojs/node": "^11.1.14",
     "@astrojs/sitemap": "^3.7.4",
     "astro": "^7.3.2",
     "gsap": "^3.15.0",

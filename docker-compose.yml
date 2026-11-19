@@ -1,0 +1,43 @@
+# El directorio completo en una VM: el panel y el sitio.
+#
+#   cp .env.produccion.example .env.produccion   (y rellenarlo)
+#   docker compose --env-file .env.produccion up -d --build
+#
+# Delante hace falta un proxy con HTTPS (Caddy, Nginx o el de Coolify) que
+# lleve el dominio del sitio al puerto 4321 y el del panel al 3000.
+services:
+  cms:
+    build: ./cms
+    restart: unless-stopped
+    environment:
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:?falta PAYLOAD_SECRET}
+      CLAVE_VISTA_PREVIA: ${CLAVE_VISTA_PREVIA:?falta CLAVE_VISTA_PREVIA}
+      SITIO_URL: ${SITIO_URL:?falta SITIO_URL}
+      CMS_URL_PUBLICA: ${CMS_URL_PUBLICA:?falta CMS_URL_PUBLICA}
+      # Al publicar, el panel avisa al sitio para que se reconstruya.
+      AVISO_PUBLICAR_URL: http://sitio:4322/
+      SEMILLA_DIR: /semilla
+    volumes:
+      # La base de datos y todo lo subido. Es lo único que hay que copiar
+      # para tener una copia de seguridad.
+      - datos_cms:/app/datos
+      # Solo para el primer arranque: los emprendedores que ya había.
+      - ./src/data:/semilla/data:ro
+      - ./src/assets/emprendedores:/semilla/assets/emprendedores:ro
+      - ./public/brand:/semilla/brand:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  sitio:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - cms
+    environment:
+      CMS_URL: http://cms:3000
+      CLAVE_VISTA_PREVIA: ${CLAVE_VISTA_PREVIA}
+    ports:
+      - "127.0.0.1:4321:4321"
+
+volumes:
+  datos_cms:

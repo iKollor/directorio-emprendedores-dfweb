@@ -1,0 +1,79 @@
+---
+/**
+ * VISTA PREVIA DEL PANEL. Pinta la ficha con lo que hay guardado en el panel,
+ * esté publicado o no. El panel la abre en un marco al lado del formulario
+ * (`livePreview` en cms/src/collections/Emprendedores.ts).
+ *
+ * Es la única página del sitio que se genera en cada visita; todo lo demás
+ * se construye una vez. Sin la clave compartida con el panel no enseña nada.
+ */
+import Base from "../../layouts/Base.astro";
+import Ficha from "../../components/Ficha.astro";
+import RecargaVistaPrevia from "../../components/RecargaVistaPrevia.astro";
+import { getBorrador, getEmprendedores } from "../../lib/directorio";
+import { getSitioBorrador } from "../../lib/sitio";
+
+export const prerender = false;
+
+const CLAVE = String(process.env.CLAVE_VISTA_PREVIA ?? import.meta.env.CLAVE_VISTA_PREVIA ?? "");
+const clave = Astro.url.searchParams.get("clave") ?? "";
+
+if (!CLAVE || clave !== CLAVE) return new Response("No encontrado", { status: 404 });
+
+// Los textos comunes (el mensaje de WhatsApp...) también en su última versión.
+const textos = await getSitioBorrador(CLAVE);
+if (textos) Astro.locals.sitio = textos;
+
+const borrador = await getBorrador(Astro.params.id ?? "", CLAVE);
+
+// "La siguiente persona" sale de lo publicado, como en el sitio.
+const publicados = (await getEmprendedores().catch(() => [])).filter((e) => !e.fichaPendiente);
+const siguiente = publicados.find((e) => e.slug !== borrador?.slug) ?? null;
+
+// Un borrador nunca debe quedarse en una caché intermedia.
+Astro.response.headers.set("Cache-Control", "no-store");
+---
+
+{
+  borrador && !borrador.fichaPendiente ? (
+    <Ficha emprendedor={borrador} siguiente={siguiente} vistaPrevia />
+  ) : (
+    <Base titulo="Vista previa" descripcion="Vista previa del panel" sinIndexar>
+      <main class="aviso" id="contenido">
+        {borrador ? (
+          <>
+            <h1>{borrador.nombre} aparece como <strong>Próximamente</strong></h1>
+            <p>
+              Sale en el listado, sin ficha propia ni contacto. Para que tenga ficha hacen falta su categoría y su
+              oficio, y quitar la casilla «Próximamente».
+            </p>
+          </>
+        ) : (
+          <>
+            <h1>Todavía no hay nada que <strong>mostrar</strong></h1>
+            <p>Escribe el nombre y guarda: la ficha aparecerá aquí.</p>
+          </>
+        )}
+      </main>
+<RecargaVistaPrevia />
+    </Base>
+  )
+}
+
+<style>
+  .aviso {
+    position: relative;
+    z-index: 1;
+    max-width: 44rem;
+    padding: clamp(3rem, 12vw, 8rem) var(--gutter);
+  }
+
+  .aviso h1 {
+    font-weight: 300;
+  }
+
+  .aviso p {
+    margin-top: 1.25rem;
+    max-width: 34rem;
+  }
+</style>

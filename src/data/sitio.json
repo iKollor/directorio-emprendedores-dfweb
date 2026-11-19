@@ -1,0 +1,51 @@
+{
+  "general": {
+    "tituloSitio": "Emprendedores · Diseña Futuro",
+    "descripcion": "Conoce a los emprendedores de la Escuela de Emprendimiento de Diseña Futuro. Descubre sus negocios y contáctalos directamente.",
+    "escuelaLinea1": "escuela de",
+    "escuelaLinea2": "emprendimiento",
+    "menuEmprendedores": "Emprendedores",
+    "menuEscuela": "La escuela"
+  },
+  "organizaciones": [
+    { "nombre": "Diseña Futuro", "url": "https://disenafuturo.com/", "logoArchivo": "disena-futuro.webp" },
+    { "nombre": "Intervalores", "url": "https://www.intervalores.com.ec/", "logoArchivo": null }
+  ],
+  "portada": {
+    "titular": "Conoce a nuestros *emprendedores*",
+    "intro": "Personas que decidieron apostar por sus ideas y convertir sus conocimientos y talentos en oportunidades para sus familias y sus comunidades. Aquí puedes conocer sus negocios y *contactarlos directamente*.",
+    "cierre": "Explora, conoce, conecta y *apóyalos*.",
+    "boton": "¡Conoce a los emprendedores!",
+    "lema": "Ideas locales. Nuevas oportunidades.",
+    "palabras": ["explora", "conoce", "conecta", "apóyalos"]
+  },
+  "videos": {
+    "titular": "En sus propias palabras",
+    "bajada": "Conoce a cada emprendedor en video."
+  },
+  "listado": {
+    "titular": "Encuentra y conecta con el *talento de nuestras comunidades.*",
+    "bajada": "Detrás de cada negocio,\nhay una historia por conocer.",
+    "conocelo": "¡Conócelo!",
+    "proximamente": "Próximamente",
+    "notaProximamente": "Su ficha estará disponible pronto.",
+    "vacioTitulo": "Aún no hay coincidencias.",
+    "vacioTexto": "Prueba otra categoría para conocer más negocios.",
+    "vacioBoton": "Ver todos los emprendedores"
+  },
+  "ficha": {
+    "volver": "Todos los emprendedores",
+    "mensajeWhatsapp": "¡Hola {nombre}! Vi tu emprendimiento en la plataforma de Diseña Futuro y me gustaría saber más.",
+    "sinNumero": "Todavía no tenemos el WhatsApp de {nombre}.",
+    "sinNumeroBoton": "¡Escríbenos y te conectamos!",
+    "sinNumeroUrl": "https://disenafuturo.com",
+    "tituloGaleria": "Su trabajo",
+    "siguiente": "Conoce también a"
+  },
+  "pie": {
+    "lema": "Las oportunidades crecen *cuando nos conectamos.*",
+    "textoEscuela": "Los emprendedores de esta plataforma se certificaron en el programa de la Escuela de Emprendimiento de Diseña Futuro, luego de culminar un proceso de fortalecimiento de conocimientos y desarrollo de habilidades blandas.",
+    "tituloEnlaces": "Conoce más",
+    "derechos": "Diseña Futuro · Intervalores"
+  }
+}

@@ -12,10 +12,12 @@
  */
 import { Image } from "astro:assets";
 import { categoria } from "../data/taxonomia";
-import type { Emprendedor } from "../lib/directorio";
+import { paraImage, type Emprendedor } from "../lib/directorio";
+import { getSitio } from "../lib/sitio";
 
 type Props = { emprendedores: Emprendedor[] };
 const { emprendedores } = Astro.props;
+const textos = (await getSitio(Astro.locals)).videos;
 
 // Solo quien tiene ficha y vídeo propio: el reel lleva a su página. Sin
 // ningún vídeo todavía, la sección entera no se muestra.
@@ -30,8 +32,8 @@ const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
   conVideo.length > 0 && (
     <section class="reel" aria-labelledby="titulo-reel">
       <div class="cabecera">
-        <h2 id="titulo-reel">En sus propias palabras</h2>
-        <p>Conoce a cada emprendedor en video.</p>
+        <h2 id="titulo-reel">{textos.titular}</h2>
+        <p>{textos.bajada}</p>
       </div>
 
       <div class="franja" data-franja>
@@ -48,7 +50,7 @@ const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
                   >
                     <div class="marco">
                       <Image
-                        src={e.foto}
+                        {...paraImage(e.foto)}
                         alt=""
                         widths={[240, 400]}
                         sizes="(max-width: 767px) 52vw, 240px"

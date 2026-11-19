@@ -12,7 +12,9 @@
  * pantalla. Cada pista lleva el texto dos veces para que nunca se vea su
  * final durante el recorrido.
  */
-const PALABRAS = ["explora", "conoce", "conecta", "apóyalos"];
+import { getSitio } from "../lib/sitio";
+
+const PALABRAS = (await getSitio(Astro.locals)).portada.palabras;
 const FILAS = [
   { sentido: 1, estilo: "lleno" },
   { sentido: -1, estilo: "contorno" },

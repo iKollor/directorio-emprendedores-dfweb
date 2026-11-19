@@ -16,7 +16,8 @@ clics a WhatsApp.
 
 | Paquete | Versión | Rol |
 |---|---|---|
-| `astro` | 7.3.2 | Framework, salida estática |
+| `astro` | 7.3.2 | Framework: páginas estáticas, servidas con `@astrojs/node` |
+| `payload` | 3.94.0 | Panel de contenido, en `cms/` (SQLite) |
 | `gsap` | 3.15.0 | ScrollTrigger, Flip (todos los plugins son gratis desde 3.13) |
 | `lenis` | 1.3.26 | Smooth scroll |
 
@@ -30,14 +31,78 @@ npm run check     # tipos
 
 ---
 
-## Estado actual: FASE 1
+## El panel de contenido
 
-Solo el frontend. Los datos salen de `src/data/emprendedores.json`, generado
-desde el Excel del cliente.
+El contenido se edita en un panel propio, en la carpeta [`cms/`](cms/):
+**Payload** (código abierto, MIT) con **SQLite**. El cliente entra con su
+correo y su contraseña, rellena la ficha y ve al lado la ficha real mientras
+escribe. No hay cuentas de GitHub ni servidor de base de datos.
 
-**La Fase 2 conecta Strapi 5 self-hosted en Coolify.** Cuando llegue, se
-reescribe **únicamente** `src/lib/directorio.ts`: ningún componente lee datos
-por su cuenta, así que la UI no se toca. Ver "Adaptador" abajo.
+| Qué | Cómo |
+|---|---|
+| Fichas | Nombre, oficio, descripción, teléfono, retrato, vídeo y fotos de cada persona |
+| Categorías | Se crean y se renombran; el color se elige entre los de la marca |
+| Textos y logos | Titulares, botones, mensaje de WhatsApp, pie, y las organizaciones con su logo y su web |
+| Borradores | "Guardar borrador" no toca el sitio; "Publicar" sí |
+| Vista previa | La ficha o la portada reales (`Ficha.astro`, `Portada.astro`), en un marco junto al formulario |
+| Rostro | El punto focal de la foto en el panel es el campo `rostro` |
+| Orden | Se arrastran las filas de la lista |
+| Publicar | El panel avisa y el sitio se reconstruye solo (unos 20 segundos) |
+
+Guía para quien edita: [`cms/GUIA-DEL-PANEL.md`](cms/GUIA-DEL-PANEL.md).
+
+### En local
+
+```bash
+cd cms && cp .env.example .env    # poner PAYLOAD_SECRET y CLAVE_VISTA_PREVIA
+npm install && npm run dev        # panel en http://localhost:3000/admin
+```
+
+```bash
+cp .env.example .env              # la misma CLAVE_VISTA_PREVIA
+npm run dev                       # sitio en http://localhost:4321
+```
+
+La primera vez, el panel carga solo los emprendedores de
+`src/data/emprendedores.json` y pide crear el primer usuario.
+
+Sin `CMS_URL` el sitio se construye con ese JSON, como antes: sirve para
+trabajar en el diseño sin levantar el panel.
+
+### En el servidor
+
+```bash
+cp .env.produccion.example .env.produccion    # rellenarlo
+docker compose --env-file .env.produccion up -d --build
+```
+
+Son dos contenedores: el panel (puerto 3000) y el sitio (4321). Delante va un
+proxy con HTTPS (Caddy, Nginx o Coolify) con un dominio para cada uno.
+
+- **Memoria.** Medido: el panel ocupa unos 210 MB en marcha y el sitio unos
+  100 MB. Compilar la imagen del panel pide unos 2 GB: en una VM de 1 GB hay
+  que añadir swap o compilarla en otra máquina y subirla.
+- **Copia de seguridad.** Todo lo que el cliente escribe y sube está en el
+  volumen `datos_cms` (la base `cms.db` y la carpeta `medios/`).
+- **Contraseña olvidada.** No hay correo configurado: el enlace para
+  restablecerla sale en el registro del contenedor del panel
+  (`docker compose logs cms`). Para que llegue por correo hay que añadir un
+  adaptador de email a `cms/src/payload.config.ts`.
+- **Cambiar campos.** Tras tocar una colección: `npm run payload
+  migrate:create` dentro de `cms/` y subir la migración que genera.
+- **Textos.** Los de partida están en `src/data/sitio.json`; ningún
+  componente escribe los suyos, todos pasan por `src/lib/sitio.ts`. Un campo
+  vacío en el panel vuelve al de partida. Para que un texto nuevo sea
+  editable: se añade al JSON y al global `cms/src/globals/Sitio.ts`.
+- **Colores.** El panel deja elegir entre los de la marca (`COLORES` en
+  `src/data/taxonomia.ts`), no escribir uno libre: cada color lleva su
+  variante oscura y su color de texto para que el contraste se cumpla.
+- **Lo que no se edita desde el panel:** el diseño (formas, animaciones,
+  tipografía) y los rótulos de la interfaz que solo oyen los lectores de
+  pantalla o que son parte de un control ("Todas", "Limpiar filtros").
+
+Los scripts del Excel y de Drive (`scripts/importar_excel.py`, `npm run
+fotos`) alimentan solo el JSON: con el panel en marcha ya no son la fuente.
 
 ### ⚠️ Pendientes antes de desplegar
 
@@ -101,7 +166,7 @@ Las fotos originales están en Google Drive, enlazadas desde el Excel.
 
 **`npm run fotos`** las descarga a `src/assets/emprendedores/` y las prepara.
 Quedan versionadas en el repo para no depender de que el Drive siga compartido,
-y son las mismas que en la Fase 2 se suben al Media Library de Strapi.
+y son las que el panel carga en su primer arranque.
 
 Google limita las descargas anónimas por ráfaga y responde `200` con una página
 HTML de login en vez del archivo. El script lo detecta, reintenta con espera
@@ -183,9 +248,9 @@ getEmprendedores(): Promise<Emprendedor[]>
 getEmprendedor(slug): Promise<Emprendedor | null>
 ```
 
-Ningún componente lee el JSON ni hace `fetch`. En la Fase 2 se sustituye la
-carga por la API de Strapi y nada más cambia. El tipo `Emprendedor` es el
-contrato que el content-type de Strapi debe poder satisfacer.
+Ningún componente lee el JSON ni hace `fetch`. El adaptador lee del panel
+(si hay `CMS_URL`) o del JSON, y entrega siempre el tipo `Emprendedor`.
+`getBorrador()` es lo que usa la vista previa.
 
 ### Los blobs
 

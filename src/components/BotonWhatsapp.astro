@@ -23,6 +23,7 @@
  * Las piezas llevan `data-paso` para que la ficha las haga entrar en orden.
  */
 import Icono from "./Icono.astro";
+import { conNombre, getSitio } from "../lib/sitio";
 
 type Props = {
   nombre: string;
@@ -34,9 +35,9 @@ const { nombre, whatsapp, telefono } = Astro.props;
 
 const primerNombre = nombre.split(/\s+/)[0] ?? nombre;
 
-const mensaje =
-  `¡Hola ${primerNombre}! Vi tu emprendimiento en la plataforma de ` +
-  `Diseña Futuro y me gustaría saber más.`;
+// El mensaje se escribe en el panel ("Textos y logos" > Ficha).
+const textos = (await getSitio(Astro.locals)).ficha;
+const mensaje = conNombre(textos.mensajeWhatsapp, primerNombre);
 
 const enlace = whatsapp ? `${whatsapp}?text=${encodeURIComponent(mensaje)}` : null;
 ---
@@ -71,16 +72,16 @@ const enlace = whatsapp ? `${whatsapp}?text=${encodeURIComponent(mensaje)}` : nu
   ) : (
     <div class="contacto">
       <p class="sin-numero" data-paso>
-        Todavía no tenemos el WhatsApp de {primerNombre}.
+        {conNombre(textos.sinNumero, primerNombre)}
       </p>
       <a
         class="pildora-cta grande"
-        href="https://disenafuturo.com"
+        href={textos.sinNumeroUrl}
         target="_blank"
         rel="noopener noreferrer"
         data-paso
       >
-        ¡Escríbenos y te conectamos!
+        {textos.sinNumeroBoton}
       </a>
     </div>
   )
