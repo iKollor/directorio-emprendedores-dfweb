@@ -13,13 +13,13 @@
  * vídeo conserva sus propios controles de carga.
  */
 import { Image } from "astro:assets";
-import type { ImageMetadata } from "astro";
 import { construirPath, generarBlob } from "../lib/blob";
+import { paraImage, type Foto } from "../lib/directorio";
 import Icono from "./Icono.astro";
 
 type Props = {
   slug: string;
-  foto: ImageMetadata;
+  foto: Foto;
   alt: string;
   color: string;
   /** Las primeras imágenes cargan con prioridad; el resto queda perezoso. */
@@ -112,7 +112,7 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
           </div>
         ) : (
           <Image
-            src={foto}
+            {...paraImage(foto)}
             alt={alt}
             widths={[400, 700, 1000, 1400]}
             sizes={sizes}

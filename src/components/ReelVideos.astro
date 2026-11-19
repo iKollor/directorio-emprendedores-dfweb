@@ -12,7 +12,7 @@
  */
 import { Image } from "astro:assets";
 import { categoria } from "../data/taxonomia";
-import type { Emprendedor } from "../lib/directorio";
+import { paraImage, type Emprendedor } from "../lib/directorio";
 
 type Props = { emprendedores: Emprendedor[] };
 const { emprendedores } = Astro.props;
@@ -48,7 +48,7 @@ const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
                   >
                     <div class="marco">
                       <Image
-                        src={e.foto}
+                        {...paraImage(e.foto)}
                         alt=""
                         widths={[240, 400]}
                         sizes="(max-width: 767px) 52vw, 240px"

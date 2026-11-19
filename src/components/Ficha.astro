@@ -1,0 +1,477 @@
+---
+/**
+ * La ficha de un emprendedor, entera. La usan dos páginas:
+ *
+ *   - `pages/emprendedores/[slug].astro`, la pública (se construye una vez).
+ *   - `pages/vista-previa/[id].astro`, que pinta lo guardado en el panel
+ *     aunque no esté publicado y se vuelve a cargar cuando el panel guarda.
+ *
+ * Así la vista previa no es una imitación: es esta misma ficha.
+ */
+import Base from "../layouts/Base.astro";
+import Blob from "./Blob.astro";
+import Forma from "./Forma.astro";
+import BotonWhatsapp from "./BotonWhatsapp.astro";
+import { Image, getImage } from "astro:assets";
+import { MOSTRAR_COMUNIDAD, categoria } from "../data/taxonomia";
+import { inicialesSinFoto, paraImage, type Emprendedor } from "../lib/directorio";
+
+type Props = {
+  emprendedor: Emprendedor;
+  /** La ficha termina presentando a la siguiente persona. */
+  siguiente: Emprendedor | null;
+  /** Vista previa del panel: no se indexa y se refresca al guardar. */
+  vistaPrevia?: boolean;
+};
+
+const { emprendedor: e, siguiente, vistaPrevia = false } = Astro.props;
+const cat = categoria(e.categoria);
+const catSiguiente = siguiente ? categoria(siguiente.categoria) : null;
+
+// La imagen para compartir sale del optimizador, como las demás: así una
+// foto subida al panel se sirve desde el sitio y no desde el panel.
+const imagenCompartir = (await getImage({ ...paraImage(e.foto), width: 1200, format: "jpg" })).src;
+
+const descripcion = `${e.emprendimiento} — ${e.nombre}, certificado por la Escuela de Emprendimiento de Diseña Futuro. Escríbele directamente por WhatsApp.`;
+
+// Sin dirección ni zona mientras la comunidad no se publique: los datos
+// estructurados también los leen buscadores y terceros.
+const datosEstructurados = {
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  name: e.emprendimiento,
+  description: e.parrafos.join(" "),
+  founder: { "@type": "Person", name: e.nombre },
+  ...(MOSTRAR_COMUNIDAD
+    ? {
+        address: {
+          "@type": "PostalAddress",
+          addressLocality: e.comunidad,
+          addressRegion: "Guayas",
+          addressCountry: "EC",
+        },
+      }
+    : {}),
+  ...(e.telefono ? { telephone: e.telefono.replace(/\s/g, "") } : {}),
+};
+---
+
+<Base titulo={e.nombre} descripcion={descripcion} imagen={imagenCompartir} sinIndexar={vistaPrevia}>
+  <main class="ficha" data-ficha={e.slug} style={`--acento:${cat.color}; --acento-texto:${cat.colorTexto};`}>
+    <nav class="volver" data-anim="subir">
+      {/* Vuelve al listado en la tarjeta de esta persona, no al inicio. */}
+      <a href={`/#${e.slug}`}>
+        <span aria-hidden="true">←</span> Todos los emprendedores
+      </a>
+    </nav>
+
+    <div class="cuerpo" id="contenido">
+      <div class="columna-retrato">
+      {/* Una forma en el color de su categoría asoma por detrás del retrato. */}
+      <div class="forma-ficha"><Forma tipo="blob" color={cat.color} semilla={`ficha-${e.slug}`} flota={0.08} /></div>
+      <div class="retrato" data-viaja="retrato">
+        <Blob
+          slug={e.slug}
+          foto={e.foto}
+          alt={e.fotoPendiente ? `Todavía no hay foto de ${e.nombre}` : `Retrato de ${e.nombre}`}
+          color={cat.color}
+          prioritaria
+          sizes="(max-width: 899px) 88vw, 42vw"
+          video={e.video}
+          videoModo="auto"
+          iniciales={inicialesSinFoto(e)}
+          tinta="color"
+          rostro={e.rostro}
+        />
+      </div>
+      </div>
+
+      <div class="texto">
+        <p class="etiquetas" data-anim="pop" data-anim-hijos data-anim-retraso="0.15">
+          {MOSTRAR_COMUNIDAD && <span class="pildora comunidad">{e.comunidad}</span>}
+          <span class="pildora categoria">{cat.etiqueta}</span>
+        </p>
+
+        <h1 data-viaja="nombre">{e.nombre}</h1>
+        <p class="emprendimiento" data-anim="lineas" data-anim-retraso="0.25">{e.emprendimiento}</p>
+
+        <div class="descripcion" data-anim="desenfoque" data-anim-retraso="0.4">
+          {e.parrafos.map((p) => <p>{p}</p>)}
+        </div>
+
+        <div data-anim="subir" data-anim-hijos="[data-paso]" data-anim-retraso="0.7">
+          <BotonWhatsapp nombre={e.nombre} whatsapp={e.whatsapp} telefono={e.telefono} />
+        </div>
+      </div>
+    </div>
+
+    {
+      e.galeria.length > 0 && (
+        <section class="galeria" aria-labelledby="titulo-galeria">
+          <h2 id="titulo-galeria" data-anim="letras">Su trabajo</h2>
+          <ul data-anim="revelar" data-anim-hijos>
+            {e.galeria.map((foto, i) => (
+              <li>
+                <Image
+                  {...paraImage(foto)}
+                  alt={`Trabajo de ${e.nombre}, foto ${i + 1} de ${e.galeria.length}`}
+                  widths={[400, 700, 1000]}
+                  sizes="(max-width: 599px) 88vw, (max-width: 899px) 44vw, 30vw"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      /*
+       * La ficha no termina en un callejón: presenta a la siguiente persona
+       * en una sola frase que es el enlace. Al pulsar, su nombre y su retrato
+       * suben a ocupar el sitio del titular y del retrato (lib/viaje.ts).
+       */
+      siguiente && catSiguiente && (
+        <nav class="siguiente" aria-label="Siguiente emprendedor" data-siguiente>
+          <a class="enlace-siguiente" href={`/emprendedores/${siguiente.slug}/`} data-viaja-a={siguiente.slug} style={`--acento:${catSiguiente.color};`}>
+            <span class="frase">
+              Conoce también a
+              <strong data-viaja="nombre">{siguiente.nombre}</strong>
+              <span class="oficio-siguiente">{siguiente.emprendimiento}</span>
+            </span>
+            <span class="boton-icono ir" aria-hidden="true">→</span>
+            <span class="mini" data-viaja="retrato">
+              <Blob
+                slug={siguiente.slug}
+                foto={siguiente.foto}
+                alt=""
+                color={catSiguiente.color}
+                sizes="(max-width: 899px) 40vw, 280px"
+                iniciales={inicialesSinFoto(siguiente)}
+                rostro={siguiente.rostro}
+              />
+            </span>
+          </a>
+        </nav>
+      )
+    }
+  </main>
+
+  {!vistaPrevia && <script is:inline type="application/ld+json" set:html={JSON.stringify(datosEstructurados)} />}
+
+  {
+    /*
+     * El panel avisa a esta ventana cada vez que guarda (también cuando
+     * guarda solo mientras se escribe). Se vuelve a pedir la página, que es
+     * la manera de ver la ficha de verdad, y se conserva la altura a la que
+     * se estaba mirando.
+     */
+    vistaPrevia && (
+      <script is:inline>
+        (() => {
+          const CLAVE = "vista-previa:altura";
+          const altura = Number(sessionStorage.getItem(CLAVE));
+          sessionStorage.removeItem(CLAVE);
+          if (altura) addEventListener("load", () => scrollTo(0, altura), { once: true });
+
+          let espera;
+          addEventListener("message", (aviso) => {
+            if (aviso.data?.type !== "payload-document-event") return;
+            clearTimeout(espera);
+            espera = setTimeout(() => {
+              sessionStorage.setItem(CLAVE, String(scrollY));
+              location.reload();
+            }, 400);
+          });
+        })();
+      </script>
+    )
+  }
+</Base>
+
+
+<style>
+  .ficha {
+    /* Contexto de apilado propio: la forma de fondo queda detrás del
+       contenido pero delante del azul de la página. */
+    position: relative;
+    z-index: 1;
+    padding-block: clamp(1.5rem, 4vw, 3rem) clamp(4rem, 10vw, 8rem);
+    padding-inline: var(--gutter);
+  }
+
+  .volver {
+    margin-bottom: clamp(2rem, 6vw, 4rem);
+    font-size: var(--txt-s);
+    font-weight: 600;
+  }
+
+  .volver a {
+    text-decoration: none;
+    opacity: 0.85;
+  }
+
+  .volver a:hover {
+    opacity: 1;
+  }
+
+  /* Móvil: el retrato ocupa el ancho completo, igual que en el listado. */
+  .cuerpo {
+    display: grid;
+    gap: clamp(2rem, 6vw, 4rem);
+    align-items: start;
+  }
+
+  /* Contenedor de la forma de fondo, que se coloca respecto a él. */
+  .columna-retrato {
+    position: relative;
+  }
+
+  @media (min-width: 900px) {
+    .cuerpo {
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: clamp(3rem, 6vw, 6rem);
+    }
+
+    /*
+     * Retrato y texto se alinean por lo que se ve, no por sus cajas: la gota
+     * solo ocupa del 8 al 88 % de la suya, así que alineada arriba quedaba
+     * más baja que el texto y se salía por abajo. Las dos columnas se
+     * centran en vertical, y el lado de la gota se ajusta para que su alto
+     * visible ronde el del bloque de texto y quepa entera en la primera
+     * pantalla (sobre ella quedan unos 16rem de cabecera).
+     *
+     * Pegada al texto (a la derecha de su columna): con el hueco a los dos
+     * lados, retrato y texto se leían como dos piezas sueltas.
+     *
+     * No es `sticky`: la columna del retrato es la más alta de la fila, así
+     * que no tendría recorrido, y su `top: 6vh` la bajaba 57 px.
+     */
+    .cuerpo {
+      align-items: center;
+    }
+
+    .columna-retrato {
+      justify-self: end;
+      width: min(100%, 78vh, calc((100svh - 16rem) / 0.88));
+    }
+
+    /*
+     * En la ficha la gota va a su tamaño entero. La escala propia de cada
+     * una (0,9 a 1, sembrada por su nombre) da variedad en el listado; aquí
+     * solo la encogía, y a quien le tocaba la menor se le veía pequeño.
+     */
+    .retrato :global(.marco) {
+      scale: 1;
+    }
+  }
+
+  /*
+   * En el teléfono el retrato va a su tamaño entero, como en el listado: así
+   * llega volando desde su tarjeta sin cambiar de proporción.
+   */
+  @media (max-width: 767px) {
+    .retrato :global(.marco) {
+      scale: 1;
+    }
+  }
+
+  /*
+   * Teléfono: arriba a la derecha del retrato, saliéndose de la pantalla.
+   * Abajo quedaría debajo de la píldora de categoría y del nombre.
+   */
+  .forma-ficha {
+    position: absolute;
+    z-index: -1;
+    width: 66%;
+    right: -24%;
+    top: -10%;
+    pointer-events: none;
+  }
+
+  /*
+   * Escritorio: asoma por abajo a la izquierda de la gota, más pequeña que
+   * ella. A su tamaño de antes, con la gota ya ajustada al texto, quedaba
+   * tan grande como el retrato y flotando en mitad del hueco.
+   */
+  @media (min-width: 900px) {
+    .forma-ficha {
+      width: 58%;
+      right: auto;
+      top: auto;
+      left: -30%;
+      bottom: -6%;
+    }
+  }
+
+  .texto {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .etiquetas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .pildora {
+    padding: 0.3em 0.9em;
+    border-radius: var(--radio-pildora);
+    font-size: var(--txt-s);
+    font-weight: 500;
+  }
+
+  .comunidad {
+    border: 1.5px solid currentColor;
+  }
+
+  .categoria {
+    background: var(--acento);
+    color: var(--acento-texto);
+    box-shadow: var(--gota);
+  }
+
+  h1 {
+    /* Ceñido al texto: es la caja que llega volando (lib/viaje.ts). */
+    width: fit-content;
+    font-size: var(--txt-xl);
+    font-weight: 700;
+    line-height: 0.95;
+  }
+
+  .emprendimiento {
+    margin: 0;
+    font-size: var(--txt-l);
+    font-weight: 300;
+    line-height: 1.15;
+    color: var(--df-yellow);
+  }
+
+  .descripcion {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 58ch;
+    margin-block: 0.5rem 1.5rem;
+  }
+
+  .descripcion p {
+    margin: 0;
+  }
+
+  .galeria {
+    margin-block-start: clamp(3rem, 8vw, 6rem);
+  }
+
+  .galeria h2 {
+    margin-bottom: clamp(1.25rem, 3vw, 2rem);
+    font-size: var(--txt-l);
+    font-weight: 700;
+  }
+
+  .galeria ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+    gap: clamp(0.75rem, 2vw, 1.25rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* ---- Siguiente persona -------------------------------------------------- */
+  .siguiente {
+    margin-block-start: clamp(4rem, 10vw, 8rem);
+    padding-block-start: clamp(2rem, 5vw, 4rem);
+    border-top: 1px solid rgb(239 238 237 / 0.3);
+  }
+
+  .enlace-siguiente {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: clamp(1rem, 4vw, 3rem);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* Fino + grueso: la frase es fina y el nombre, grueso, baja a su línea. */
+  .frase {
+    font-size: var(--txt-xl);
+    font-weight: 300;
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+  }
+
+  .frase strong {
+    display: block;
+    width: fit-content;
+    font-weight: 700;
+    /*
+     * Subrayado amarillo, el acento del sitio. Es `text-decoration` y no un
+     * fondo para que siga a cada línea cuando el nombre se parte en dos en
+     * el teléfono. Engorda al pasar el puntero.
+     */
+    text-decoration: underline var(--df-yellow) 0.07em;
+    text-underline-offset: 0.12em;
+    padding-block-end: 0.14em;
+    transition: text-decoration-thickness var(--dur-media) var(--ease-suave);
+  }
+
+  .enlace-siguiente:hover .frase strong,
+  .enlace-siguiente:focus-visible .frase strong {
+    text-decoration-thickness: 0.15em;
+  }
+
+  .oficio-siguiente {
+    display: block;
+    margin-block-start: 0.6em;
+    font-size: var(--txt-l);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    color: var(--df-yellow);
+  }
+
+  /*
+   * Grande: es media invitación, y pequeño se perdía en el ancho del bloque.
+   * La gota no llena su caja (lleva aire para respirar y girar), así que la
+   * caja se monta sobre sus vecinos con margen negativo: lo que se ve llena
+   * el hueco, no su caja.
+   */
+  .mini {
+    --lado: clamp(130px, 42vw, 540px);
+    display: block;
+    width: var(--lado);
+    margin: calc(var(--lado) * -0.1);
+  }
+
+  .enlace-siguiente:hover .ir,
+  .enlace-siguiente:focus-visible .ir {
+    scale: 1.12;
+  }
+
+  /* En el teléfono no caben frase, flecha y retrato: la flecha baja. */
+  @media (max-width: 599px) {
+    .enlace-siguiente {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .ir {
+      grid-row: 2;
+    }
+  }
+
+  .galeria :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border-radius: clamp(14px, 3vw, 22px);
+    background: var(--df-blue-deep);
+  }
+</style>

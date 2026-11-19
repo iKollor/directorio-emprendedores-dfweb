@@ -8,6 +8,14 @@ astro dev --background
 
 Manage the background server with `astro dev stop`, `astro dev status`, and `astro dev logs`.
 
+## Contenido
+
+Los datos salen del panel de `cms/` (Payload + SQLite) cuando existe
+`CMS_URL`, y de `src/data/emprendedores.json` cuando no. La única puerta es
+`src/lib/directorio.ts`. La ficha es `src/components/Ficha.astro`, compartida
+por la página pública y por la vista previa del panel
+(`src/pages/vista-previa/`). Ver "El panel de contenido" en el README.
+
 ## Criterio de diseño
 
 Antes de añadir o cambiar algo visual o animado, léelo entero. El sitio tiene

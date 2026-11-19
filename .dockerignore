@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-*
+.astro
+.git
+.env
+cms
+output
+.playwright-cli

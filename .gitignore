@@ -22,3 +22,8 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# claves del servidor
+.env.produccion
+# el sitio a medio reconstruir (scripts/servidor.mjs)
+dist-*/
