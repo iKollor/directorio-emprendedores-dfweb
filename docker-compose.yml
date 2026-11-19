@@ -7,7 +7,11 @@
 # lleve el dominio del sitio al puerto 4321 y el del panel al 3000.
 services:
   cms:
-    build: ./cms
+    build:
+      context: ./cms
+      # La raíz del repositorio, de donde sale la semilla del primer arranque.
+      additional_contexts:
+        raiz: .
     restart: unless-stopped
     environment:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:?falta PAYLOAD_SECRET}
@@ -16,15 +20,10 @@ services:
       CMS_URL_PUBLICA: ${CMS_URL_PUBLICA:?falta CMS_URL_PUBLICA}
       # Al publicar, el panel avisa al sitio para que se reconstruya.
       AVISO_PUBLICAR_URL: http://sitio:4322/
-      SEMILLA_DIR: /semilla
     volumes:
       # La base de datos y todo lo subido. Es lo único que hay que copiar
       # para tener una copia de seguridad.
       - datos_cms:/app/datos
-      # Solo para el primer arranque: los emprendedores que ya había.
-      - ./src/data:/semilla/data:ro
-      - ./src/assets/emprendedores:/semilla/assets/emprendedores:ro
-      - ./public/brand:/semilla/brand:ro
     ports:
       - "127.0.0.1:3000:3000"
 
