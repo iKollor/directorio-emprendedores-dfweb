@@ -3,14 +3,16 @@
  * Formas de fondo, en el lenguaje de Diseña Futuro.
  *
  * Su sitio (disenafuturo.com) es plano: azul liso con formas grandes de
- * color que asoman por los bordes, trazos gruesos en arco y una estrella
- * verde de puntas desiguales. Este componente dibuja esas tres piezas. No
- * hay texturas, degradados ni efectos: el fondo es color plano.
+ * color que asoman por los bordes y una estrella verde de puntas desiguales.
+ * Este componente dibuja esas dos piezas. No hay texturas, degradados ni
+ * efectos: el fondo es color plano.
  *
  *   blob      forma orgánica rellena; respira despacio con el mismo motor
  *             que los retratos (lib/blobRuntime.ts)
- *   arco      trazo grueso de punta redonda
  *   estrella  estrella de puntas largas y desiguales
+ *
+ * Hubo una tercera, un trazo grueso en arco que también usa su sitio. Diseña
+ * Futuro pidió quitarla de aquí: solo formas llenas, ninguna línea curva.
  *
  * Quien la usa la coloca con un contenedor: la forma llena su caja.
  *
@@ -22,35 +24,28 @@
  * `flota` la desplaza un poco con el scroll (lo aplica Base.astro).
  *
  * ENTRADA. Cada pieza entra una vez, cuando asoma en pantalla, con la curva
- * de todo el sitio (`forma` en lib/animaciones.ts): el blob y la estrella
- * crecen desde su centro y el arco se dibuja de punta a punta. `retraso` la
- * ordena con lo que tenga alrededor. La entrada va en el nodo de dentro: el
+ * de todo el sitio (`forma` en lib/animaciones.ts): crece desde su centro.
+ * `retraso` la ordena con lo que tenga alrededor. La entrada va en el nodo de dentro: el
  * de fuera es del desplazamiento con el scroll.
  */
 import { construirPath, generarBlob } from "../lib/blob";
 
 type Props = {
-  tipo?: "blob" | "arco" | "estrella";
+  tipo?: "blob" | "estrella";
   color?: string;
   /** Cambia la silueta del blob o las puntas de la estrella. */
   semilla?: string;
   /** Fracción de su alto que se desplaza al cruzar la pantalla; 0 = fija. */
   flota?: number;
-  /** Grados que gira el arco sobre su centro: es siempre el mismo trazo. */
-  giro?: number;
   /** Segundos que espera su entrada. */
   retraso?: number;
-  /** El arco se dibuja desde su principio o desde su final. */
-  desde?: "inicio" | "fin";
 };
 const {
   tipo = "blob",
   color = "var(--df-pink)",
   semilla = "forma",
   flota = 0,
-  giro = 0,
   retraso = 0,
-  desde = "inicio",
 } = Astro.props;
 
 const blob = tipo === "blob" ? generarBlob(semilla, { lados: 7, irregularidad: 0.14, radio: 40, lado: 96 }) : null;
@@ -87,25 +82,6 @@ const estrella = Array.from({ length: PUNTAS * 2 }, (_, i) => {
     )
   }
   {
-    tipo === "arco" && (
-      <svg
-        viewBox="0 0 100 100"
-        focusable="false"
-        data-anim="forma"
-        data-anim-retraso={retraso || undefined}
-        data-anim-desde={desde}
-      >
-        <path
-          class="trazo"
-          data-trazo
-          d="M7 84 C 2 38, 40 6, 94 22"
-          pathLength="100"
-          transform={giro ? `rotate(${giro} 50 50)` : undefined}
-        />
-      </svg>
-    )
-  }
-  {
     tipo === "estrella" && (
       <svg viewBox="0 0 100 100" focusable="false" data-anim="forma" data-anim-retraso={retraso || undefined}>
         <polygon points={estrella} />
@@ -134,12 +110,6 @@ const estrella = Array.from({ length: PUNTAS * 2 }, (_, i) => {
     fill: var(--color);
   }
 
-  .trazo {
-    fill: none;
-    stroke: var(--color);
-    stroke-width: 6.5;
-    stroke-linecap: round;
-  }
 
   polygon {
     stroke: var(--color);

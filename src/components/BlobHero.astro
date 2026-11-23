@@ -104,9 +104,6 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
         </div>
       </div>
 
-      {/* Lo que vaya por encima del retrato y por detrás del cartel. */}
-      <slot name="encima" />
-
       {/*
         EL CARTEL es una sola pieza que se queda en su sitio: cambia de tamaño
         y su contenido rueda por dentro, tras su propio borde. La inclinación
@@ -128,7 +125,7 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
             <span class="cat">{cat.etiqueta}</span>
             <strong data-viaja="nombre">{e.nombre}</strong>
             <span class="oficio">{e.emprendimiento}</span>
-            <span class="ir" aria-hidden="true">{conocelo} →</span>
+            <span class="ir" aria-hidden="true"><span class="pincel">{conocelo}</span> →</span>
           </a>
         ))}
       </div>
@@ -273,10 +270,19 @@ const forma = generarBlob("hero-escenario", { lados: 9, irregularidad: 0.13, rad
   }
 
   .ir {
-    margin-top: 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.3rem;
     color: var(--df-blue);
     font-size: var(--txt-s);
     font-weight: 700;
+  }
+
+  .ir .pincel {
+    font-size: 2.2em;
+    line-height: 0.8;
+    padding-block-start: 0.12em;
   }
 
   /* En móvil la etiqueta no puede tapar media cara. */

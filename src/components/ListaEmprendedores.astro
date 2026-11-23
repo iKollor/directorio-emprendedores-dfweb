@@ -43,15 +43,12 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
 
 <section class="listado" id="contenido" aria-labelledby="titulo-listado">
   {/*
-    FORMAS. Cada una acompaña a algo: aquí, un blob cian con su trazo ocupa
-    el hueco que deja el titular a la derecha; más abajo, algunas tarjetas
-    llevan una forma detrás del retrato (lib/acentos.ts). Antes había dos
-    trazos sueltos pegados a los bordes de la página, que no acompañaban a
-    nada.
+    FORMAS. Cada una acompaña a algo: aquí, un blob cian ocupa el hueco que
+    deja el titular a la derecha; más abajo, algunas tarjetas llevan una
+    forma detrás del retrato (lib/acentos.ts).
   */}
   <div class="formas-cabecera">
     <div class="fc-blob"><Forma tipo="blob" color="var(--df-cyan)" semilla="lista-cian" flota={0.08} /></div>
-    <div class="fc-arco"><Forma tipo="arco" color="var(--df-blue-deep)" giro={160} flota={-0.05} retraso={0.3} /></div>
   </div>
   <div class="listado-cabecera">
     {/*
@@ -106,8 +103,8 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   <p class="conteo" data-conteo role="status" aria-live="polite" aria-atomic="true">
     <!-- El número visible cuenta hacia el nuevo valor; el lector de pantalla
          solo oye el resultado final, no cada paso intermedio. -->
-    <span aria-hidden="true" data-conteo-visible>{emprendedores.length} emprendedores</span>
-    <span class="solo-lectores" data-conteo-lector>{emprendedores.length} emprendedores</span>
+    <span aria-hidden="true" data-conteo-visible>{emprendedores.length} emprendimientos</span>
+    <span class="solo-lectores" data-conteo-lector>{emprendedores.length} emprendimientos</span>
   </p>
   <button class="limpiar-filtros" type="button" data-limpiar hidden>Limpiar filtros <span aria-hidden="true">↺</span></button>
   </div>
@@ -159,13 +156,6 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     .formas-cabecera {
       display: block;
     }
-  }
-
-  .fc-arco {
-    position: absolute;
-    width: 128%;
-    top: -6%;
-    left: -34%;
   }
 
   /* El texto de apoyo va siempre debajo del titular: la derecha queda libre. */
@@ -326,7 +316,8 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
 
   gsap.registerPlugin(Flip, ScrollTrigger);
 
-  const rotulo = (n: number) => (n === 1 ? "1 emprendedor" : `${n} emprendedores`);
+  // Se cuentan emprendimientos y no personas: "1 emprendedor" le pone género a alguien.
+  const rotulo = (n: number) => (n === 1 ? "1 emprendimiento" : `${n} emprendimientos`);
 
   /** El contador corre hasta el nuevo total (el "CountUp" de React Bits). */
   function contar(conteo: HTMLElement, total: number) {

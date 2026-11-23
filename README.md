@@ -224,11 +224,15 @@ Paleta **medida en vivo** sobre disenafuturo.com, no estimada
 
 Gramática heredada de su sitio: elipses gigantes sangradas fuera del canvas,
 botones píldora amarilla con texto azul, titulares que mezclan light y bold en
-la misma frase, y CTAs con exclamación de apertura ("¡Conócelo!").
+la misma frase, y CTAs con exclamación de apertura ("¡Conoce su negocio!").
 
 **Tipografía:** su sitio sirve fuentes ofuscadas y sin nombre, así que no se
 pueden reutilizar. Se usa **General Sans** (Fontshare) como sustituto del mismo
 género. Confirmar con el manual de marca.
+
+Para los rótulos (la cinta de palabras, "En sus propias palabras", la llamada
+de cada tarjeta) se usa **Amatic SC**, una letra a pincel parecida a la del
+logo de la Escuela de Emprendimiento. Ver "Criterio de diseño" en `CLAUDE.md`.
 
 Desde el 14 de septiembre de 2026, los WOFF2 se sirven localmente desde
 `public/fonts/`. El encabezado y el footer comparten `Marca.astro`, con los

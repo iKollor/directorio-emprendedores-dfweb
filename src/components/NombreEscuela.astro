@@ -62,6 +62,12 @@ const alto = logo ? Math.min(logo.height, ALTO_MAXIMO) : 0;
 
   /* El alto manda, medido en la letra del nombre: así crece con la pantalla igual que él. */
   .con-logo img { display: block; align-self: flex-start; width: auto; max-width: 100%; height: 2.75em; object-fit: contain; object-position: left center; }
-  /* El logo trae su propio aire; con el margen del texto el hero crecía de más. */
-  .con-logo.hero { margin-block-end: 0; }
+  /*
+   * En la portada es el rótulo de la casa: grande y un punto torcido, como
+   * el cartel del retrato. El logo trae su propio aire, así que no lleva el
+   * margen que llevaba el texto.
+   */
+  .con-logo.hero { margin-block-end: 0; rotate: -3deg; transform-origin: 0 100%; }
+  .con-logo.hero img { height: 3.7em; }
+  .con-logo.pie img { height: 3.3em; }
 </style>

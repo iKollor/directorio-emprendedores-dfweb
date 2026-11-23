@@ -46,19 +46,32 @@ píldoras y puntos llevan el brillo y la sombra interior de una gota
 (`--gota` en `src/styles/tokens.css`), hechos con sombras, no con WebGL.
 
 **El fondo es el de Diseña Futuro: plano, con formas.** Su sitio es azul
-liso con formas grandes de color que asoman por los bordes, trazos gruesos en
-arco y una estrella verde. Eso es `src/components/Forma.astro`. Cada forma
-acompaña a algo (un retrato, un titular): un trazo suelto pegado al borde de
-la página no acompaña a nada y se pidió quitar. El trazo puede cruzar por
-delante de un retrato, como en el hero, donde además pasa por detrás del
-cartel. En el listado solo algunas tarjetas llevan forma detrás del retrato
-(`src/lib/acentos.ts`). Entran una vez, al asomar: el blob y la estrella
-crecen y el trazo se dibuja (`forma` en `src/lib/animaciones.ts`). Nada de
-texturas, degradados ni fondos animados con shaders: se probaron dos (uno
-casi invisible y uno de agua con cáusticas) y los dos se rechazaron por no
-ser de la marca. Las formas de color claro (rosa, cian, amarillo, verde)
+liso con formas grandes de color que asoman por los bordes y una estrella
+verde. Eso es `src/components/Forma.astro`: blobs y estrellas, formas llenas.
+Su sitio usa además trazos gruesos en arco; aquí los hubo y Diseña Futuro
+pidió quitarlos: ninguna línea curva de fondo. Cada forma acompaña a algo (un
+retrato, un titular). En el listado solo algunas tarjetas llevan forma detrás
+del retrato, un blob o una estrella (`src/lib/acentos.ts`). Entran una vez,
+al asomar, creciendo desde su centro (`forma` en `src/lib/animaciones.ts`).
+Nada de texturas, degradados ni fondos animados con shaders: se probaron dos
+(uno casi invisible y uno de agua con cáusticas) y los dos se rechazaron por
+no ser de la marca. Las formas de color claro (rosa, cian, amarillo, verde)
 van solo donde no puede caer texto, como detrás de un retrato; donde puede
 pasar texto por encima, van en azul hondo.
+
+**La letra a pincel es la del logo de la escuela, y solo para rótulos.** El
+logo de la Escuela de Emprendimiento está pintado a mano, en blanco y
+amarillo, como el rótulo de un negocio de barrio. La clase `.pincel`
+(`src/styles/tokens.css`, tipografía Amatic SC, elegida por Diseña Futuro)
+escribe con esa letra las pocas frases que el sitio dice en voz alta: la
+cinta de palabras (un renglón blanco y otro amarillo, como el logo), "En sus
+propias palabras", la llamada de cada tarjeta, "Conoce también a" y el lema
+de la portada. No es para leer ni para la interfaz: titulares, textos,
+botones y filtros siguen en General Sans, con su fino + grueso. No se usa
+para destacar una palabra dentro de un titular. Va siempre grande, en blanco
+o en amarillo (o en azul sobre el cartel claro). El subrayado amarillo es
+una pincelada (`.pincelada`), no una barra recta. En la portada el logo va
+grande y un punto torcido, como el cartel del retrato.
 
 **Patrones conocidos antes que rótulos (Ley de Jakob).** La gente pasa casi
 todo su tiempo en otras aplicaciones y espera que esta funcione igual, así
@@ -80,9 +93,18 @@ Antes eran tres piezas: el mensaje, una línea que lo explicaba y un botón
   (`aria-label` o `.solo-lectores`). Nunca un icono sin nombre.
 - Un elemento, una acción: si la burbuja, la flecha y el retrato llevan al
   mismo sitio, son un solo enlace.
-- No se quita el texto que pidió Diseña Futuro ("¡Conócelo!", "¡Conoce a los
-  emprendedores!"), aunque un icono pudiera sustituirlo.
+- No se quita el texto que pidió Diseña Futuro (la llamada de cada tarjeta,
+  "¡Conoce a los emprendedores!"), aunque un icono pudiera sustituirlo.
 - Para acciones redondas de icono hay una sola pieza: `.boton-icono`.
+
+**Sin género al hablar de una persona.** El sitio no sabe si cada quien es
+emprendedor o emprendedora, y no se le pregunta. Todo lo que se refiere a
+una sola persona se escribe sin género: "¡Conoce su negocio!" (antes
+"¡Conócelo!", que salía también en las fichas de mujeres), "Conoce cada
+historia", "1 emprendimiento", "con certificado de", "Escríbele". Vale
+también para lo que solo oyen los lectores de pantalla y para las
+descripciones de buscadores. "Emprendedores", en plural, es el nombre del
+directorio y del programa, y se mantiene.
 
 **El rostro, al centro.** Las fotos son apaisadas y la cara cae arriba, justo
 en el canto de la gota. Cada persona lleva en el JSON un campo `rostro`
@@ -92,6 +114,9 @@ en `src/lib/directorio.ts`. Al añadir una foto, hay que ponerlo.
 No usar:
 
 - Varias transiciones distintas para lo mismo, o elegidas al azar.
+- Trazos o líneas curvas de fondo (el arco de Diseña Futuro): se pidió
+  quitarlos. Solo formas llenas.
+- La letra a pincel en textos para leer, en botones o en letra pequeña.
 - Ondas o anillos que salen de un elemento (ripple), pulsos, brillos que
   cruzan un botón, flechas que rebotan, cintas que corren solas.
 - Círculos que se abren desde el clic o cortinas entre páginas. La transición
