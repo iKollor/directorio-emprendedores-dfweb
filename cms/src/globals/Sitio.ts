@@ -127,7 +127,11 @@ export const Sitio: GlobalConfig = {
           fields: [
             texto('titular', 'Titular', NEGRITA),
             parrafo('bajada', 'Frase bajo el titular', 'Cada línea que escribas es una línea en el sitio.'),
-            texto('conocelo', 'Llamada de cada tarjeta'),
+            texto(
+              'conocelo',
+              'Llamada de cada tarjeta',
+              'Sale en todas las fichas: escríbela sin género ("¡Conoce su negocio!"), no "¡Conócelo!" ni "¡Conócela!".',
+            ),
             texto('proximamente', 'Etiqueta de quien aún no tiene ficha'),
             texto('notaProximamente', 'Nota de quien aún no tiene ficha'),
             texto('vacioTitulo', 'Sin resultados: titular'),

@@ -8,6 +8,9 @@
  * se inclinaban. Era lo único de la página que se movía sin que nadie hiciera
  * nada, y obligaba a leer al ritmo de la cinta.
  *
+ * Va en la letra a pincel del logo de la escuela (`.pincel`), y con su
+ * reparto de color: un renglón blanco y otro amarillo.
+ *
  * Es decorativa: repite el lema del hero, así que se oculta a los lectores de
  * pantalla. Cada pista lleva el texto dos veces para que nunca se vea su
  * final durante el recorrido.
@@ -16,12 +19,12 @@ import { getSitio } from "../lib/sitio";
 
 const PALABRAS = (await getSitio(Astro.locals)).portada.palabras;
 const FILAS = [
-  { sentido: 1, estilo: "lleno" },
-  { sentido: -1, estilo: "contorno" },
+  { sentido: 1, estilo: "blanca" },
+  { sentido: -1, estilo: "amarilla" },
 ] as const;
 ---
 
-<section class="cinta" aria-hidden="true" data-cinta>
+<section class="cinta pincel" aria-hidden="true" data-cinta>
   {
     FILAS.map((fila) => (
       <div class:list={["fila", fila.estilo]} data-sentido={fila.sentido}>
@@ -48,14 +51,11 @@ const FILAS = [
     z-index: 2;
     display: flex;
     flex-direction: column;
-    gap: 0.1em;
+    gap: 0.04em;
     padding-block: clamp(1.5rem, 5vw, 3.5rem);
     overflow: hidden;
-    font-size: clamp(2.6rem, 9vw, 8rem);
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: -0.04em;
-    text-transform: lowercase;
+    font-size: clamp(4rem, 13.5vw, 11.5rem);
+    line-height: 0.82;
     user-select: none;
   }
 
@@ -77,20 +77,21 @@ const FILAS = [
   }
 
   .palabra {
-    padding-inline: 0.18em;
+    padding-inline: 0.14em;
+    /* La letra deja mucho aire arriba; así los dos renglones quedan juntos. */
+    padding-block-start: 0.12em;
   }
 
-  .contorno .palabra {
-    color: transparent;
-    -webkit-text-stroke: 1.5px var(--df-bone);
+  .amarilla .palabra {
+    color: var(--df-yellow);
   }
 
   /* Un punto amarillo entre palabras, como la esfera del logo. */
   .punto {
     flex-shrink: 0;
-    width: 0.22em;
-    height: 0.22em;
-    margin-inline: 0.18em;
+    width: 0.13em;
+    height: 0.13em;
+    margin-inline: 0.12em;
     border-radius: 50%;
     /* Una gota pequeña: el mismo brillo arriba a la izquierda que los retratos. */
     background:
@@ -99,12 +100,12 @@ const FILAS = [
     box-shadow: inset -0.02em -0.03em 0.05em rgb(0 0 40 / 0.35);
   }
 
-  .contorno .punto {
-    --color-punto: var(--df-cyan);
+  .amarilla .punto {
+    --color-punto: var(--df-bone);
   }
 
   /* La segunda fila arranca desplazada para no alinear las palabras. */
-  .contorno .pista {
+  .amarilla .pista {
     translate: -25% 0;
   }
 </style>

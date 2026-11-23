@@ -49,7 +49,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
           tipo={acento.tipo}
           color={acento.color}
           semilla={`acento-${e.slug}`}
-          flota={acento.tipo === "arco" ? -0.05 : 0.07}
+          flota={0.07}
         />
       </div>
     )
@@ -89,7 +89,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
         <p class="nota">{textos.notaProximamente}</p>
       ) : (
         <p class="ver" aria-hidden="true">
-          {textos.conocelo} <span class="flecha">→</span>
+          <span class="pincel">{textos.conocelo}</span> <span class="flecha">→</span>
         </p>
       )
     }
@@ -123,8 +123,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
    *
    * El lado lo da la columna de la celda (`data-columna`, que el listado
    * reparte de nuevo al filtrar): por defecto asoma a la izquierda, y en la
-   * columna derecha, a la derecha. El trazo de la derecha es el de la
-   * izquierda en espejo.
+   * columna derecha, a la derecha.
    */
   .acento {
     position: absolute;
@@ -144,17 +143,16 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
     right: -24%;
   }
 
-  /* El trazo abraza una esquina de arriba del retrato. */
-  .acento.arco {
-    width: 112%;
-    top: -12%;
-    left: -11%;
+  /* La estrella asoma por una esquina de arriba del retrato. */
+  .acento.estrella {
+    width: 40%;
+    top: -11%;
+    left: -12%;
   }
 
-  :global(.celda[data-columna="der"]) .acento.arco {
+  :global(.celda[data-columna="der"]) .acento.estrella {
     left: auto;
-    right: -11%;
-    scale: -1 1;
+    right: -12%;
   }
 
   .retrato {
@@ -231,6 +229,20 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
     margin: 0.15rem 0 0;
     font-weight: 600;
     color: var(--df-yellow);
+  }
+
+  /* La llamada va a pincel, como un rótulo; la flecha sigue siendo la del sitio. */
+  .ver {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .ver .pincel {
+    font-size: 2.2em;
+    line-height: 0.8;
+    /* La letra cuelga un poco: se sube para que la flecha quede a su altura. */
+    padding-block-start: 0.12em;
   }
 
   .nota {

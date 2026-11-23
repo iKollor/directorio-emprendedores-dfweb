@@ -35,7 +35,7 @@ const catSiguiente = siguiente ? categoria(siguiente.categoria) : null;
 // foto subida al panel se sirve desde el sitio y no desde el panel.
 const imagenCompartir = (await getImage({ ...paraImage(e.foto), width: 1200, format: "jpg" })).src;
 
-const descripcion = `${e.emprendimiento} — ${e.nombre}, certificado por la Escuela de Emprendimiento de Diseña Futuro. Escríbele directamente por WhatsApp.`;
+const descripcion = `${e.emprendimiento} — ${e.nombre}, con certificado de la Escuela de Emprendimiento de Diseña Futuro. Escríbele directamente por WhatsApp.`;
 
 // Sin dirección ni zona mientras la comunidad no se publique: los datos
 // estructurados también los leen buscadores y terceros.
@@ -111,7 +111,7 @@ const datosEstructurados = {
     {
       e.galeria.length > 0 && (
         <section class="galeria" aria-labelledby="titulo-galeria">
-          <h2 id="titulo-galeria" data-anim="letras">{textos.tituloGaleria}</h2>
+          <h2 id="titulo-galeria" class="pincel" data-anim="letras">{textos.tituloGaleria}</h2>
           <ul data-anim="revelar" data-anim-hijos>
             {e.galeria.map((foto, i) => (
               <li>
@@ -137,10 +137,10 @@ const datosEstructurados = {
        * suben a ocupar el sitio del titular y del retrato (lib/viaje.ts).
        */
       siguiente && catSiguiente && (
-        <nav class="siguiente" aria-label="Siguiente emprendedor" data-siguiente>
+        <nav class="siguiente" aria-label="Siguiente ficha" data-siguiente>
           <a class="enlace-siguiente" href={`/emprendedores/${siguiente.slug}/`} data-viaja-a={siguiente.slug} style={`--acento:${catSiguiente.color};`}>
             <span class="frase">
-              {textos.siguiente}
+              <span class="pincel invita">{textos.siguiente}</span>
               <strong data-viaja="nombre">{siguiente.nombre}</strong>
               <span class="oficio-siguiente">{siguiente.emprendimiento}</span>
             </span>
@@ -344,10 +344,11 @@ const datosEstructurados = {
     margin-block-start: clamp(3rem, 8vw, 6rem);
   }
 
+  /* A pincel, como "En sus propias palabras" en la portada. */
   .galeria h2 {
     margin-bottom: clamp(1.25rem, 3vw, 2rem);
-    font-size: var(--txt-l);
-    font-weight: 700;
+    font-size: clamp(3.4rem, 2.2rem + 5.2vw, 7rem);
+    line-height: 0.86;
   }
 
   .galeria ul {
@@ -375,12 +376,19 @@ const datosEstructurados = {
     text-decoration: none;
   }
 
-  /* Fino + grueso: la frase es fina y el nombre, grueso, baja a su línea. */
+  /* La frase invita y el nombre, grueso, baja a su línea. */
   .frase {
     font-size: var(--txt-xl);
     font-weight: 300;
     line-height: 0.98;
     letter-spacing: -0.03em;
+  }
+
+  /* La invitación va a pincel, como la llamada de cada tarjeta del listado. */
+  .invita {
+    display: block;
+    margin-block-end: 0.08em;
+    font-size: 1.15em;
   }
 
   .frase strong {

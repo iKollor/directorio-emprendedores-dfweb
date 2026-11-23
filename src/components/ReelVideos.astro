@@ -32,7 +32,7 @@ const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
   conVideo.length > 0 && (
     <section class="reel" aria-labelledby="titulo-reel">
       <div class="cabecera">
-        <h2 id="titulo-reel">{textos.titular}</h2>
+        <h2 id="titulo-reel" class="pincel">{textos.titular}</h2>
         <p>{textos.bajada}</p>
       </div>
 
@@ -96,13 +96,14 @@ const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
     margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
   }
 
+  /* "En sus propias palabras", escrito a mano: es lo que dice. */
   .cabecera h2 {
-    font-size: var(--txt-l);
-    font-weight: 700;
+    font-size: clamp(3.4rem, 2.2rem + 5.2vw, 7rem);
+    line-height: 0.86;
   }
 
   .cabecera p {
-    margin: 0.4rem 0 0;
+    margin: 0.9rem 0 0;
     opacity: 0.75;
   }
 

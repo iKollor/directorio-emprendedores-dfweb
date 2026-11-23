@@ -511,6 +511,9 @@ export interface Sitio {
      * Cada línea que escribas es una línea en el sitio.
      */
     bajada?: string | null;
+    /**
+     * Sale en todas las fichas: escríbela sin género ("¡Conoce su negocio!"), no "¡Conócelo!" ni "¡Conócela!".
+     */
     conocelo?: string | null;
     proximamente?: string | null;
     notaProximamente?: string | null;

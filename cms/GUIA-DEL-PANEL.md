@@ -52,6 +52,9 @@ repartido en pestañas: portada, listado, vídeos, ficha, pie y general.
 - En el mensaje de WhatsApp, `{nombre}` se cambia por el nombre de cada
   persona.
 - Si dejas un campo vacío, vuelve el texto original.
+- Los textos que salen en todas las fichas se escriben sin género: el sitio
+  no sabe si cada persona es emprendedor o emprendedora. Por eso la llamada
+  de cada tarjeta dice "¡Conoce su negocio!" y no "¡Conócelo!".
 - En **Organizaciones y logos** se cambia el logo de cada organización, su
   nombre y su web. El logo debe ser PNG o WebP con fondo transparente, en su
   versión clara, porque va sobre el azul del sitio.

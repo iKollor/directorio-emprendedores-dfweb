@@ -13,7 +13,7 @@ Estado de cada punto de la revisión.
 | 7 | "Escuela de Emprendimiento" con la tipografía tipo logo | ✅ Ya no es una propuesta con la fuente del sitio: es el logo de la escuela que enviaron (letras a pincel, blanco y amarillo), en el inicio y en el pie. Se cambia desde el panel. |
 | 8 | Botón de pago para donaciones | 💬 Conversación pendiente con Isaí. No hay cambios en el sitio. |
 | 9 | Fotos de productos o servicios en los perfiles | ✅ Nueva sección "Su trabajo" en cada ficha. Aparece cuando hay fotos en `src/assets/productos/<slug>/`. |
-| 10 | "¡Conócele!" → "¡Conócelo!" | ✅ Cambiado. Se puede usar "¡Conócela!" para las emprendedoras si lo prefieren. |
+| 10 | "¡Conócele!" → "¡Conócelo!" | ✅ Cambiado, y después sustituido por "¡Conoce su negocio!": "¡Conócelo!" salía también en las fichas de mujeres. Lo que se refiere a una sola persona se escribe ahora sin género en todo el sitio. |
 | 11 | Texto sobre formación y microcrédito | ✅ Ahora dice: "Los emprendedores de esta plataforma se certificaron en el programa de la Escuela de Emprendimiento de Diseña Futuro, luego de culminar un proceso de fortalecimiento de conocimientos y desarrollo de habilidades blandas." |
 | 12 | Botones de redes de DF | ✅ Se quitaron Instagram y LinkedIn. El pie enlaza solo a las webs de Diseña Futuro e Intervalores. |
 | 13 | "Sabanilla y Los Lojas · Daule" en el pie | ✅ Eliminado. |
