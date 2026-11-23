@@ -42,7 +42,7 @@ escribe. No hay cuentas de GitHub ni servidor de base de datos.
 |---|---|
 | Fichas | Nombre, oficio, descripción, teléfono, retrato, vídeo y fotos de cada persona |
 | Categorías | Se crean y se renombran; el color se elige entre los de la marca |
-| Textos y logos | Titulares, botones, mensaje de WhatsApp, pie, y las organizaciones con su logo y su web |
+| Textos y logos | Titulares, botones, mensaje de WhatsApp, pie, el logo de la escuela, y las organizaciones con su logo y su web |
 | Borradores | "Guardar borrador" no toca el sitio; "Publicar" sí |
 | Vista previa | La ficha o la portada reales (`Ficha.astro`, `Portada.astro`), en un marco junto al formulario |
 | Rostro | El punto focal de la foto en el panel es el campo `rostro` |
@@ -109,9 +109,10 @@ fotos`) alimentan solo el JSON: con el panel en marcha ya no son la fuente.
 Ver también [`COMENTARIOS-OCTUBRE.md`](COMENTARIOS-OCTUBRE.md): estado de los
 comentarios de Diseña Futuro de octubre de 2026.
 
-1. **Logo de Intervalores.** Guardarlo en `public/brand/intervalores.svg` (o
-   `.webp`/`.png`, versión clara). Mientras falte se muestra el nombre en texto
-   y el build avisa.
+1. **Logo de Intervalores, en blanco.** Los archivos recibidos solo traen la
+   versión en tinta y magenta, que no se lee sobre el azul. Se usa el logo
+   oficial pasado a una tinta blanca: hay que confirmarlo con Intervalores o
+   pedirles su versión en negativo. Ver `public/brand/FUENTES.md`.
 2. **Fotos.** 12 de 14 muestran una silueta neutra porque falta su foto. Ya no
    se presta la foto de otra persona. Revisar que en ninguna aparezcan menores
    de edad (la de Alexandra Medina se retiró por eso: `fotoRetirada` en el JSON).

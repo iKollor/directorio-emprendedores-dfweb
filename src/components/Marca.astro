@@ -5,6 +5,9 @@
  * Salen de "Textos y logos" en el panel (lib/sitio.ts). El primero lleva al
  * inicio. Una organización sin logo se muestra con su nombre en texto: no se
  * redibuja una marca ajena a ojo.
+ *
+ * Los tamaños llevan un tope en `vw`: con dos logos de verdad, uno al lado
+ * del otro, en un móvil estrecho no cabían y el segundo se salía del borde.
  */
 import { Image } from "astro:assets";
 import { getSitio } from "../lib/sitio";
@@ -54,11 +57,11 @@ const { organizaciones } = await getSitio(Astro.locals);
 <style>
   .marcas { display: inline-flex; align-items: center; gap: clamp(.75rem, 1.6vw, 1.25rem); flex-shrink: 0; }
   .marca { display: inline-flex; align-items: center; text-decoration: none; }
-  .marca img { display: block; width: auto; max-width: clamp(112px, 14vw, 184px); height: auto; max-height: clamp(40px, 5vw, 64px); object-fit: contain; }
-  .grande .marca img { max-width: clamp(150px, 20vw, 260px); max-height: clamp(54px, 7vw, 90px); }
+  .marca img { display: block; width: auto; max-width: min(30vw, clamp(112px, 14vw, 184px)); height: auto; max-height: clamp(40px, 5vw, 64px); object-fit: contain; }
+  .grande .marca img { max-width: min(33vw, clamp(150px, 20vw, 260px)); max-height: clamp(54px, 7vw, 90px); }
   .separador { align-self: stretch; width: 1.5px; margin-block: .35em; background: currentColor; opacity: .45; }
-  img.aliado { display: block; width: auto; height: clamp(26px, 3.2vw, 40px); }
-  .grande img.aliado { height: clamp(34px, 4.4vw, 54px); }
+  img.aliado { display: block; width: auto; height: min(7vw, clamp(26px, 3.2vw, 40px)); }
+  .grande img.aliado { height: min(7.6vw, clamp(34px, 4.4vw, 54px)); }
   .aliado-texto { font-size: clamp(1.05rem, 1.7vw, 1.5rem); font-weight: 600; letter-spacing: -.02em; line-height: 1; white-space: nowrap; }
   .grande .aliado-texto { font-size: clamp(1.3rem, 2.4vw, 2rem); }
 </style>
