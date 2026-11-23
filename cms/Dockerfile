@@ -3,7 +3,7 @@
 #
 # Se construye con un segundo contexto, `raiz`, que es la raíz del
 # repositorio: de ahí sale la semilla del primer arranque (los emprendedores,
-# sus fotos y los logos). docker compose lo pasa con `additional_contexts`; a
+# sus fotos, sus vídeos y los logos). docker compose lo pasa con `additional_contexts`; a
 # mano: docker build --build-context raiz=.. .
 FROM node:22-slim AS base
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -34,6 +34,7 @@ COPY --from=compilacion --chown=node:node /app/.next/static ./.next/static
 ENV SEMILLA_DIR=/semilla
 COPY --from=raiz src/data /semilla/data
 COPY --from=raiz src/assets/emprendedores /semilla/assets/emprendedores
+COPY --from=raiz src/assets/videos /semilla/assets/videos
 COPY --from=raiz public/brand /semilla/brand
 
 USER node

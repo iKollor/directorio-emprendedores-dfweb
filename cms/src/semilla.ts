@@ -4,8 +4,9 @@ import type { Payload, PayloadRequest } from 'payload'
 
 /**
  * PRIMER ARRANQUE. Con la base vacía, carga los emprendedores que ya estaban
- * en el JSON del sitio (`src/data/emprendedores.json`) y sus fotos. Solo
- * ocurre una vez: en cuanto hay un emprendedor, no vuelve a hacer nada.
+ * en el JSON del sitio (`src/data/emprendedores.json`), sus fotos y sus
+ * vídeos. Solo ocurre una vez: en cuanto hay un emprendedor, no vuelve a
+ * hacer nada.
  */
 type Crudo = {
   slug: string
@@ -54,6 +55,23 @@ export async function subirLogo(
         fs.existsSync(ruta),
       )
     : undefined
+  if (!archivo) return undefined
+  return (await payload.create({ collection: 'medios', data: {}, filePath: archivo, req })).id as number
+}
+
+/**
+ * Sube al panel el vídeo de presentación de una persona, si lo hay:
+ * `assets/videos/<slug>.mp4` (o `.webm`), la misma convención del sitio.
+ */
+export async function subirVideo(
+  payload: Payload,
+  raiz: string,
+  slug: string,
+  req?: PayloadRequest,
+): Promise<number | undefined> {
+  const archivo = ['mp4', 'webm']
+    .map((extension) => path.join(raiz, 'assets', 'videos', `${slug}.${extension}`))
+    .find((ruta) => fs.existsSync(ruta))
   if (!archivo) return undefined
   return (await payload.create({ collection: 'medios', data: {}, filePath: archivo, req })).id as number
 }
@@ -138,6 +156,7 @@ export async function sembrar(payload: Payload) {
         descripcion: pendiente ? undefined : (crudo.resumen ?? (crudo.parrafos ?? []).join('\n\n')),
         telefono: crudo.telefono ?? undefined,
         foto,
+        video: pendiente ? undefined : await subirVideo(payload, raiz, crudo.slug),
         _status: crudo.publicado ? 'published' : 'draft',
       },
     })

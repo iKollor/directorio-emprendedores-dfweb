@@ -116,8 +116,10 @@ comentarios de Diseña Futuro de octubre de 2026.
 2. **Fotos.** 12 de 14 muestran una silueta neutra porque falta su foto. Ya no
    se presta la foto de otra persona. Revisar que en ninguna aparezcan menores
    de edad (la de Alexandra Medina se retiró por eso: `fotoRetirada` en el JSON).
-3. **Videos y fotos de productos:** ver `src/assets/videos/LEEME.md` y
-   `src/assets/productos/LEEME.md`. Basta con dejar los archivos con el slug.
+3. **Videos y fotos de productos:** hay video de 4 personas; ver
+   `src/assets/videos/LEEME.md` (qué falta y qué hay que confirmar) y
+   `src/assets/productos/LEEME.md`. Basta con dejar los archivos con el slug,
+   o subirlos desde el panel.
 4. **Confirmar autorización de uso de imagen** de los emprendedores con Diseña
    Futuro.
 5. **6 emprendedores sin datos de negocio** aparecen como "Próximamente". Hay
