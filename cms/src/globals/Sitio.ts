@@ -5,7 +5,7 @@ import { avisarPublicacion } from '../avisar'
 
 /**
  * TODO LO QUE EL SITIO DICE Y NO ES UNA FICHA: titulares, textos, botones,
- * el mensaje de WhatsApp y los logos de las organizaciones.
+ * el mensaje de WhatsApp, los logos de las organizaciones y el de la escuela.
  *
  * Los textos de partida están en `src/data/sitio.json` del sitio, con la
  * misma forma que estos campos: el panel los carga en su primer arranque, y
@@ -76,6 +76,17 @@ export const Sitio: GlobalConfig = {
           name: 'organizaciones',
           label: 'Organizaciones y logos',
           fields: [
+            {
+              name: 'logoEscuela',
+              type: 'upload',
+              relationTo: 'medios',
+              label: 'Logo de la Escuela de Emprendimiento',
+              filterOptions: { mimeType: { contains: 'image' } },
+              admin: {
+                description:
+                  'Sale en la portada, sobre el titular, y en el pie. PNG o WebP con fondo transparente, en su versión para fondo azul. Si lo quitas, vuelve el logo original.',
+              },
+            },
             {
               name: 'lista',
               type: 'array',
@@ -167,7 +178,11 @@ export const Sitio: GlobalConfig = {
             {
               type: 'row',
               fields: [
-                texto('escuelaLinea1', 'Nombre de la escuela, línea 1'),
+                texto(
+                  'escuelaLinea1',
+                  'Nombre de la escuela, línea 1',
+                  'El nombre es lo que lee un lector de pantalla en lugar del logo de la escuela.',
+                ),
                 texto('escuelaLinea2', 'Nombre de la escuela, línea 2'),
               ],
             },

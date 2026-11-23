@@ -8,9 +8,10 @@
     "menuEscuela": "La escuela"
   },
   "organizaciones": [
-    { "nombre": "Diseña Futuro", "url": "https://disenafuturo.com/", "logoArchivo": "disena-futuro.webp" },
-    { "nombre": "Intervalores", "url": "https://www.intervalores.com.ec/", "logoArchivo": null }
+    { "nombre": "Diseña Futuro", "url": "https://disenafuturo.com/", "logoArchivo": "disena-futuro.webp", "logoAncho": 608, "logoAlto": 208 },
+    { "nombre": "Intervalores", "url": "https://www.intervalores.com.ec/", "logoArchivo": "intervalores.webp", "logoAncho": 1243, "logoAlto": 220 }
   ],
+  "escuela": { "logoArchivo": "escuela-emprendimiento.webp", "logoAncho": 960, "logoAlto": 395 },
   "portada": {
     "titular": "Conoce a nuestros *emprendedores*",
     "intro": "Personas que decidieron apostar por sus ideas y convertir sus conocimientos y talentos en oportunidades para sus familias y sus comunidades. Aquí puedes conocer sus negocios y *contactarlos directamente*.",

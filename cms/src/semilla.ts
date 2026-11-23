@@ -1,11 +1,12 @@
 import fs from 'fs'
 import path from 'path'
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 
 /**
  * PRIMER ARRANQUE. Con la base vacía, carga los emprendedores que ya estaban
- * en el JSON del sitio (`src/data/emprendedores.json`) y sus fotos. Solo
- * ocurre una vez: en cuanto hay un emprendedor, no vuelve a hacer nada.
+ * en el JSON del sitio (`src/data/emprendedores.json`), sus fotos y sus
+ * vídeos. Solo ocurre una vez: en cuanto hay un emprendedor, no vuelve a
+ * hacer nada.
  */
 type Crudo = {
   slug: string
@@ -35,7 +36,48 @@ const CATEGORIAS: Record<string, { nombre: string; color: string }> = {
 
 type SitioJson = Record<string, unknown> & {
   organizaciones?: { nombre: string; url?: string; logoArchivo?: string | null }[]
+  escuela?: { logoArchivo?: string | null }
 }
+
+/**
+ * Sube al panel un logo de `public/brand`. En local los logos están en esa
+ * carpeta; en el servidor, dentro de la imagen (`SEMILLA_DIR/brand`).
+ * Desde una migración se pasa su `req`, para escribir en su transacción.
+ */
+export async function subirLogo(
+  payload: Payload,
+  raiz: string,
+  nombre?: string | null,
+  req?: PayloadRequest,
+): Promise<number | undefined> {
+  const archivo = nombre
+    ? [path.join(raiz, 'brand', nombre), path.join(raiz, '..', 'public', 'brand', nombre)].find((ruta) =>
+        fs.existsSync(ruta),
+      )
+    : undefined
+  if (!archivo) return undefined
+  return (await payload.create({ collection: 'medios', data: {}, filePath: archivo, req })).id as number
+}
+
+/**
+ * Sube al panel el vídeo de presentación de una persona, si lo hay:
+ * `assets/videos/<slug>.mp4` (o `.webm`), la misma convención del sitio.
+ */
+export async function subirVideo(
+  payload: Payload,
+  raiz: string,
+  slug: string,
+  req?: PayloadRequest,
+): Promise<number | undefined> {
+  const archivo = ['mp4', 'webm']
+    .map((extension) => path.join(raiz, 'assets', 'videos', `${slug}.${extension}`))
+    .find((ruta) => fs.existsSync(ruta))
+  if (!archivo) return undefined
+  return (await payload.create({ collection: 'medios', data: {}, filePath: archivo, req })).id as number
+}
+
+/** La carpeta de la semilla: `src` del sitio en local, `/semilla` en el servidor. */
+export const raizSemilla = () => path.resolve(process.env.SEMILLA_DIR || '../src')
 
 /** Los textos y logos de partida, desde `src/data/sitio.json`. */
 async function sembrarSitio(payload: Payload, raiz: string) {
@@ -44,31 +86,22 @@ async function sembrarSitio(payload: Payload, raiz: string) {
   const actual = await payload.findGlobal({ slug: 'sitio', draft: true })
   if (actual?.portada?.titular) return
 
-  const { organizaciones = [], ...textos } = JSON.parse(fs.readFileSync(json, 'utf8')) as SitioJson
+  const { organizaciones = [], escuela, ...textos } = JSON.parse(fs.readFileSync(json, 'utf8')) as SitioJson
   const lista = []
   for (const org of organizaciones) {
-    let logo: number | undefined
-    // En local los logos están en `public/brand`; en el servidor, montados.
-    const archivo = org.logoArchivo
-      ? [path.join(raiz, 'brand', org.logoArchivo), path.join(raiz, '..', 'public', 'brand', org.logoArchivo)].find(
-          (ruta) => fs.existsSync(ruta),
-        )
-      : undefined
-    if (archivo) {
-      logo = (await payload.create({ collection: 'medios', data: {}, filePath: archivo })).id as number
-    }
-    lista.push({ nombre: org.nombre, url: org.url, logo })
+    lista.push({ nombre: org.nombre, url: org.url, logo: await subirLogo(payload, raiz, org.logoArchivo) })
   }
+  const logoEscuela = await subirLogo(payload, raiz, escuela?.logoArchivo)
 
   await payload.updateGlobal({
     slug: 'sitio',
-    data: { ...textos, organizaciones: { lista }, _status: 'published' } as never,
+    data: { ...textos, organizaciones: { logoEscuela, lista }, _status: 'published' } as never,
   })
   payload.logger.info('Primer arranque: textos y logos cargados.')
 }
 
 export async function sembrar(payload: Payload) {
-  const raiz = path.resolve(process.env.SEMILLA_DIR || '../src')
+  const raiz = raizSemilla()
   await sembrarSitio(payload, raiz)
 
   const { totalDocs } = await payload.count({ collection: 'emprendedores' })
@@ -123,6 +156,7 @@ export async function sembrar(payload: Payload) {
         descripcion: pendiente ? undefined : (crudo.resumen ?? (crudo.parrafos ?? []).join('\n\n')),
         telefono: crudo.telefono ?? undefined,
         foto,
+        video: pendiente ? undefined : await subirVideo(payload, raiz, crudo.slug),
         _status: crudo.publicado ? 'published' : 'draft',
       },
     })

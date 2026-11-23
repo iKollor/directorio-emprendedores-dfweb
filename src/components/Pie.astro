@@ -52,7 +52,12 @@ const SITIOS = organizaciones.filter((o) => o.url);
 
 <style>
   .pie { position: relative; z-index: 2; background: var(--df-blue-deep); border-radius: clamp(2rem, 5vw, 4rem) clamp(2rem, 5vw, 4rem) 0 0; padding: clamp(3rem, 6vw, 6rem) var(--gutter) 1.5rem; }
-  .pie-principal { display: grid; grid-template-columns: 1fr 1.3fr 0.8fr; gap: clamp(2rem, 5vw, 5rem); padding-bottom: 4rem; }
+  /*
+   * Los logos de las organizaciones, en su propia fila: uno al lado del otro
+   * no caben en una columna. Debajo, la escuela y los enlaces.
+   */
+  .pie-principal { display: grid; grid-template-columns: 2.3fr 0.8fr; gap: clamp(2rem, 5vw, 5rem); padding-bottom: 4rem; }
+  .pie-marca { grid-column: 1 / -1; }
   /* Fino + grueso en la misma frase, igual que el titular del inicio. */
   .pie-lema { margin: 0 0 clamp(3rem, 7vw, 6rem); font-size: var(--txt-xl); font-weight: 300; line-height: 0.98; letter-spacing: -0.03em; }
   .pie-lema strong { display: block; font-weight: 700; }
@@ -72,6 +77,6 @@ const SITIOS = organizaciones.filter((o) => o.url);
   .arriba:hover .boton-icono, .arriba:focus-visible .boton-icono { scale: 1.1; }
   /* Arriba a la derecha, medio fuera del pie: en esa esquina no hay texto. */
   .pie-estrella { position: absolute; right: clamp(0.5rem, 5vw, 5rem); top: clamp(-7.5rem, -9vw, -3.25rem); width: clamp(112px, 19vw, 250px); pointer-events: none; }
-  @media (max-width: 900px) { .pie-principal { grid-template-columns: 1fr 1fr; } .pie-marca { grid-column: 1 / -1; } }
+  @media (max-width: 900px) { .pie-principal { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 540px) { .pie-principal { grid-template-columns: 1fr; padding-bottom: 2rem; } .pie-base { align-items: flex-start; flex-direction: column; gap: .5rem; } }
 </style>

@@ -10,11 +10,49 @@ Recuperados del sitio oficial https://disenafuturo.com/ el 14 de septiembre de 2
 
 El logo se conserva sin redibujarlo. Sigue pendiente recibir el original vectorial y el manual de marca.
 
+## Escuela de Emprendimiento
+
+Recibido de Diseña Futuro el 23 de noviembre de 2026 como `logo_escuela.ai`.
+
+- `escuela-emprendimiento.webp`: el logo tal cual, con sus colores (blanco y
+  amarillo, pensado para fondo azul), recortado a su contorno y con fondo
+  transparente. 960 px de ancho.
+- El vectorial está en `src/assets/marca/escuela-emprendimiento.svg`.
+
 ## Intervalores
 
-Pendiente. Guardar el logo oficial en versión clara (para fondo azul) como
-`intervalores.svg` (o `.webp` / `.png`) en esta carpeta. El sitio lo toma solo;
-mientras falte, muestra el nombre en texto y el build avisa.
+Recibido el 23 de noviembre de 2026 en la carpeta "Logos Intervalores
+actualiza.": el logo horizontal con su leyenda (`Logo completo.ai`), el
+vertical (`Verticla 2.ai`) y cuatro PNG.
+
+- `intervalores.webp`: el logo horizontal oficial **a una tinta, en blanco**,
+  recortado a su contorno y con fondo transparente. 220 px de alto.
+- Los vectoriales, con sus colores oficiales (tinta `#262631` y magenta
+  `#F00080`), están en `src/assets/marca/intervalores.svg` y
+  `intervalores-vertical.svg`.
+
+⚠️ La carpeta no trae versión para fondo oscuro: todas son en tinta y
+magenta, que sobre el azul del sitio no se leen (contraste 2,4 y 1,5). La
+blanca se sacó del vectorial oficial cambiando solo el color, sin tocar las
+formas; la propia carpeta trae una versión a una tinta (`Logos-23.png`).
+**Hay que confirmarla con Intervalores** o pedirles su versión en negativo.
+
+## Cómo se generaron
+
+Los `.ai` son PDF por dentro. Con `pdftocairo` (Poppler) e ImageMagick:
+
+```bash
+pdftocairo -svg "Logo completo.ai" intervalores.svg
+pdftocairo -png -transp -r 300 "Logo completo.ai" completo
+convert completo-1.png -trim +repage -channel RGB -fill white -colorize 100 +channel \
+  -resize x220 -define webp:lossless=true intervalores.webp
+pdftocairo -png -transp -r 200 logo_escuela.ai escuela
+convert escuela-1.png -trim +repage -resize 960x -define webp:lossless=true escuela-emprendimiento.webp
+```
+
+Si se cambia un archivo, hay que poner su medida nueva en `src/data/sitio.json`
+(`logoAncho`, `logoAlto`). Estos archivos son los logos de partida: los carga
+el panel en su primer arranque y los usa el sitio cuando se construye sin panel.
 
 ## Iconos
 

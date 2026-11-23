@@ -481,6 +481,10 @@ export interface Sitio {
   };
   organizaciones?: {
     /**
+     * Sale en la portada, sobre el titular, y en el pie. PNG o WebP con fondo transparente, en su versión para fondo azul. Si lo quitas, vuelve el logo original.
+     */
+    logoEscuela?: (number | null) | Medio;
+    /**
      * Salen en la cabecera y en el pie, en este orden. El logo de la primera lleva al inicio del sitio.
      */
     lista?:
@@ -554,6 +558,9 @@ export interface Sitio {
      * La que muestran Google y las redes al compartir el sitio.
      */
     descripcion?: string | null;
+    /**
+     * El nombre es lo que lee un lector de pantalla en lugar del logo de la escuela.
+     */
     escuelaLinea1?: string | null;
     escuelaLinea2?: string | null;
     menuEmprendedores?: string | null;
@@ -581,6 +588,7 @@ export interface SitioSelect<T extends boolean = true> {
   organizaciones?:
     | T
     | {
+        logoEscuela?: T;
         lista?:
           | T
           | {

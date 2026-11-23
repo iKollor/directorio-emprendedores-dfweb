@@ -1,23 +1,49 @@
 ---
 /**
- * "Escuela de Emprendimiento" con el tratamiento del logo de Diseña Futuro:
- * minúsculas, peso medio, dos líneas apretadas.
+ * El logo de la Escuela de Emprendimiento: las letras a pincel, en blanco y
+ * amarillo, que van sobre el azul del sitio.
  *
- * Es una propuesta para verla en contexto. Si se confirma y llega el archivo
- * de la tipografía del logo, basta con declararla en tokens.css y apuntar
- * `--fuente-logo` a ella; este componente no cambia.
+ * Sale de "Textos y logos" en el panel (lib/sitio.ts). El nombre escrito en
+ * "General" es lo que oye un lector de pantalla, y lo que se muestra si no
+ * hubiera logo: minúsculas, peso medio, dos líneas apretadas.
  */
+import { Image } from "astro:assets";
 import { getSitio } from "../lib/sitio";
 
 type Props = { tamano?: "hero" | "pie"; retraso?: number };
 const { tamano = "hero", retraso = 0 } = Astro.props;
-const { escuelaLinea1, escuelaLinea2 } = (await getSitio(Astro.locals)).general;
+const { general, logoEscuela: logo } = await getSitio(Astro.locals);
+const { escuelaLinea1, escuelaLinea2 } = general;
+const nombre = `${escuelaLinea1} ${escuelaLinea2}`.trim();
+
+/** Subido al panel: lo optimiza Astro, sin agrandarlo más de lo que mide. */
+const ALTO_MAXIMO = 160;
+const alto = logo ? Math.min(logo.height, ALTO_MAXIMO) : 0;
 ---
 
-<p class:list={["escuela", tamano]} data-anim="letras" data-anim-retraso={retraso}>
-  <span>{escuelaLinea1}</span>
-  <span>{escuelaLinea2}</span>
-</p>
+{
+  logo ? (
+    <p class:list={["escuela", "con-logo", tamano]} data-anim="subir" data-anim-retraso={retraso}>
+      {logo.remoto ? (
+        <Image
+          src={logo.src}
+          alt={nombre}
+          width={Math.round((logo.width / logo.height) * alto)}
+          height={alto}
+          layout="fixed"
+          loading={tamano === "hero" ? "eager" : "lazy"}
+        />
+      ) : (
+        <img src={logo.src} alt={nombre} width={logo.width} height={logo.height} loading={tamano === "hero" ? "eager" : "lazy"} />
+      )}
+    </p>
+  ) : (
+    <p class:list={["escuela", tamano]} data-anim="letras" data-anim-retraso={retraso}>
+      <span>{escuelaLinea1}</span>
+      <span>{escuelaLinea2}</span>
+    </p>
+  )
+}
 
 <style>
   .escuela {
@@ -33,4 +59,9 @@ const { escuelaLinea1, escuelaLinea2 } = (await getSitio(Astro.locals)).general;
 
   .hero { margin-block-end: clamp(0.25rem, 1vw, 0.75rem); font-size: clamp(1.6rem, 1.2rem + 2vw, 2.75rem); }
   .pie { font-size: clamp(1.4rem, 1.1rem + 1.4vw, 2.1rem); }
+
+  /* El alto manda, medido en la letra del nombre: así crece con la pantalla igual que él. */
+  .con-logo img { display: block; align-self: flex-start; width: auto; max-width: 100%; height: 2.75em; object-fit: contain; object-position: left center; }
+  /* El logo trae su propio aire; con el margen del texto el hero crecía de más. */
+  .con-logo.hero { margin-block-end: 0; }
 </style>

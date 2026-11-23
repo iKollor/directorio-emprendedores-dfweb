@@ -55,6 +55,10 @@ repartido en pestañas: portada, listado, vídeos, ficha, pie y general.
 - En **Organizaciones y logos** se cambia el logo de cada organización, su
   nombre y su web. El logo debe ser PNG o WebP con fondo transparente, en su
   versión clara, porque va sobre el azul del sitio.
+- En esa misma pestaña está el **logo de la Escuela de Emprendimiento**, el
+  que sale en la portada sobre el titular y en el pie. Si lo quitas, vuelve
+  el original. El nombre de la escuela que hay en **General** es lo que lee
+  un lector de pantalla en su lugar.
 
 Igual que en las fichas: el ojo abre la vista previa y nada cambia en el
 sitio hasta pulsar **Publicar**.
