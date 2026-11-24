@@ -18,7 +18,7 @@ clics a WhatsApp.
 |---|---|---|
 | `astro` | 7.3.2 | Framework: páginas estáticas, servidas con `@astrojs/node` |
 | `payload` | 3.94.0 | Panel de contenido, en `cms/` (SQLite) |
-| `gsap` | 3.15.0 | ScrollTrigger, Flip (todos los plugins son gratis desde 3.13) |
+| `gsap` | 3.15.0 | ScrollTrigger, CustomEase (todos los plugins son gratis desde 3.13) |
 | `lenis` | 1.3.26 | Smooth scroll |
 
 Sin frameworks de UI: todo es `.astro` más scripts vanilla. Cero islas.
@@ -395,7 +395,12 @@ como tabla porque la columna derecha arranca desfasada `12vh`, cada blob trae
 rotación y escala propias sembradas por su slug, y las columnas avanzan con
 parallax a velocidades distintas.
 
-Los filtros reflowan con **GSAP Flip**, sin recarga ni salto de scroll.
+Los filtros cambian la lista sin recarga ni salto de scroll, y sin
+espectáculo: lo que hay se apaga deprisa, la lista cambia cuando ya no se ve
+y lo que queda entra subiendo un poco, en orden. Hubo una versión con GSAP
+Flip, en la que cada tarjeta viajaba de su sitio viejo al nuevo; a medio
+camino los retratos se pisaban y se pidió algo más sobrio. El filtro elegido
+se marca al instante, sin píldora que se deslice de uno a otro.
 
 Las filas tienen **anclaje de scroll** (`lenis/snap`), en modo `proximity` y no
 `mandatory`: acomoda la fila cuando el usuario se detiene cerca, pero nunca le
@@ -403,16 +408,12 @@ arrebata el scroll a medio camino. En desktop ancla solo la columna izquierda,
 porque anclar las dos celdas de una fila daría dos paradas casi iguales.
 
 **Un nivel por dueño.** La anidación `.celda > .flota > .tarjeta` no es
-decorativa: Flip mueve la celda, el parallax mueve la flota y la animación de
+decorativa: el filtro apaga y enciende la celda, el parallax mueve la flota y la animación de
 entrada mueve la tarjeta. Cuando dos de esos efectos compartían nodo se pisaban
 el transform y las tarjetas se descolocaban al filtrar. Lo mismo en el fondo
 (`.orbita` la mueve el JS, `.pieza` solo pinta): **GSAP toma el control del
 `transform` completo del elemento que anima**, así que cualquier `scale` o
 `translate` de CSS en ese mismo nodo se pierde.
-
-`.grid` lleva `position: relative` y eso **no es cosmético**: Flip pasa las
-celdas a `position:absolute` mientras las anima, y sin un ancestro posicionado
-se colocaban respecto al viewport y salían disparadas hacia el hero.
 
 ### Cuidado con el movimiento y las transiciones
 
@@ -441,5 +442,5 @@ deliberado. **Pendiente de verificar a mano** en DevTools > Rendering.
 - Móvil 375px: 1 columna de 335px, sin scroll horizontal.
 - Desktop 1440px: 2 columnas de 601px con la derecha desfasada ~100px.
 - Morph de blobs activo, sin reacción al ratón.
-- Filtros: ninguna tarjeta se sale de la grilla durante la animación de Flip.
+- Filtros: ninguna tarjeta se pisa con otra ni se sale de la grilla al cambiar.
 - Vídeo: entra en hover, se pausa al salir; en la ficha arranca solo.

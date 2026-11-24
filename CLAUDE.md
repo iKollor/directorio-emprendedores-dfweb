@@ -245,6 +245,13 @@ No usar:
 - Mezclar una imagen nítida con otra, aunque sea dentro del vidrio. Cuando
   una luna se funde con la gota grande o se suelta de ella, esa zona se
   desenfoca primero y después cambia de imagen: es otro cambio de foco.
+- Hacer volar las tarjetas al filtrar. El listado cambia como en una
+  herramienta de trabajo: lo que hay se apaga, la lista cambia sin que se
+  vea y lo nuevo entra subiendo un poco. Con cada tarjeta viajando a su
+  sitio nuevo, los retratos se pisaban a medio camino. Tampoco hay píldora
+  que se deslice entre filtros: el elegido se marca al instante.
+- Buscar el retrato de una tarjeta con `.blob` a secas: la forma de adorno
+  que algunas llevan detrás también lo es y va antes. Es `.retrato .blob`.
 - Saltar al final de un movimiento para empezar otro. Cada luna lleva su
   propio movimiento y se puede interrumpir donde esté; si llegan dos cambios
   seguidos, sigue desde ahí.
