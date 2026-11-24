@@ -1,10 +1,14 @@
 ---
 /**
- * Franja de reels: los vídeos de los emprendedores en bucle infinito.
+ * Franja de reels: los vídeos de los emprendedores en bucle infinito, que
+ * además se arrastra con el ratón o con el dedo.
  *
- * La lista se duplica y la pista avanza hasta -50%, momento en que la segunda
- * copia queda exactamente donde estaba la primera. Por eso el bucle no tiene
- * costura: no se reinicia nada, solo se repite un tramo idéntico.
+ * La lista se repite en copias idénticas, una detrás de otra, y la franja
+ * avanza el ancho de una copia y vuelve a empezar: en ese punto la siguiente
+ * copia está exactamente donde estaba la primera, así que el bucle no tiene
+ * costura. El HTML trae dos copias; el script añade las que falten para que
+ * siempre haya una pantalla llena más una copia de sobra. Con dos fijas y
+ * pocos vídeos, en una pantalla ancha se veía el final de la franja.
  *
  * Reproducir catorce vídeos a la vez sería un abuso aunque compartan archivo:
  * cada <video> abre su propio decodificador. Solo se reproducen los que están
@@ -23,8 +27,9 @@ const textos = (await getSitio(Astro.locals)).videos;
 // ningún vídeo todavía, la sección entera no se muestra.
 const conVideo = emprendedores.filter((e) => !e.fichaPendiente && e.video);
 
-// Dos copias para el bucle. La segunda es decorativa: los lectores de pantalla
-// no deben oír la misma lista dos veces.
+// Dos copias de partida para el bucle (el script añade más si la pantalla es
+// ancha). Solo la primera es de verdad: las demás son decorativas, y los
+// lectores de pantalla no deben oír la misma lista varias veces.
 const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
 ---
 
@@ -47,6 +52,7 @@ const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
                     class="enlace"
                     href={`/emprendedores/${e.slug}/`}
                     tabindex={copia === 1 ? -1 : undefined}
+                    draggable="false"
                   >
                     <div class="marco">
                       <Image
@@ -111,6 +117,24 @@ const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
     display: flex;
     width: max-content;
     will-change: transform;
+    /* Se arrastra de lado; el dedo sigue pudiendo bajar por la página. */
+    touch-action: pan-y;
+    user-select: none;
+    cursor: grab;
+  }
+
+  .franja[data-arrastrando] {
+    cursor: grabbing;
+  }
+
+  /* Mientras se arrastra, las tarjetas no reaccionan: no es un clic. */
+  .franja[data-arrastrando] .enlace {
+    pointer-events: none;
+  }
+
+  .enlace {
+    cursor: inherit;
+    -webkit-user-drag: none;
   }
 
   .pista {
@@ -192,6 +216,13 @@ const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
       width: 100%;
       overflow-x: auto;
       scroll-snap-type: x proximity;
+      touch-action: auto;
+      cursor: auto;
+    }
+
+    /* Sin bucle no hacen falta las copias: la lista sale una sola vez. */
+    .pista[aria-hidden="true"] {
+      display: none;
     }
 
     .tira {
@@ -204,23 +235,27 @@ const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
   import { gsap } from "gsap";
   import { sinMovimiento } from "../lib/scroll";
 
-  let cinta: gsap.core.Tween | null = null;
   let soltar: (() => void) | null = null;
 
   function limpiar() {
-    cinta?.kill();
-    cinta = null;
     soltar?.();
     soltar = null;
   }
+
+  /** Velocidad a la que avanza sola, en px por segundo. */
+  const VELOCIDAD = 38;
+  /** Al pasar el puntero se frena para poder leer y hacer clic sin perseguir. */
+  const FRENO = 0.15;
+  /** Lo que hay que mover el puntero para que sea un arrastre y no un clic. */
+  const UMBRAL = 6;
 
   function iniciar() {
     limpiar();
 
     const franja = document.querySelector<HTMLElement>("[data-franja]");
     if (!franja) return;
-
-    const videos = [...franja.querySelectorAll<HTMLVideoElement>("[data-reel]")];
+    const deshacer: (() => void)[] = [];
+    soltar = () => deshacer.forEach((f) => f());
 
     /*
      * Cada <video> abre su propio decodificador aunque todos compartan archivo,
@@ -246,49 +281,180 @@ const copias = conVideo.length > 0 ? [conVideo, conVideo] : [];
       },
       { root: null, rootMargin: "0px 10% 0px 10%" },
     );
-
-    if (!sinMovimiento()) {
-      for (const v of videos) observador.observe(v);
-    }
-
-    soltar = () => observador.disconnect();
+    deshacer.push(() => observador.disconnect());
 
     if (sinMovimiento()) return;
 
     /*
-     * Bucle sin costura: la pista avanza hasta -50%, punto en el que la segunda
-     * copia ocupa exactamente la posición inicial de la primera. Se repite un
-     * tramo idéntico, así que no hay salto que disimular.
-     *
-     * La duración se calcula desde el ancho real para que la velocidad sea la
-     * misma con ocho tarjetas que con veinte.
+     * COPIAS. Un paso del bucle es el ancho de una copia. Para que nunca se
+     * vea el final hacen falta las copias que llenan la pantalla y una más,
+     * que es la que entra mientras la primera sale. Se vuelve a contar al
+     * cambiar el ancho de la ventana.
      */
-    const ancho = franja.scrollWidth / 2;
-    const VELOCIDAD = 38; // px por segundo
+    let periodo = 0;
+    const completar = () => {
+      const pistas = franja.querySelectorAll<HTMLElement>("[data-pista]");
+      const [primera, segunda] = pistas;
+      if (!primera || !segunda) return;
+      periodo = segunda.offsetLeft - primera.offsetLeft;
+      if (periodo <= 0) return;
+      const hacenFalta = Math.ceil(window.innerWidth / periodo) + 1;
+      for (let i = pistas.length; i < hacenFalta; i++) {
+        const copia = segunda.cloneNode(true) as HTMLElement;
+        // Una copia nueva no hereda el estado del vídeo del que se clonó.
+        copia.querySelectorAll("video").forEach((v) => v.removeAttribute("data-listo"));
+        franja.append(copia);
+      }
+      for (const v of franja.querySelectorAll<HTMLVideoElement>("[data-reel]")) observador.observe(v);
+    };
+    completar();
+    if (periodo <= 0) return;
 
-    cinta = gsap.to(franja, {
-      xPercent: -50,
-      duration: Math.max(12, ancho / VELOCIDAD),
-      ease: "none",
-      repeat: -1,
+    let ajuste = 0;
+    const alCambiarAncho = () => {
+      window.clearTimeout(ajuste);
+      ajuste = window.setTimeout(completar, 200);
+    };
+    window.addEventListener("resize", alCambiarAncho);
+    deshacer.push(() => {
+      window.clearTimeout(ajuste);
+      window.removeEventListener("resize", alCambiarAncho);
     });
 
-    // Al pasar el puntero se frena para poder leer y hacer clic sin perseguir.
-    const frenar = () => cinta?.timeScale(0.15);
-    const soltarFreno = () => cinta?.timeScale(1);
+    /*
+     * MOVIMIENTO. Una sola posición, `x`, que se mueve por tres motivos: avanza
+     * sola, la lleva el puntero mientras se arrastra, y al soltarla conserva
+     * el impulso y lo va perdiendo hasta volver a su paso. Siempre se guarda
+     * dentro de un periodo, así que da igual cuánto o hacia dónde se arrastre.
+     */
+    const poner = gsap.quickSetter(franja, "x", "px") as (valor: number) => void;
+    let x = 0;
+    let freno = 1;
+    let frenoObjetivo = 1;
+    let impulso = 0;
+    let visible = true;
+
+    let pulsado = false;
+    let arrastrando = false;
+    let inicioPuntero = 0;
+    let inicioX = 0;
+    let ultimoPuntero = 0;
+    let ultimoTiempo = 0;
+    let velocidadPuntero = 0;
+    /** El clic que cierra un arrastre no debe abrir la ficha. */
+    let tragarClic = false;
+
+    const envolver = (valor: number) => {
+      const resto = valor % periodo;
+      return resto > 0 ? resto - periodo : resto;
+    };
+
+    const paso = (_tiempo: number, delta: number) => {
+      if (!visible) return;
+      const dt = Math.min(delta, 64) / 1000;
+      if (!arrastrando) {
+        freno += (frenoObjetivo - freno) * Math.min(1, dt * 6);
+        impulso *= Math.exp(-dt * 3);
+        if (Math.abs(impulso) < 4) impulso = 0;
+        x += (impulso - VELOCIDAD * freno) * dt;
+      }
+      x = envolver(x);
+      poner(x);
+    };
+    gsap.ticker.add(paso);
+    deshacer.push(() => {
+      gsap.ticker.remove(paso);
+      gsap.set(franja, { clearProps: "transform" });
+    });
+
+    // Fuera de pantalla no se mueve nada.
+    const aLaVista = new IntersectionObserver(([entrada]) => {
+      visible = entrada?.isIntersecting ?? true;
+    });
+    aLaVista.observe(franja.parentElement ?? franja);
+    deshacer.push(() => aLaVista.disconnect());
+
+    const alPulsar = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      pulsado = true;
+      inicioPuntero = ultimoPuntero = e.clientX;
+      inicioX = x;
+      ultimoTiempo = e.timeStamp;
+      velocidadPuntero = 0;
+      impulso = 0;
+    };
+
+    const alMover = (e: PointerEvent) => {
+      if (!pulsado) return;
+      const recorrido = e.clientX - inicioPuntero;
+      if (!arrastrando) {
+        if (Math.abs(recorrido) < UMBRAL) return;
+        arrastrando = true;
+        franja.setAttribute("data-arrastrando", "");
+        // El puntero sigue mandando aunque salga de la franja.
+        franja.setPointerCapture(e.pointerId);
+      }
+      x = inicioX + recorrido;
+      const dt = e.timeStamp - ultimoTiempo;
+      if (dt > 0) {
+        const instantanea = ((e.clientX - ultimoPuntero) / dt) * 1000;
+        velocidadPuntero = velocidadPuntero * 0.7 + instantanea * 0.3;
+        ultimoPuntero = e.clientX;
+        ultimoTiempo = e.timeStamp;
+      }
+    };
+
+    const alSoltar = (e: PointerEvent) => {
+      if (!pulsado) return;
+      pulsado = false;
+      if (!arrastrando) return;
+      arrastrando = false;
+      tragarClic = true;
+      // Si el puntero llevaba un rato quieto, no hay impulso que conservar.
+      const quieto = e.timeStamp - ultimoTiempo > 90;
+      impulso = quieto ? 0 : gsap.utils.clamp(-3000, 3000, velocidadPuntero);
+      franja.removeAttribute("data-arrastrando");
+      if (franja.hasPointerCapture(e.pointerId)) franja.releasePointerCapture(e.pointerId);
+      // El clic llega justo después; si no llega, la marca no debe quedarse.
+      window.setTimeout(() => (tragarClic = false), 0);
+    };
+
+    const alClic = (e: MouseEvent) => {
+      if (!tragarClic) return;
+      tragarClic = false;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    // El navegador intentaría arrastrar el enlace o la foto como un archivo.
+    const sinArrastreNativo = (e: DragEvent) => e.preventDefault();
+    const frenar = () => (frenoObjetivo = FRENO);
+    const soltarFreno = () => (frenoObjetivo = 1);
+
+    franja.addEventListener("pointerdown", alPulsar);
+    franja.addEventListener("pointermove", alMover);
+    franja.addEventListener("pointerup", alSoltar);
+    franja.addEventListener("pointercancel", alSoltar);
+    franja.addEventListener("click", alClic, true);
+    franja.addEventListener("dragstart", sinArrastreNativo);
     franja.addEventListener("pointerenter", frenar);
     franja.addEventListener("pointerleave", soltarFreno);
     franja.addEventListener("focusin", frenar);
     franja.addEventListener("focusout", soltarFreno);
 
-    const anterior = soltar;
-    soltar = () => {
-      anterior?.();
+    deshacer.push(() => {
+      franja.removeEventListener("pointerdown", alPulsar);
+      franja.removeEventListener("pointermove", alMover);
+      franja.removeEventListener("pointerup", alSoltar);
+      franja.removeEventListener("pointercancel", alSoltar);
+      franja.removeEventListener("click", alClic, true);
+      franja.removeEventListener("dragstart", sinArrastreNativo);
       franja.removeEventListener("pointerenter", frenar);
       franja.removeEventListener("pointerleave", soltarFreno);
       franja.removeEventListener("focusin", frenar);
       franja.removeEventListener("focusout", soltarFreno);
-    };
+      franja.removeAttribute("data-arrastrando");
+    });
   }
 
   document.addEventListener("astro:page-load", iniciar);
