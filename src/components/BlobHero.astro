@@ -705,7 +705,23 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     const lunas = [...escenario.querySelectorAll<HTMLElement>("[data-luna]")].map((el, i) => ({
       el,
       recorte: el.querySelector<HTMLElement>("[data-luna-recorte]"),
+      /**
+       * LO QUE SE ANIMA DE CADA LUNA, cada cosa con su propio ritmo:
+       *   fuera      de 0 (dentro de la gota grande) a 1 (en su sitio de la cola)
+       *   talla      su tamaño, sobre el que le toca por distancia (0 = no está)
+       *   union      de 0 (gota suelta) a 1 (un solo líquido con la grande)
+       *   presencia  cuánto se ve su retrato (0 = disuelto)
+       *   bruma      desenfoque sin tinta, al fundirse
+       */
       fuera: 0,
+      talla: 0,
+      union: 0,
+      presencia: 0,
+      bruma: 0,
+      /** Sus animaciones en curso: la de entrar o salir, y la de ir a su puesto. */
+      tls: [] as gsap.core.Timeline[],
+      tBase: null as gsap.core.Tween | null,
+      escalaToque: "",
       /** Ya tiene imagen que enseñar (su foto, o el fotograma de su vídeo). */
       lista: false,
       /** Enfoque que lleva, y si alguien la está mirando. */
@@ -719,7 +735,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       indice: i,
     }));
     /** Lo que se le pasa al material en cada fotograma. */
-    const liquido: Luna[] = lunas.map(() => ({ x: 0, y: 0, radio: 0, foco: 0, hondo: 0, union: 0, presencia: 1 }));
+    const liquido: Luna[] = lunas.map(() => ({ x: 0, y: 0, radio: 0, foco: 0, hondo: 0, union: 0, presencia: 1, bruma: 0 }));
     const suave = (a: number, b: number, x: number) => {
       const u = Math.min(1, Math.max(0, (x - a) / (b - a)));
       return u * u * (3 - 2 * u);
@@ -793,7 +809,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     };
     /** Lo que se ha tirado de la cola a mano, en puestos: positivo, hacia el frente. */
     let mano = 0;
-    /** Algo se está recolocando: hay que pintar todos los fotogramas. */
+    /** Alguna luna se está moviendo: hay que pintar todos los fotogramas. */
     let recolocando = false;
     let lado = escenario.offsetWidth;
     const enLiquido = Boolean(tinta && conSistema);
@@ -829,7 +845,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         v.addEventListener(
           "loadeddata",
           () => {
-            const LADO = 384;
+            const LADO = 720;
             const lienzo = document.createElement("canvas");
             lienzo.width = lienzo.height = LADO;
             const corto = Math.min(v.videoWidth, v.videoHeight);
@@ -857,6 +873,102 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
      * pulsa), se le dice al material dónde está cada gota. Sin él, el botón
      * es la luna, y pasa por delante o por detrás de la gota grande.
      */
+    // ---- Las tres cosas que hace una luna ------------------------------------
+    const cortar = (luna: (typeof lunas)[number]) => {
+      luna.tls.forEach((tl) => tl.kill());
+      luna.tls = [];
+    };
+
+    /** Va a su puesto de la cola: arranca despacio y se asienta, sin tirón. */
+    function recolocar(luna: (typeof lunas)[number], segundos = 1) {
+      luna.tBase?.kill();
+      const destino = puesto(luna.indice);
+      if (segundos <= 0 || reducido) {
+        luna.base = destino;
+        luna.tBase = null;
+        return;
+      }
+      luna.tBase = gsap.to(luna, { base: destino, duration: segundos, ease: "power2.inOut", overwrite: false });
+    }
+
+    /**
+     * ENTRA A FUNDIRSE. Llega al frente, toca a la gota grande y las dos son
+     * un solo líquido; crece dentro de ella mientras se desenfoca, y su
+     * retrato se disuelve justo cuando la gota grande está también en pleno
+     * desenfoque (su cambio de foco va a la vez). Al final, lo que queda de
+     * su bulto se recoge. Todo desde donde esté: no hay valores de partida.
+     */
+    function entrar(luna: (typeof lunas)[number]) {
+      cortar(luna);
+      luna.papel = "entra";
+      luna.mirada = false;
+      // Si está en la mitad cercana de la cola, llega primero al frente. Si
+      // está al fondo (al volver a la persona anterior), se funde desde donde
+      // está, que es por donde salió: cruzar todo el arco en un instante era
+      // un latigazo por encima del retrato.
+      if (luna.base <= 0.5) recolocar(luna, 0.7);
+      else {
+        luna.tBase?.kill();
+        luna.tBase = null;
+      }
+      const tl = gsap
+        .timeline({ onComplete: () => void (luna.papel = null) })
+        .to(luna, { union: 1, duration: 0.5, ease: "power1.out" }, 0.1)
+        .to(luna, { fuera: 0, duration: 1.05, ease: "power2.inOut" }, 0.15)
+        .to(luna, { talla: 1.5, duration: 0.8, ease: "power2.out" }, 0.15)
+        .to(luna, { bruma: 1, duration: 0.6, ease: "power1.in" }, 0.35)
+        .to(luna, { presencia: 0, duration: 0.5, ease: "power1.inOut" }, 0.8)
+        .to(luna, { talla: 0, duration: 0.95, ease: "power2.inOut" }, 1.15);
+      luna.tls.push(tl);
+    }
+
+    /**
+     * SALE DE LA GOTA GRANDE, por el fondo de la cola. Nace pequeña y
+     * fundida con ella: al principio es solo un bulto en su borde, sin
+     * retrato (si lo llevara, sería una mancha azul sobre la cara de quien
+     * acaba de llegar). Ya fuera, aparece su retrato, crece hasta su tamaño,
+     * el cuello se estrangula y queda suelta. Si todavía estaba entrando (cambios muy
+     * seguidos), espera a terminar: no desaparece de golpe.
+     */
+    function salir(luna: (typeof lunas)[number], espera: number) {
+      const pendiente = luna.tls.reduce((max, tl) => (tl.isActive() ? Math.max(max, tl.duration() - tl.time()) : max), 0);
+      if (pendiente === 0) cortar(luna);
+      luna.tBase?.kill();
+      luna.tBase = null;
+      const tl = gsap
+        .timeline({ delay: Math.max(espera, pendiente), onComplete: () => void (luna.papel = null) })
+        .call(() => {
+          luna.papel = "sale";
+          luna.base = puesto(luna.indice) + avance();
+          luna.fuera = 0;
+          luna.talla = 0.15;
+          luna.union = 1;
+          luna.presencia = 0;
+          luna.bruma = 0.7;
+        })
+        .to(luna, { fuera: 1, duration: 1.5, ease: "power3.out" }, 0)
+        .to(luna, { talla: 1, duration: 1.2, ease: "power2.out" }, 0)
+        .to(luna, { presencia: 1, duration: 0.5, ease: "power1.inOut" }, 0.3)
+        .to(luna, { bruma: 0, duration: 0.8, ease: "power1.out" }, 0.4)
+        .to(luna, { union: 0, duration: 0.7, ease: "power1.inOut" }, 0.55);
+      luna.tls.push(tl);
+    }
+
+    /** Sin animación: cada luna en su puesto, y la de la persona en pantalla, guardada. */
+    function ponerLunas() {
+      for (const luna of lunas) {
+        cortar(luna);
+        recolocar(luna, 0);
+        const dentro = luna.indice === actual;
+        luna.papel = null;
+        luna.fuera = dentro ? 0 : 1;
+        luna.talla = dentro ? 0 : 1;
+        luna.presencia = dentro ? 0 : 1;
+        luna.union = 0;
+        luna.bruma = 0;
+      }
+    }
+
     /**
      * El avance del turno: medio paso a lo largo de lo que dura cada persona.
      * Va con el reloj del relevo, así que se detiene con él (puntero encima,
@@ -867,7 +979,11 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     /** Deja a cada luna donde está y pone a cero el avance y el tirón a mano. */
     function asentar() {
       const avanzado = avance() + mano;
-      for (const luna of lunas) luna.base -= avanzado;
+      for (const luna of lunas) {
+        luna.tBase?.kill();
+        luna.tBase = null;
+        luna.base -= avanzado;
+      }
       mano = 0;
     }
 
@@ -876,7 +992,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       recolocando = false;
       let mirada: { luna: (typeof lunas)[number]; px: number; py: number } | null = null;
       for (const luna of lunas) {
-        const visible = luna.lista && luna.fuera > 0.02;
+        if (luna.tBase?.isActive() || luna.tls.some((tl) => tl.isActive())) recolocando = true;
+        const visible = luna.lista && luna.talla > 0.015;
         const gota = liquido[luna.indice]!;
         if (!visible) {
           gota.radio = 0;
@@ -886,12 +1003,6 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
             luna.el.style.opacity = "0";
           }
           continue;
-        }
-        // Cada luna va hacia su puesto, sin saltos.
-        const falta = puesto(luna.indice) - luna.base;
-        if (Math.abs(falta) > 0.0015) {
-          luna.base += falta * (dt > 0 ? Math.min(1, dt * 4.2) : 1);
-          recolocando = true;
         }
         // Su sitio en la cola: 0 en el frente, 1 al fondo.
         const s = Math.max(-0.06, Math.min(1.06, luna.base - (luna.papel === "entra" ? 0 : avanzado)));
@@ -912,37 +1023,41 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         const py = y * camino;
 
         // PERSPECTIVA: delante, más del doble de grande que al fondo.
-        let radio = (RADIO_LEJOS + (RADIO_CERCA - RADIO_LEJOS) * Math.pow(cerca, 1.25)) * tallaLunas;
+        let radio = (RADIO_LEJOS + (RADIO_CERCA - RADIO_LEJOS) * Math.pow(cerca, 1.25)) * tallaLunas * luna.talla;
         if (luna.mirada) radio *= 1.08;
-        // La que entra crece al fundirse y se recoge al final, ya disuelta;
-        // la que sale nace pequeña del canto de la gota grande.
-        if (luna.papel === "entra") radio *= (1 + 0.75 * (1 - sale)) * suave(0, 0.3, sale);
-        else radio *= 0.2 + 0.8 * sale;
 
         // PROFUNDIDAD DE CAMPO: delante, enfocada y a color; al fondo,
         // esmerilada y azul. Mirarla la enfoca.
-        const objetivo = luna.mirada ? 1 : 0.14 + 0.86 * suave(0.12, 0.85, cerca);
-        luna.foco += (objetivo - luna.foco) * (dt > 0 ? Math.min(1, dt * 5) : 1);
-
-        // Solo se funde la que cambia: en cuanto deja su sitio en el anillo.
-        const union = luna.papel ? 1 - suave(0.8, 1, sale) : 0;
+        // La que entra a fundirse recibe la atención: enfoca y toma color
+        // enseguida, venga de donde venga. Si no, la del fondo crecía sobre
+        // el retrato como una mancha azul.
+        const entra = luna.papel === "entra";
+        const objetivo = luna.mirada || entra ? 1 : 0.14 + 0.86 * suave(0.12, 0.85, cerca);
+        luna.foco += (objetivo - luna.foco) * (dt > 0 ? Math.min(1, dt * (entra ? 9 : 5)) : 1);
 
         gota.x = px / lado;
         gota.y = py / lado;
         gota.radio = radio;
         gota.foco = luna.foco;
         gota.hondo = hondo;
-        gota.union = union;
-        gota.presencia = suave(0, 0.5, sale);
+        gota.union = luna.union;
+        gota.presencia = luna.presencia;
+        gota.bruma = luna.bruma;
+        const union = luna.union;
 
         // El botón de la luna, justo encima de la gota pintada: es lo que se
         // pulsa. El de las lunas de detrás va por debajo de la gota grande,
         // que lo tapa también para el puntero.
         const escala = (radio * 2 * lado) / Math.max(1, tamanoLuna);
-        luna.el.style.setProperty("--escala", escala.toFixed(3));
+        // El área de toque solo necesita la escala a grandes rasgos.
+        const escalaToque = escala.toFixed(1);
+        if (luna.escalaToque !== escalaToque) {
+          luna.escalaToque = escalaToque;
+          luna.el.style.setProperty("--escala", escalaToque);
+        }
         if (luna.mirada) mirada = { luna, px, py: py + radio * lado };
         luna.el.style.transform = `translate(-50%, -50%) translate3d(${px.toFixed(2)}px, ${py.toFixed(2)}px, 0) scale(${escala.toFixed(4)})`;
-        luna.el.style.opacity = Math.min(1, sale * 3).toFixed(3);
+        luna.el.style.opacity = luna.presencia.toFixed(3);
         const capa = hondo > 0 || union > 0 ? "2" : "0";
         if (luna.capa !== capa) {
           luna.capa = capa;
@@ -1031,7 +1146,10 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       reloj?.kill();
       reloj = null;
       if (reducido || escenas.length < 2) return;
-      reloj = gsap.delayedCall(DURACION, () => irA(vecina(1)));
+      // Un tween de verdad y no una llamada con retraso: su progreso (de 0 a
+      // 1 a lo largo del turno) es lo que hace avanzar la cola, y una llamada
+      // con retraso no lo da hasta que salta.
+      reloj = gsap.to({}, { duration: DURACION, ease: "none", onComplete: () => irA(vecina(1)) });
       if (detenido) reloj.pause();
     }
 
@@ -1076,18 +1194,13 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
       const lunaEntra = lunas[siguiente];
       const lunaSale = lunas[antes];
-      // Ya no se la mira: va a desaparecer dentro de la gota grande.
-      if (lunaEntra) lunaEntra.mirada = false;
+
+      // El vídeo de quien viene después se va cargando ya: cuando le toque,
+      // no habrá que esperarlo.
+      const proximo = video(vecina(1));
+      if (proximo && proximo.preload === "none") proximo.preload = "auto";
 
       const terminar = () => {
-        if (lunaEntra) {
-          lunaEntra.fuera = 0;
-          lunaEntra.papel = null;
-        }
-        if (lunaSale) {
-          lunaSale.fuera = 1;
-          lunaSale.papel = null;
-        }
         entra.setAttribute("data-activa", "");
         sale.removeAttribute("data-activa");
         gsap.set([entra, sale], { clearProps: "opacity,zIndex" });
@@ -1108,7 +1221,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       marcarTiempo();
 
       if (inmediato || reducido) {
-        for (const luna of lunas) luna.base = puesto(luna.indice);
+        ponerLunas();
         tinta?.fijar(siguiente);
         terminar();
         return;
@@ -1118,24 +1231,21 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
       transicion = gsap.timeline({ onComplete: terminar });
 
-      // EL CAMBIO. La luna de quien entra acaba de llegar al frente (o va
-      // hacia él, si se eligió otra); crece, toca a la gota grande y se funde
-      // con ella. En ese momento la gota cambia de silueta (con su resorte,
-      // como una gota que absorbe a otra) y empieza el cambio de foco.
-      // Después suelta a la persona anterior, que se desprende por detrás, al
-      // fondo de la cola, y las demás avanzan un puesto.
-      const TRAGA = lunaEntra ? 0.7 : 0;
-      if (lunaEntra) {
-        lunaEntra.papel = "entra";
-        transicion.to(lunaEntra, { fuera: 0, duration: 0.8, ease: "power2.in" }, 0.2);
+      // EL CAMBIO, un solo gesto. La gota grande empieza a desenfocarse
+      // mientras la luna de quien entra llega y se funde con ella; el retrato
+      // de la luna se disuelve en ese desenfoque, y de él sale enfocada la
+      // persona nueva. Cuando la luna la toca, la gota cambia de silueta (con
+      // su resorte, como una gota que absorbe a otra). Después suelta a la
+      // persona anterior por el fondo de la cola, y las demás avanzan un
+      // puesto. Las lunas llevan sus propias animaciones (entrar, salir): si
+      // llega otro cambio a medias, siguen desde donde están.
+      const TRAGA = lunaEntra ? 0.3 : 0;
+      for (const luna of lunas) {
+        if (luna === lunaEntra) entrar(luna);
+        else if (luna === lunaSale) salir(luna, TRAGA + 0.85);
+        else recolocar(luna);
       }
-      transicion.call(formaAlAzar, [], TRAGA);
-      if (lunaSale) {
-        lunaSale.papel = "sale";
-        // Está escondida dentro de la gota grande: sale ya por el fondo.
-        lunaSale.base = puesto(antes);
-        transicion.fromTo(lunaSale, { fuera: 0 }, { fuera: 1, duration: 1.6, ease: "expo.out" }, TRAGA + 0.55);
-      }
+      transicion.call(formaAlAzar, [], TRAGA + 0.4);
 
       if (tinta) {
         // Cambio de foco: una se va al desenfoque y la otra llega de él.
@@ -1188,48 +1298,43 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     // ---- Lunas: imagen, salida y giro ---------------------------------------
     // Cada luna se monta con la foto de la persona o, si no tiene, con el
     // primer fotograma de su vídeo. Luego salen de la gota grande una a una.
-    const salidas: gsap.core.Tween[] = [];
     // Todas empiezan dentro de la gota grande, también si el arranque al azar
-    // ya movió alguna; y salen del canto, como la que se va en un cambio.
-    lunas.forEach((luna) => {
-      luna.fuera = 0;
-      luna.papel = "sale";
-      luna.base = puesto(luna.indice);
-    });
+    // ya movió alguna; y salen por su sitio de la cola, una detrás de otra.
     medirSitio();
     window.addEventListener("resize", medirSitio, { signal });
+    ponerLunas();
+    lunas.forEach((luna) => {
+      luna.fuera = 0;
+      luna.talla = 0;
+      luna.presencia = 0;
+    });
     lunas.forEach((luna, i) => {
       const foto = luna.recorte?.querySelector<HTMLImageElement>("img");
       const src = video(i)?.getAttribute("src");
-      const salir = () => {
-        if (signal.aborted || i === actual) return;
+      const asomar = () => {
+        if (signal.aborted || i === actual || luna.talla > 0 || luna.tls.length > 0) return;
         if (reducido) {
-          luna.fuera = 1;
-          luna.papel = null;
+          luna.fuera = luna.talla = luna.presencia = 1;
+          return;
         }
-        else {
-          const orden = (i - actual + lunas.length) % lunas.length;
-          salidas.push(
-            gsap.to(luna, {
-              fuera: 1,
-              duration: 1.8,
-              ease: "expo.out",
-              delay: 1.5 + orden * 0.25,
-              onComplete: () => void (luna.papel === "sale" && !transicion?.isActive() && (luna.papel = null)),
-            }),
-          );
-        }
+        const orden = (i - actual + lunas.length) % lunas.length;
+        salir(luna, 1.4 + orden * 0.28);
       };
       if (foto) {
         montarLuna(luna, foto);
-        salir();
-      } else if (src) {
+        asomar();
+      }
+      if (src) {
+        // EL PRIMER FOTOGRAMA DEL VÍDEO es la imagen fija de la persona en la
+        // gota grande: el relevo llega a la misma imagen por la que el vídeo
+        // empieza, así que no hay salto de la foto al vídeo cuando este
+        // carga. Para quien no tiene foto propia es también su luna.
         void primerFotograma(src, signal).then((lienzo) => {
           if (!lienzo || signal.aborted) return;
-          // Sin vidrio (o con movimiento reducido) el vídeo no corre: ese
-          // mismo fotograma hace de retrato en la gota grande, en vez de la
-          // silueta de "sin foto".
-          if (!tinta) {
+          if (tinta) tinta.usarFoto(i, lienzo);
+          else if (!foto) {
+            // Sin vidrio (o con movimiento reducido) el vídeo no corre: el
+            // fotograma hace de retrato, en vez de la silueta de "sin foto".
             const retrato = document.createElement("canvas");
             retrato.width = lienzo.width;
             retrato.height = lienzo.height;
@@ -1237,9 +1342,10 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
             retrato.className = "fotograma";
             escenas[i]?.insertBefore(retrato, video(i));
           }
-          montarLuna(luna, lienzo);
-          // Si mientras tanto le tocó entrar y salir, ya está fuera.
-          if (luna.fuera === 0) salir();
+          if (!foto) {
+            montarLuna(luna, lienzo);
+            asomar();
+          }
         });
       }
 
@@ -1412,7 +1518,10 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     soltar = () => {
       eventos.abort();
       gsap.ticker.remove(girar);
-      salidas.forEach((s) => s.kill());
+      lunas.forEach((luna) => {
+        cortar(luna);
+        luna.tBase?.kill();
+      });
       escenario.removeAttribute("data-arrastrando");
       vigiaCartel.disconnect();
       if (cartel) gsap.set(cartel, { clearProps: "width,height" });
