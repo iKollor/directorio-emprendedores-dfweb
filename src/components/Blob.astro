@@ -51,7 +51,15 @@ type Props = {
    * pulsarlo, sale en primer plano (lib/primerPlano.ts). `etiqueta` es el
    * nombre accesible del botón; `sonido`, las calidades con sonido.
    */
-  plano?: { etiqueta: string; nombre: string; sonido: VideoSonido[] } | null;
+  plano?: {
+    etiqueta: string;
+    nombre: string;
+    sonido: VideoSonido[];
+    /** Para el cartel que acompaña a la gota en el teléfono. */
+    categoria: string;
+    oficio: string;
+    colorTexto: string;
+  } | null;
 };
 
 const {
@@ -94,6 +102,10 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
     data-desfase={desfaseRetrato.toFixed(3)}
     data-nombre={conPlano ? plano!.nombre : undefined}
     data-sonido={conPlano ? JSON.stringify(plano!.sonido) : undefined}
+    data-categoria={conPlano ? plano!.categoria : undefined}
+    data-oficio={conPlano ? plano!.oficio : undefined}
+    data-color={conPlano ? color : undefined}
+    data-color-texto={conPlano ? plano!.colorTexto : undefined}
   >
     <svg class="definiciones" aria-hidden="true" focusable="false">
       <defs>
@@ -228,6 +240,14 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
           hora: () => video.currentTime,
           calidades: calidades.length > 0 ? calidades : [{ src: video.currentSrc || video.src, alto: video.videoHeight || 720 }],
           nombre: blob.dataset.nombre ?? "",
+          // Ya se está en su ficha: el cartel dice quién es, sin enlace.
+          cartel: {
+            categoria: blob.dataset.categoria ?? "",
+            oficio: blob.dataset.oficio ?? "",
+            color: blob.dataset.color ?? "",
+            colorTexto: blob.dataset.colorTexto ?? "",
+            href: null,
+          },
           // Si ya sonaba, el primer plano se abre con ese mismo sonido; y si
           // al volver el puntero sigue encima, sigue sonando.
           retrato: video,

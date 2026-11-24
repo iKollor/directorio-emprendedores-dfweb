@@ -61,6 +61,11 @@ export type OrigenPlano = {
   /** Las calidades, de mayor a menor. Una sola: sin selector. */
   calidades: VideoSonido[];
   nombre: string;
+  /**
+   * Quién es, para el cartel que acompaña a la gota en el teléfono. `href` es
+   * su ficha; sin él (ya se está en ella) el cartel no enlaza.
+   */
+  cartel?: { categoria: string; oficio: string; color: string; colorTexto: string; href: string | null } | null;
   /** La gota ha salido: el retrato se queda atrás. */
   alAbrir?: () => void;
   /** La gota empieza a volver; recibe el segundo por el que iba el vídeo. */
@@ -160,15 +165,34 @@ function medirOrigen(origen: OrigenPlano): Caja {
   return { x: r.left + r.width / 2 - lado / 2, y: r.top + r.height / 2 - lado / 2, ancho: lado, alto: lado };
 }
 
+/**
+ * EN LA MANO: un teléfono de pie. Ahí un vídeo apaisado a su proporción es una
+ * tira en mitad de una pantalla vacía, así que la gota es alta y lo recorta
+ * por los lados, con la persona en el centro, como cualquier vídeo vertical
+ * de teléfono. Girándolo se ve el encuadre entero.
+ */
+const enMano = () => window.innerWidth < 640 && window.innerHeight > window.innerWidth;
+/** Lo que ocupan, bajo la gota, el cartel y los mandos del teléfono (px). */
+const BAJO_LA_GOTA = 238;
+
 /** Dónde queda la pantalla: centrada, con sitio para los mandos y el cierre. */
 function medirDestino(proporcion: number): Caja {
   const W = window.innerWidth;
   const H = window.innerHeight;
+  if (enMano()) {
+    const lado = 10;
+    const arriba = 58;
+    const ancho = W - lado * 2;
+    // Alta (hasta 4:5) si la pantalla da; en un teléfono corto, casi cuadrada.
+    const alto = Math.max(ancho * 0.72, Math.min(ancho * 1.25, H - arriba - BAJO_LA_GOTA));
+    return { x: lado, y: arriba + Math.max(0, (H - arriba - BAJO_LA_GOTA - alto) * 0.4), ancho, alto };
+  }
   // No llena la ventana: alrededor se sigue viendo la página, fuera de foco.
-  // En el teléfono el aire va arriba y abajo; a los lados apenas cabe.
-  const lado = W < 640 ? 12 : Math.max(24, Math.min(W, H) * 0.075);
-  const arriba = Math.max(56, H * 0.075);
-  const abajo = Math.max(72, H * 0.1);
+  // Un teléfono tumbado tiene poco alto: ahí los márgenes se quedan en nada.
+  const bajo = H < 480;
+  const lado = bajo ? 56 : W < 640 ? 12 : Math.max(24, Math.min(W, H) * 0.075);
+  const arriba = bajo ? 10 : Math.max(56, H * 0.075);
+  const abajo = bajo ? 44 : Math.max(72, H * 0.1);
   const ancho = Math.min(W - lado * 2, (H - arriba - abajo) * proporcion, 1400);
   const alto = ancho / proporcion;
   return { x: (W - ancho) / 2, y: arriba + (H - arriba - abajo - alto) / 2, ancho, alto };
@@ -255,8 +279,64 @@ export function montarPrimerPlano(): void {
     botonCalidad.setAttribute("aria-expanded", "false");
   };
 
+  /*
+   * EN EL TELÉFONO, LA GOTA SE DEVUELVE CON EL DEDO. Arrastrarla hacia abajo
+   * la encoge hacia su retrato, siguiendo al dedo; al soltarla lejos o con
+   * impulso, vuelve a su sitio, y si no, se queda. Es el gesto con el que se
+   * cierra una foto o un vídeo en cualquier teléfono.
+   */
+  const gota = pieza("gota");
+  const velo = pieza("velo");
+  const alrededor = [pieza("mandos"), pieza("cerrar"), pieza("cartel")];
+  let tiron: { x0: number; y0: number; t0: number; activo: boolean } | null = null;
+  let tragarToque = false;
+  gota.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (!abierto || abierto.cerrando || !enMano() || abierto.estado.p < 0.98) return;
+      tiron = { x0: e.clientX, y0: e.clientY, t0: e.timeStamp, activo: false };
+    },
+    { signal },
+  );
+  window.addEventListener(
+    "pointermove",
+    (e) => {
+      if (!tiron || !abierto || abierto.cerrando) return;
+      const dy = e.clientY - tiron.y0;
+      if (!tiron.activo) {
+        if (dy < 10 || Math.abs(e.clientX - tiron.x0) > dy) return;
+        tiron.activo = true;
+        gsap.killTweensOf(abierto.estado, "p");
+      }
+      const cuanto = Math.min(1, Math.max(0, dy / (window.innerHeight * 0.55)));
+      abierto.estado.p = 1 - cuanto * 0.55;
+      gsap.set(velo, { autoAlpha: 1 - cuanto * 0.6 });
+      gsap.set(alrededor, { opacity: 1 - Math.min(1, cuanto * 3) });
+    },
+    { signal },
+  );
+  const soltarTiron = (e: PointerEvent) => {
+    if (!tiron) return;
+    const { activo, y0, t0 } = tiron;
+    tiron = null;
+    if (!activo || !abierto || abierto.cerrando) return;
+    tragarToque = true;
+    window.setTimeout(() => (tragarToque = false), 0);
+    const dy = e.clientY - y0;
+    const conImpulso = dy > 40 && dy / Math.max(1, e.timeStamp - t0) > 0.5;
+    if (dy > 110 || conImpulso) {
+      cerrarPrimerPlano();
+      return;
+    }
+    gsap.to(abierto.estado, { p: 1, duration: 0.5, ease: SUAVE });
+    gsap.to(velo, { autoAlpha: 1, duration: 0.4, ease: "sine.out" });
+    gsap.to(alrededor, { opacity: 1, duration: 0.3, ease: "sine.out" });
+  };
+  window.addEventListener("pointerup", soltarTiron, { signal });
+  window.addEventListener("pointercancel", soltarTiron, { signal });
+
   pieza("reproducir").addEventListener("click", alternar, { signal });
-  pieza("pantalla").addEventListener("click", alternar, { signal });
+  pieza("pantalla").addEventListener("click", () => !tragarToque && alternar(), { signal });
   for (const v of videos) {
     for (const tipo of ["play", "pause", "ended"]) {
       v.addEventListener(
@@ -412,9 +492,8 @@ export function montarPrimerPlano(): void {
     () => {
       const v = activa();
       if (!abierto || !v) return;
-      abierto.hasta = medirDestino(
-        v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : abierto.hasta.ancho / abierto.hasta.alto,
-      );
+      gsap.killTweensOf(abierto.hasta);
+      abierto.hasta = medirDestino(v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 16 / 9);
       colocarMandos();
     },
     { signal },
@@ -453,17 +532,39 @@ export function montarPrimerPlano(): void {
   };
 }
 
+/**
+ * Coloca los mandos, el aspa y el cartel alrededor de la gota. Las posiciones
+ * van en píxeles, sin `translate` en porcentaje: GSAP se queda con el que
+ * encuentra la primera vez que anima la pieza y, al girar el teléfono, los
+ * mandos seguían desplazados como en la otra postura.
+ */
 function colocarMandos(): void {
   if (!abierto || !dialogo) return;
   const { hasta } = abierto;
+  const W = window.innerWidth;
+  const mano = enMano();
+  dialogo.toggleAttribute("data-en-mano", mano);
   const mandos = pieza("mandos");
-  const ancho = Math.min(hasta.ancho - 24, 760, window.innerWidth - 24);
-  mandos.style.width = `${Math.max(ancho, Math.min(300, window.innerWidth - 24))}px`;
-  mandos.style.left = `${hasta.x + hasta.ancho / 2}px`;
-  mandos.style.top = `${hasta.y + hasta.alto}px`;
   const cerrar = pieza("cerrar");
-  cerrar.style.left = `${Math.min(hasta.x + hasta.ancho, window.innerWidth - 8)}px`;
-  cerrar.style.top = `${Math.max(hasta.y, 8)}px`;
+  const cartel = pieza("cartel");
+  const aspa = cerrar.offsetWidth || 48;
+  if (mano) {
+    // En el teléfono los mandos van abajo, al alcance del pulgar (CSS), y el
+    // cartel de la persona, pisando el canto inferior de la gota.
+    mandos.style.width = mandos.style.left = mandos.style.top = "";
+    cerrar.style.left = `${hasta.x + hasta.ancho - aspa * 0.92}px`;
+    cerrar.style.top = `${Math.max(6, hasta.y - aspa * 0.08)}px`;
+    cartel.style.left = `${hasta.x + 12}px`;
+    cartel.style.top = `${hasta.y + hasta.alto - 22}px`;
+    cartel.style.maxWidth = `${hasta.ancho - 40}px`;
+    return;
+  }
+  const ancho = Math.max(Math.min(hasta.ancho - 24, 760, W - 24), Math.min(300, W - 24));
+  mandos.style.width = `${ancho}px`;
+  mandos.style.left = `${hasta.x + hasta.ancho / 2 - ancho / 2}px`;
+  mandos.style.top = `${hasta.y + hasta.alto - (mandos.offsetHeight || 56) / 2}px`;
+  cerrar.style.left = `${Math.min(hasta.x + hasta.ancho - aspa * 0.78, W - aspa - 6)}px`;
+  cerrar.style.top = `${Math.max(6, hasta.y - aspa * 0.22)}px`;
 }
 
 /** Copia a la pieza lo que se ve ahora en el retrato, para el cambio de foco. */
@@ -673,7 +774,7 @@ export function abrirPrimerPlano(origen: OrigenPlano): boolean {
   if (!dialogo || abierto || origen.calidades.length === 0 || !activa()) return false;
   const gota = pieza("gota");
   const velo = pieza("velo");
-  const mandos = [pieza("mandos"), pieza("cerrar")];
+  const mandos = [pieza("mandos"), pieza("cerrar"), pieza("cartel")];
   const contorno = pieza<SVGPathElement>("contorno");
   const luz = pieza<SVGPathElement>("luz");
   const quieto = sinMovimiento();
@@ -726,6 +827,18 @@ export function abrirPrimerPlano(origen: OrigenPlano): boolean {
   abierto = plano;
 
   dialogo.setAttribute("aria-label", dialogo.dataset.titulo!.replaceAll("{nombre}", origen.nombre));
+  // El cartel de la persona (solo se ve en el teléfono).
+  const cartel = pieza("cartel");
+  cartel.hidden = !origen.cartel;
+  if (origen.cartel) {
+    pieza("cartel-categoria").textContent = origen.cartel.categoria;
+    pieza("cartel-nombre").textContent = origen.nombre;
+    pieza("cartel-oficio").textContent = origen.cartel.oficio;
+    cartel.style.setProperty("--acento", origen.cartel.color);
+    cartel.style.setProperty("--acento-texto", origen.cartel.colorTexto);
+    if (origen.cartel.href) cartel.setAttribute("href", origen.cartel.href);
+    else cartel.removeAttribute("href");
+  }
   fotografiar(origen.fotograma());
   mostrar();
   pintar();
@@ -734,6 +847,8 @@ export function abrirPrimerPlano(origen: OrigenPlano): boolean {
   gsap.set(velo, { autoAlpha: 0 });
   gsap.set(mandos, { opacity: 0, y: 14 });
   dialogo.showModal();
+  // Otra vez, ya abierta: cerrada, la pieza no tiene medidas.
+  colocarMandos();
   // El foco, en el botón de pausa: así la barra espaciadora ya lo maneja.
   pieza("reproducir").focus({ preventScroll: true });
   obtenerScroll()?.stop();
@@ -813,7 +928,7 @@ export function cerrarPrimerPlano(yaMismo = false): void {
   const v = activa();
   const gota = pieza("gota");
   const velo = pieza("velo");
-  const mandos = [pieza("mandos"), pieza("cerrar")];
+  const mandos = [pieza("mandos"), pieza("cerrar"), pieza("cartel")];
   plano.cerrando = true;
   plano.linea?.kill();
   plano.esperas.forEach((e) => e.kill());

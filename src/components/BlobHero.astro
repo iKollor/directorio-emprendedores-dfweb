@@ -626,6 +626,18 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       border-radius: 1rem;
     }
 
+    /*
+     * En el teléfono el cartel no va encima del retrato (le tapaba la cara):
+     * cuelga de su canto inferior, como el de las tarjetas del listado. El
+     * hueco que necesita debajo lo deja la portada.
+     */
+    @media (max-width: 639px) {
+      .rotulos {
+        left: 1%;
+        bottom: -19%;
+      }
+    }
+
     .rotulo {
       padding: 0.6rem 0.85rem 0.7rem;
     }
@@ -809,8 +821,13 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       const u = Math.min(1, Math.max(0, (x - a) / (b - a)));
       return u * u * (3 - 2 * u);
     };
-    /** Con muchas personas, las lunas encogen un poco para no pisarse. */
-    const tallaLunas = lunas.length > 5 ? 0.8 : 1;
+    /**
+     * Con muchas personas, las lunas encogen un poco para no pisarse. Y en el
+     * teléfono, donde el retrato es pequeño y no hay sitio a los lados: con
+     * su tamaño de pantalla grande, la de delante le tapaba media cara.
+     */
+    const tallaBase = lunas.length > 5 ? 0.8 : 1;
+    let tallaLunas = tallaBase;
     /** Espacio libre a cada lado del escenario: el anillo no se sale de la página. */
     let libreIzq = 0;
     let libreDer = 0;
@@ -837,6 +854,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       // El arco ocupa el ancho que haya: hasta el borde de la página por cada
       // lado, y nunca más que el lienzo del líquido. A la derecha pasan las
       // lunas grandes; a la izquierda, las pequeñas.
+      tallaLunas = tallaBase * (lado < 380 ? 0.74 : 1);
       const rCerca = RADIO_CERCA * tallaLunas * lado;
       const rLejos = RADIO_LEJOS * tallaLunas * lado;
       const tope = lado * (EXTENSION / 2 - 0.03);
@@ -851,8 +869,10 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       // arco baja todo lo que puede sin que la luna grande lo toque.
       const anchoCartel = Math.max(0, ...rotulos.map((r) => r.offsetWidth));
       const altoCartel = Math.max(0, ...rotulos.map((r) => r.offsetHeight));
-      const izq = -0.52 * lado;
-      const abajo = 0.46 * lado;
+      // Dónde está de verdad: en el teléfono cuelga del canto inferior.
+      const sitioCartel = cartel ? getComputedStyle(cartel) : null;
+      const izq = (sitioCartel ? parseFloat(sitioCartel.left) || 0 : -0.02 * lado) - lado / 2;
+      const abajo = lado / 2 - (sitioCartel ? parseFloat(sitioCartel.bottom) || 0 : 0.04 * lado);
       const holgura = rCerca * 1.1 + lado * 0.03;
       anguloFrente = ANGULO_FRENTE_MAX;
       for (let grados = 38; grados >= -24; grados -= 2) {
@@ -1280,6 +1300,16 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         hora: () => v.currentTime,
         calidades: c.length > 0 ? c : [{ src: v.currentSrc || v.src, alto: v.videoHeight || 720 }],
         nombre: escenas[i]?.dataset.nombre ?? "",
+        // En el teléfono la gota lleva su cartel: el mismo de aquí.
+        cartel: rotulos[i]
+          ? {
+              categoria: rotulos[i]!.querySelector(".cat")?.textContent?.trim() ?? "",
+              oficio: rotulos[i]!.querySelector(".oficio")?.textContent?.trim() ?? "",
+              color: rotulos[i]!.style.getPropertyValue("--acento"),
+              colorTexto: rotulos[i]!.style.getPropertyValue("--acento-texto"),
+              href: rotulos[i]!.getAttribute("href"),
+            }
+          : null,
         // Si ya sonaba, el primer plano se abre con ese mismo sonido; y si al
         // volver el puntero sigue encima, sigue sonando.
         retrato: v,

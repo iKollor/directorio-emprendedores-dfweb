@@ -48,7 +48,11 @@ porque abajo a la izquierda está el cartel: con un anillo cerrado las lunas
 pasaban por debajo de él, tapadas, y se pidió cambiarlo. Su frente se
 calcula con la medida del cartel, y ninguna luna pasa por encima del texto
 de la portada ni se sale de la página. En el teléfono el retrato va centrado
-para dejarles sitio. No lleva botones de anterior y siguiente (hubo dos
+para dejarles sitio, las lunas son más pequeñas (con su tamaño de pantalla
+grande, la de delante tapaba media cara) y el cartel no va encima del retrato
+sino colgando de su canto inferior, como el de las tarjetas. Ahí la portada
+se lee en este orden: la marca de la escuela, el titular, el retrato y
+después el resto del texto y el botón (`Portada.astro`). No lleva botones de anterior y siguiente (hubo dos
 flechas amarillas y se pidió quitarlas): se toca lo que se ve. Una luna trae
 a esa persona; arrastrar o deslizar tira de la cola; y con el teclado,
 flechas izquierda y derecha. Pulsar el retrato grande abre su vídeo en
@@ -87,6 +91,19 @@ persona (hasta entonces el altavoz sale tachado), y el vídeo con sonido
 que durar lo mismo que el del retrato, porque el sonido se le pone a la par.
 No añadas otro visor ni un lightbox: si algo más tiene que verse en grande,
 es esta misma pieza.
+
+**En la mano.** En un teléfono de pie, un vídeo apaisado a su proporción es
+una tira en mitad de una pantalla vacía. Ahí la gota del primer plano es alta
+(hasta 4:5) y recorta el vídeo por los lados con la persona en el centro,
+como cualquier vídeo vertical de teléfono; girando el teléfono se ve el
+encuadre entero. Debajo va el cartel de la persona (el mismo del hero, que
+lleva a su ficha) y, pegados al borde inferior, los mandos, al alcance del
+pulgar: la barra de avance a todo lo ancho y, debajo, silencio, reproducir
+(grande, en el centro) y calidad. La gota se devuelve con el dedo:
+arrastrarla hacia abajo la encoge hacia su retrato y, al soltarla, vuelve a
+su sitio. En el listado, el sitio es para las caras: quien tiene retrato lo
+lleva a todo lo ancho y quien todavía no (sale con sus iniciales) va en una
+fila corta, con las iniciales al lado del cartel.
 
 **Una curva.** Todo lo que entra sube un poco y se asienta con `expo.out`
 (`CURVA` en `src/lib/animaciones.ts`). Sin rebotes, giros ni desenfoques de
