@@ -45,7 +45,11 @@
  * - CON FRENO. Si el dispositivo no llega a tiempo, primero baja la
  *   resolución de los lienzos y después deja de pintar en reposo.
  * - El desenfoque sale de los mipmaps de la textura más un anillo de ocho
- *   lecturas, no de un núcleo de muchas muestras.
+ *   lecturas, no de un núcleo de muchas muestras. Por eso TODA imagen que
+ *   se desenfoque necesita mipmaps, también el vídeo: mientras está
+ *   desenfocado, cada fotograma se copia en la tarjeta gráfica a una textura
+ *   cuadrada que sí los admite (`conNiveles`). Sin ellos, el anillo leía el
+ *   vídeo nítido ocho veces y salía una trama moteada en vez de un esmerilado.
  *
  * SI ALGO FALLA (sin WebGL, contexto perdido, movimiento reducido) no se monta
  * nada y quedan las fotos normales: el sitio funciona igual sin esto.
@@ -86,6 +90,11 @@ export type Luna = {
   union: number;
   /** Cuánto se ve su retrato mientras está fundida (1 = entero, 0 = disuelto). */
   presencia: number;
+  /**
+   * Desenfoque sin tinta (0 a 1). Al fundirse, la luna se desenfoca como la
+   * gota grande a mitad de su cambio de foco: borrosa, pero a color.
+   */
+  bruma: number;
 };
 
 /** Cuántas lunas admite un sistema (las que caben en su atlas de retratos). */
@@ -98,6 +107,12 @@ export type Tinta = {
   lunas(estado: readonly Luna[]): void;
   /** Solo en modo sistema: el retrato de una luna (su foto o un fotograma). */
   retratoLuna(indice: number, fuente: Imagen): void;
+  /**
+   * Cambia la imagen fija de una persona. El hero pone ahí el primer
+   * fotograma de su vídeo: así el relevo llega a la misma imagen por la que
+   * el vídeo empieza, y no hay salto de la foto al vídeo cuando este carga.
+   */
+  usarFoto(indice: number, imagen: Imagen): void;
   /** Releva a la persona en pantalla por otra, con un cambio de foco. */
   relevar(indice: number): gsap.core.Tween;
   /** Cambia de persona sin animación. */
@@ -142,7 +157,7 @@ uniform float uPixel;
 uniform float uTiempo;
 uniform float uCuenta;
 uniform vec4 uLunas[${TOPE_LUNAS}];
-// De cada luna: profundidad (-1 detrás … 1 delante), unión y presencia.
+// De cada luna: profundidad (-1 detrás … 1 delante), unión, presencia y bruma.
 uniform vec4 uLunas2[${TOPE_LUNAS}];
 uniform vec3 uSombra;
 uniform vec3 uMedio;
@@ -193,16 +208,23 @@ vec3 lente(sampler2D t, vec2 uv, vec2 escala, float zoom, vec2 desvio, float dis
   // ese nivel, reparte el resto del desenfoque: igual de esmerilado, sin
   // bloques.
   // La dispersión de color solo se lee en el centro: desenfocada no se ve.
+  // Son dos anillos, con más peso cuanto más cerca del centro: con uno solo
+  // (un aro, sin relleno) la tinta, que sube el contraste, dejaba ver los
+  // píxeles del nivel pequeño como manchas rectangulares.
   float nivel = desenfoque * 4.4;
-  float r = desenfoque * 0.026;
-  vec3 c = 2.0 * vec3(
+  float r = desenfoque * 0.032;
+  vec3 c = 2.4 * vec3(
     leer(t, uv + rojo, escala, zoom, nivel).r,
     leer(t, uv + desvio, escala, zoom, nivel).g,
     leer(t, uv + azul, escala, zoom, nivel).b
   );
   for (int i = 0; i < 8; i++) {
     float a = float(i) * 0.785398 + 0.392699;
-    c += leer(t, uv + desvio + vec2(cos(a), sin(a)) * r, escala, zoom, nivel);
+    c += 0.5 * leer(t, uv + desvio + vec2(cos(a), sin(a)) * r, escala, zoom, nivel);
+  }
+  for (int i = 0; i < 4; i++) {
+    float a = float(i) * 1.570796;
+    c += 0.9 * leer(t, uv + desvio + vec2(cos(a), sin(a)) * r * 0.5, escala, zoom, nivel);
   }
   return c * 0.1;
 }
@@ -221,27 +243,30 @@ vec3 entintar(vec3 color, float velo) {
 vec3 leerLuna(float indice, vec2 uv, float nivel) {
   vec2 casilla = vec2(mod(indice, 4.0), floor(indice / 4.0));
   // Sin llegar al borde de la casilla: al desenfocar asomaría la vecina.
-  return texture2D(uAtlas, (casilla + clamp(uv, 0.05, 0.95)) / vec2(4.0, 2.0), nivel).rgb;
+  return texture2D(uAtlas, (casilla + clamp(uv, 0.06 + 0.02 * nivel, 0.94 - 0.02 * nivel)) / vec2(4.0, 2.0), nivel).rgb;
 }
 
-// La misma lente, para una luna: más pequeña, se desenfoca con menos.
+// La misma lente, para una luna. El desenfoque sale sobre todo del nivel
+// pequeño de la textura; el anillo de lecturas solo lo redondea. Con el
+// anillo ancho y el nivel bajo (como estuvo) se veían las ocho copias de la
+// imagen, como una trama de puntos.
 vec3 lenteLuna(float indice, vec2 uv, vec2 desvio, float dispersion, float desenfoque) {
   vec2 rojo = desvio * (1.0 - dispersion);
   vec2 azul = desvio * (1.0 + dispersion);
-  float nivel = desenfoque * 2.4;
+  float nivel = desenfoque * 3.6;
   vec3 c = vec3(
     leerLuna(indice, uv + rojo, nivel).r,
     leerLuna(indice, uv + desvio, nivel).g,
     leerLuna(indice, uv + azul, nivel).b
   );
   if (desenfoque < 0.04) return c;
-  float r = desenfoque * 0.055;
+  float r = desenfoque * 0.03;
   c *= 2.0;
-  for (int i = 0; i < 6; i++) {
-    float a = float(i) * 1.047198 + 0.5;
+  for (int i = 0; i < 8; i++) {
+    float a = float(i) * 0.785398 + 0.392699;
     c += leerLuna(indice, uv + desvio + vec2(cos(a), sin(a)) * r, nivel);
   }
-  return c * 0.125;
+  return c * 0.1;
 }
 
 // Una capa encima de otra (color ya multiplicado por su opacidad).
@@ -259,7 +284,7 @@ float radioLuna(float r, float angulo, float indice) {
 // UNA LUNA SUELTA: una gota entera, con su canto, su refracción y su luz.
 // La profundidad se lee en tres cosas: lejos, el borde también se desenfoca,
 // el color se va al azul del fondo y la gota grande le da sombra.
-vec4 gotaSuelta(float indice, vec2 q, float r0, float foco, float hondo, float dMadre) {
+vec4 gotaSuelta(float indice, vec2 q, float r0, float foco, float hondo, float bruma, float dMadre) {
   float lejos = length(q);
   float dl = lejos - radioLuna(r0, atan(q.y, q.x), indice);
   float velo = 1.0 - foco;
@@ -272,7 +297,7 @@ vec4 gotaSuelta(float indice, vec2 q, float r0, float foco, float hondo, float d
 
   vec2 uv = q / (2.2 * r0) + 0.5;
   vec2 desvio = -haciaFuera * curva * mix(0.05, 0.11, velo);
-  vec3 c = entintar(lenteLuna(indice, uv, desvio, mix(0.3, 0.36, velo) * curva, velo), velo);
+  vec3 c = entintar(lenteLuna(indice, uv, desvio, mix(0.3, 0.36, velo) * curva, max(velo, bruma)), velo);
 
   vec3 normal = normalize(vec3(haciaFuera * curva * 1.35, 0.62));
   float brillo = pow(max(dot(normal, normalize(vec3(-0.55, -0.7, 0.55))), 0.0), 14.0) * smoothstep(0.0, 0.85, curva);
@@ -306,11 +331,13 @@ void main() {
   // aparece el cuello. De cada píxel se guarda cuánto es de la luna, para
   // mezclar después su imagen con la de la gota grande.
   float pesoLuna = 0.0;
+  float claveLuna = 0.0;
   float cualLuna = 0.0;
   vec2 dentroLuna = vec2(0.0);
   float tamanoLuna = 1.0;
   float focoLuna = 1.0;
   float presenciaLuna = 1.0;
+  float brumaLuna = 0.0;
   vec4 detras = vec4(0.0);
   vec4 delante = vec4(0.0);
   float sombraLunas = 0.0;
@@ -327,14 +354,25 @@ void main() {
       float h = clamp(0.5 + 0.5 * (dl - d) / k, 0.0, 1.0);
       d = mix(dl, d, h) - k * h * (1.0 - h);
       fuera = normalize(mix(q / max(lejos, 0.0001), fuera, h) + vec2(0.00001));
-      pesoLuna *= h;
-      if (1.0 - h > pesoLuna) {
-        pesoLuna = 1.0 - h;
+      // De quién es la imagen en cada punto lo decide el disco de la luna,
+      // no cuál de las dos superficies está más cerca: mientras se funde
+      // sigue por delante, con su retrato entero, y lo que se mezcla es una
+      // franja en su borde tan ancha como la unión. Antes, al empezar a
+      // fundirse, la parte que pisaba el retrato se la comía de golpe.
+      float dentro = 1.0 - smoothstep(-k, k, dl);
+      // Si dos lunas fundidas se pisan (cambios seguidos: una termina de
+      // entrar cuando la siguiente llega), manda la que tiene imagen. La que
+      // ya la cedió no pinta nada y abría un hueco en la otra.
+      float clave = dentro * (mas.z + 0.002);
+      if (clave > claveLuna) {
+        claveLuna = clave;
+        pesoLuna = dentro;
         cualLuna = float(i);
         dentroLuna = q;
         tamanoLuna = luna.z;
         focoLuna = luna.w;
         presenciaLuna = mas.z;
+        brumaLuna = mas.w;
       }
     }
 
@@ -352,11 +390,14 @@ void main() {
         float ds = length(q - vec2(0.022, 0.032) * (0.4 + mas.x)) - luna.z;
         sombraLunas = max(sombraLunas, (1.0 - smoothstep(-0.035, 0.06, ds)) * 0.36 * mas.x * (1.0 - mas.y));
       }
-      if (mas.y > 0.0) continue;
-      vec4 gota = gotaSuelta(float(i), q, luna.z, luna.w, mas.x, dMadre);
+      if (mas.y >= 1.0) continue;
+      // La que se está fundiendo se sigue pintando como gota suelta, cada
+      // vez más tenue, encima del líquido: su canto y su brillo se van poco
+      // a poco en vez de desaparecer en un fotograma.
+      vec4 gota = gotaSuelta(float(i), q, luna.z, luna.w, mas.x, mas.w, dMadre) * (1.0 - mas.y);
       // El paso de delante a detrás es gradual: si en ese momento la luna
-      // pisa el borde del retrato, no da un salto.
-      float alFrente = smoothstep(-0.12, 0.12, mas.x);
+      // pisa el borde del retrato, no da un salto. Fundiéndose, va delante.
+      float alFrente = mix(smoothstep(-0.06, 0.06, mas.x), 1.0, smoothstep(0.0, 0.3, mas.y));
       detras = sobre(detras, gota * (1.0 - alFrente));
       delante = sobre(delante, gota * alFrente);
     }
@@ -405,8 +446,18 @@ void main() {
     float veloLuna = 1.0 - focoLuna;
     vec2 uvLuna = dentroLuna / (2.2 * tamanoLuna) + 0.5;
     vec2 desvioLuna = desvio / (2.2 * tamanoLuna) * 0.5;
-    vec3 retrato = lenteLuna(cualLuna, uvLuna, desvioLuna, dispersion, veloLuna);
-    color = mix(color, entintar(retrato, veloLuna), smoothstep(0.0, 1.0, pesoLuna) * presenciaLuna);
+    vec3 retrato = lenteLuna(cualLuna, uvLuna, desvioLuna, dispersion, max(veloLuna, brumaLuna));
+    // El paso de una imagen a la otra también es un cambio de foco: bajo la
+    // luna, la gota grande se desenfoca primero y después cede el sitio.
+    // Mezclar la imagen nítida con el retrato esmerilado dejaba ver las
+    // hojas del fondo a través del azul, como un moteado.
+    if (presenciaLuna > 0.001) {
+      vec3 turbia;
+      if (uRelevo > 0.5) turbia = leer(uB, uvGota + desvio, uEscalaB, uZoomB, 4.2);
+      else turbia = leer(uA, uvGota + desvio, uEscalaA, uZoomA, 4.2);
+      color = mix(color, entintar(turbia, velo), pesoLuna * smoothstep(0.0, 0.45, presenciaLuna));
+      color = mix(color, entintar(retrato, veloLuna), pesoLuna * smoothstep(0.2, 1.0, presenciaLuna));
+    }
   }
 
   // LUZ: la normal se inclina hacia fuera en el canto. La luz viene de
@@ -447,7 +498,37 @@ const TOPE_TEXTURAS = 10;
 /** Escalones de resolución de los lienzos cuando el dispositivo va justo. */
 const CALIDADES = [1, 0.75, 0.5];
 
-type Textura = { textura: WebGLTexture; escala: [number, number]; uso: number };
+type Textura = {
+  /** La que se lee en este fotograma. */
+  textura: WebGLTexture;
+  escala: [number, number];
+  uso: number;
+  /** Solo en vídeos: el fotograma tal cual, y su copia cuadrada con mipmaps. */
+  cruda?: WebGLTexture;
+  niveles?: WebGLTexture;
+  marco?: WebGLFramebuffer;
+};
+
+/** Lado de la copia con mipmaps de un vídeo: potencia de dos, como pide WebGL. */
+const LADO_VIDEO = 1024;
+
+// Para copiar un fotograma de vídeo a su textura con mipmaps, sin salir de la
+// tarjeta gráfica. Sin voltear: la copia queda con la misma orientación.
+const VERTICES_COPIA = /* glsl */ `
+attribute vec2 aPos;
+varying vec2 vUv;
+void main() {
+  vUv = aPos * 0.5 + 0.5;
+  gl_Position = vec4(aPos, 0.0, 1.0);
+}`;
+
+const FRAGMENTOS_COPIA = /* glsl */ `
+precision mediump float;
+varying vec2 vUv;
+uniform sampler2D uOrigen;
+void main() {
+  gl_FragColor = vec4(texture2D(uOrigen, vUv).rgb, 1.0);
+}`;
 
 /**
  * Cómo llega lo pintado al lienzo de cada retrato.
@@ -571,8 +652,29 @@ function crearMotor(): Motor | null {
   if (!vs || !fs) return null;
   gl.attachShader(programa, vs);
   gl.attachShader(programa, fs);
+  // El mismo sitio para los vértices en los dos programas: comparten triángulo.
+  gl.bindAttribLocation(programa, 0, "aPos");
   gl.linkProgram(programa);
   if (!gl.getProgramParameter(programa, gl.LINK_STATUS)) return null;
+
+  // El programa de copia (ver `conNiveles`). Si no compilara, los vídeos se
+  // leen como antes, sin mipmaps: se ve peor al desenfocar, pero funciona.
+  let copia: WebGLProgram | null = null;
+  const vsCopia = compilar(gl.VERTEX_SHADER, VERTICES_COPIA);
+  const fsCopia = compilar(gl.FRAGMENT_SHADER, FRAGMENTOS_COPIA);
+  if (vsCopia && fsCopia) {
+    copia = gl.createProgram();
+    if (copia) {
+      gl.attachShader(copia, vsCopia);
+      gl.attachShader(copia, fsCopia);
+      gl.bindAttribLocation(copia, 0, "aPos");
+      gl.linkProgram(copia);
+      if (gl.getProgramParameter(copia, gl.LINK_STATUS)) {
+        gl.useProgram(copia);
+        gl.uniform1i(gl.getUniformLocation(copia, "uOrigen"), 0);
+      } else copia = null;
+    }
+  }
   gl.useProgram(programa);
 
   // Un triángulo que cubre toda la pantalla: un vértice menos que un cuadrado
@@ -707,12 +809,63 @@ function crearMotor(): Motor | null {
       .sort((x, y) => x[1].uso - y[1].uso);
     for (const [fuente, entrada] of candidatas) {
       if (texturas.size <= TOPE_TEXTURAS) break;
-      gl!.deleteTexture(entrada.textura);
+      gl!.deleteTexture(entrada.cruda ?? entrada.textura);
+      if (entrada.niveles) gl!.deleteTexture(entrada.niveles);
+      if (entrada.marco) gl!.deleteFramebuffer(entrada.marco);
       texturas.delete(fuente);
     }
   }
 
-  function subir(fuente: Fuente): Textura | null {
+  /**
+   * Copia el fotograma de vídeo que hay en `entrada.cruda` a su textura
+   * cuadrada y le hace los mipmaps. Todo en la tarjeta gráfica: no se trae
+   * ningún píxel al procesador. Devuelve false si no se pudo.
+   */
+  function conNiveles(entrada: Textura): boolean {
+    if (!copia || !entrada.cruda) return false;
+    if (!entrada.niveles) {
+      const textura = gl!.createTexture();
+      const marco = gl!.createFramebuffer();
+      if (!textura || !marco) return false;
+      gl!.bindTexture(gl!.TEXTURE_2D, textura);
+      gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA, LADO_VIDEO, LADO_VIDEO, 0, gl!.RGBA, gl!.UNSIGNED_BYTE, null);
+      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR_MIPMAP_LINEAR);
+      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
+      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
+      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
+      gl!.bindFramebuffer(gl!.FRAMEBUFFER, marco);
+      gl!.framebufferTexture2D(gl!.FRAMEBUFFER, gl!.COLOR_ATTACHMENT0, gl!.TEXTURE_2D, textura, 0);
+      const completo = gl!.checkFramebufferStatus(gl!.FRAMEBUFFER) === gl!.FRAMEBUFFER_COMPLETE;
+      gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
+      if (!completo) {
+        gl!.deleteTexture(textura);
+        gl!.deleteFramebuffer(marco);
+        // No se vuelve a intentar en cada fotograma.
+        copia = null;
+        return false;
+      }
+      entrada.niveles = textura;
+      entrada.marco = marco;
+    }
+    gl!.useProgram(copia);
+    gl!.bindFramebuffer(gl!.FRAMEBUFFER, entrada.marco!);
+    gl!.viewport(0, 0, LADO_VIDEO, LADO_VIDEO);
+    gl!.activeTexture(gl!.TEXTURE0);
+    gl!.bindTexture(gl!.TEXTURE_2D, entrada.cruda);
+    gl!.drawArrays(gl!.TRIANGLES, 0, 3);
+    gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
+    gl!.bindTexture(gl!.TEXTURE_2D, entrada.niveles);
+    gl!.generateMipmap(gl!.TEXTURE_2D);
+    gl!.useProgram(programa);
+    return true;
+  }
+
+  /**
+   * `borrosa`: la imagen se va a leer desenfocada en este fotograma. Solo
+   * importa en los vídeos, que entonces pasan por su copia con mipmaps;
+   * enfocados se leen tal cual, sin ese paso.
+   */
+  function subir(fuente: Fuente, borrosa = false): Textura | null {
     const esVideo = fuente instanceof HTMLVideoElement;
     let entrada = texturas.get(fuente);
 
@@ -722,21 +875,23 @@ function crearMotor(): Motor | null {
       if (!entrada) {
         const textura = gl!.createTexture()!;
         gl!.bindTexture(gl!.TEXTURE_2D, textura);
-        // El vídeo no es potencia de dos y cambia en cada fotograma: sin
-        // mipmaps. Se ve nítido; durante un relevo, se funde sin desenfoque.
+        // El vídeo no es potencia de dos, así que esta textura no admite
+        // mipmaps: vale mientras está enfocado. Desenfocado se lee de su
+        // copia cuadrada (`conNiveles`).
         gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR);
         gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
         gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
         gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
-        entrada = { textura, escala: [1, 1], uso: 0 };
+        entrada = { textura, cruda: textura, escala: [1, 1], uso: 0 };
         texturas.set(fuente, entrada);
       }
-      gl!.bindTexture(gl!.TEXTURE_2D, entrada.textura);
+      gl!.bindTexture(gl!.TEXTURE_2D, entrada.cruda!);
       try {
         gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGB, gl!.RGB, gl!.UNSIGNED_BYTE, fuente);
       } catch {
         return null;
       }
+      entrada.textura = borrosa && conNiveles(entrada) ? entrada.niveles! : entrada.cruda!;
       // Que el vídeo cubra el cuadrado sin deformarse.
       const { videoWidth: ancho, videoHeight: alto } = fuente;
       entrada.escala = ancho > alto ? [alto / ancho, 1] : [1, ancho / alto];
@@ -845,10 +1000,19 @@ function crearMotor(): Motor | null {
   const fuenteDe = (pieza: Pieza, i: number): Fuente => pieza.videos[i] ?? pieza.fotos[i]!;
 
   function pintar(pieza: Pieza, inercia: number): boolean {
-    const a = subir(fuenteDe(pieza, pieza.a)) ?? subir(pieza.fotos[pieza.a]!);
-    if (!a) return false;
     const enRelevo = pieza.relevo > 0;
-    const b = enRelevo ? (subir(fuenteDe(pieza, pieza.b)) ?? subir(pieza.fotos[pieza.b]!)) : null;
+    // Fuera de foco o en pleno relevo, las imágenes se leen desenfocadas.
+    let borrosa = enRelevo || pieza.foco < 0.99;
+    // También mientras una luna se funde o se suelta: debajo de ella la gota
+    // grande se lee desenfocada.
+    if (!borrosa && pieza.lunas2) {
+      for (let i = 0; i < pieza.cuentaLunas; i++) {
+        if (pieza.lunas2[i * 4 + 1]! > 0) borrosa = true;
+      }
+    }
+    const a = subir(fuenteDe(pieza, pieza.a), borrosa) ?? subir(pieza.fotos[pieza.a]!);
+    if (!a) return false;
+    const b = enRelevo ? (subir(fuenteDe(pieza, pieza.b), borrosa) ?? subir(pieza.fotos[pieza.b]!)) : null;
     if (enRelevo && !b) return false;
 
     const contorno = pieza.blob ? CONTORNOS.get(pieza.blob) : undefined;
@@ -1092,7 +1256,14 @@ function crearMotor(): Motor | null {
           pieza.lunas2[i * 4] = luna.hondo;
           pieza.lunas2[i * 4 + 1] = luna.union;
           pieza.lunas2[i * 4 + 2] = luna.presencia;
+          pieza.lunas2[i * 4 + 3] = luna.bruma;
         }
+        marcar();
+      },
+
+      usarFoto(indice, imagen) {
+        if (indice < 0 || indice >= pieza.fotos.length) return;
+        pieza.fotos[indice] = imagen;
         marcar();
       },
 

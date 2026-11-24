@@ -177,12 +177,20 @@ No usar:
   siluetas o iconos genéricos de relleno, numerar lo que no es una secuencia.
 - Acercamientos lentos hechos con `transform`: avanzan fracciones de píxel
   por fotograma y tiemblan. Van en el shader.
+- Mezclar una imagen nítida con otra, aunque sea dentro del vidrio. Cuando
+  una luna se funde con la gota grande o se suelta de ella, esa zona se
+  desenfoca primero y después cambia de imagen: es otro cambio de foco.
+- Saltar al final de un movimiento para empezar otro. Cada luna lleva su
+  propio movimiento y se puede interrumpir donde esté; si llegan dos cambios
+  seguidos, sigue desde ahí.
 
 Rendimiento, que es parte del diseño: un solo contexto WebGL para todos
 los retratos, que entrega cada dibujo a su lienzo sin copiarlo
 (OffscreenCanvas + `transferToImageBitmap`; copiar con `drawImage` traía
 cada dibujo de la tarjeta gráfica y daba saltos en Firefox), se pinta solo lo visible, en reposo a media cadencia, y un freno baja la resolución si el
-dispositivo no llega. Sin WebGL o con movimiento reducido quedan las fotos
+dispositivo no llega. Un vídeo no trae niveles pequeños (mipmaps): mientras
+se lee desenfocado, su fotograma se copia a una textura cuadrada que sí los
+tiene; desenfocar el vídeo tal cual da ruido y rayas. Sin WebGL o con movimiento reducido quedan las fotos
 normales. Cualquier cambio en `tinta.ts` debe conservar eso.
 
 Referencias: [refracción y dispersión, Maxime Heckel](https://blog.maximeheckel.com/posts/refraction-dispersion-and-other-shader-light-effects/),
