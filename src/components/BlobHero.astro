@@ -813,6 +813,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       tls: [] as gsap.core.Timeline[],
       tBase: null as gsap.core.Tween | null,
       escalaToque: "",
+      tocable: true,
       /** Ya tiene imagen que enseñar (su foto, o el fotograma de su vídeo). */
       lista: false,
       /** Enfoque que lleva, y si alguien la está mirando. */
@@ -1166,6 +1167,14 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         if (luna.mirada) mirada = { luna, px, py: py + radio * lado };
         luna.el.style.transform = `translate(-50%, -50%) translate3d(${px.toFixed(2)}px, ${py.toFixed(2)}px, 0) scale(${escala.toFixed(4)})`;
         luna.el.style.opacity = luna.presencia.toFixed(3);
+        // Mientras se funde con la gota grande (o se suelta de ella) no es un
+        // botón: está encima del retrato, medio disuelta o invisible, y se
+        // llevaba el clic que iba para él.
+        const tocable = union < 0.02 && luna.presencia > 0.9;
+        if (luna.tocable !== tocable) {
+          luna.tocable = tocable;
+          luna.el.style.pointerEvents = tocable ? "" : "none";
+        }
         const capa = hondo > 0 || union > 0 ? "2" : "0";
         if (luna.capa !== capa) {
           luna.capa = capa;

@@ -505,6 +505,25 @@ export function montarPrimerPlano(): void {
     { signal },
   );
 
+  // MIENTRAS LA GOTA VUELVE A SU SITIO la pieza sigue encima de la página y
+  // se lleva los clics (el de pausar, incluso, porque la gota pasa justo por
+  // encima del retrato). Si en ese rato se pulsa sobre el retrato, es que se
+  // quiere abrir otra vez: se termina de cerrar ya y se abre.
+  dialogo.addEventListener(
+    "click",
+    (e) => {
+      if (!abierto?.cerrando) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const origen = abierto.origen;
+      const r = origen.caja.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+      cerrarPrimerPlano(true);
+      abrirPrimerPlano(origen);
+    },
+    { signal, capture: true },
+  );
+
   // Fuera de la gota y de los mandos, cerrar. Y cerrar la lista de calidad.
   dialogo.addEventListener(
     "click",
@@ -854,6 +873,8 @@ function cambiarCalidad(indice: number): void {
 
 /** Saca la gota de su retrato. Devuelve si pudo. */
 export function abrirPrimerPlano(origen: OrigenPlano): boolean {
+  // Si aún se estaba cerrando, termina ya: el clic no se pierde.
+  if (abierto?.cerrando) cerrarPrimerPlano(true);
   if (!dialogo || abierto || origen.calidades.length === 0 || !activa()) return false;
   const gota = pieza("gota");
   const velo = pieza("velo");

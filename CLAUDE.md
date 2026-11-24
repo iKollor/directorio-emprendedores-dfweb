@@ -78,8 +78,10 @@ ya hacen el hero y el listado. No añadas otro carrusel a la portada.
 
 **El primer plano: la gota se acerca.** Los retratos con vídeo suenan y se
 abren (`src/lib/sonido.ts`, `src/lib/primerPlano.ts`, `PrimerPlano.astro`).
-Con el puntero encima del retrato del hero o de la ficha, su vídeo suena y el
-carrusel espera. Al pulsarlo, su gota sale de su sitio y crece hasta casi
+Con el puntero encima de cualquier retrato con vídeo (el del hero, el de la
+ficha y las tarjetas del listado), su vídeo se ve y suena, y el carrusel
+espera. Pulsar abre el primer plano solo en el hero y en la ficha: en el
+listado, la tarjeta lleva a la ficha. Al pulsarlo, su gota sale de su sitio y crece hasta casi
 llenar la ventana: NO es pantalla completa, alrededor se sigue viendo la
 página, fuera de foco. El borde sigue siendo de gota: parte de la silueta del
 retrato y se vuelve una pantalla (una superelipse con la proporción del
@@ -93,7 +95,11 @@ puntero encima sigue sonando. Todo cambio de volumen es un fundido, nunca un
 escalón. Para ir a la par, el sonido no se recoloca nunca (cada recolocación
 es un corte): es el retrato, que es mudo, el que acelera o frena un poco.
 Cambiar de calidad tampoco corta: la nueva carga en un segundo vídeo y entra
-justo donde va el primero. Los mandos son los de cualquier reproductor (reproducir, avance,
+justo donde va el primero. Si la voz se queda cargando (red lenta), el retrato NO la
+espera: sigue a su aire y se coloca una sola vez donde va ella cuando vuelve
+a andar; esperándola se quedaba clavado, y parecía que pasar el puntero
+pausaba el vídeo. Una luna que se está fundiendo con la gota grande no es un
+botón: está encima del retrato, medio invisible, y se llevaba su clic. Los mandos son los de cualquier reproductor (reproducir, avance,
 altavoz y nivel, calidad con "Auto", cerrar) vestidos con el material del
 sitio: píldora de vidrio, lo andado es una pincelada amarilla y el tirador,
 una gota. El retrato lleva un altavoz de vidrio (`.boton-icono.vidrio`) que

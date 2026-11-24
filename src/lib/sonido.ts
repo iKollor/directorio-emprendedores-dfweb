@@ -43,6 +43,9 @@ type Turno = {
   el: HTMLVideoElement;
   avisar: (estado: EstadoSonido) => void;
   vigia: number;
+  /** Por dónde iba la voz en la última mirada, y si entonces avanzaba. */
+  ultimo: number;
+  anda: boolean;
 };
 let turno: Turno | null = null;
 
@@ -101,7 +104,8 @@ export function punteroSobre(caja: Element): boolean {
 }
 
 /** El retrato, mudo, sigue a la voz: acelera o frena un poco, sin que se note. */
-function acompasar({ retrato, el }: Turno): void {
+function acompasar(mio: Turno): void {
+  const { retrato, el } = mio;
   // Si el retrato se para (pestaña oculta, fuera de pantalla), la voz espera.
   if (retrato.paused || retrato.ended) {
     if (!el.paused) el.pause();
@@ -111,18 +115,41 @@ function acompasar({ retrato, el }: Turno): void {
     void el.play().catch(() => {});
     return;
   }
+  // ¿ANDA DE VERDAD? Con la red lenta la voz se queda cargando: no está en
+  // pausa, pero tampoco avanza. Mientras tanto el retrato sigue a su aire.
+  // Antes la seguía igual, y como ella no se movía, él se quedaba clavado:
+  // pasar el puntero "pausaba" el vídeo.
+  const avanza = el.readyState >= 3 && !el.seeking && el.currentTime !== mio.ultimo;
+  mio.ultimo = el.currentTime;
+  if (!avanza) {
+    if (mio.anda) {
+      mio.anda = false;
+      retrato.playbackRate = 1;
+      mio.avisar("calla");
+    }
+    return;
+  }
   const dura = el.duration;
   if (!Number.isFinite(dura) || dura <= 0) return;
   let d = retrato.currentTime - el.currentTime;
   // Los dos van en bucle: al dar la vuelta uno antes que otro, no es un desfase.
   if (d > dura / 2) d -= dura;
   if (d < -dura / 2) d += dura;
-  if (Math.abs(d) > 0.6) {
+  const colocar = () => {
     retrato.playbackRate = 1;
     retrato.currentTime = Math.min(el.currentTime + 0.04, Math.max(0, retrato.duration - 0.05));
-  } else {
-    retrato.playbackRate = Math.min(1.12, Math.max(0.88, 1 - d * 0.6));
+  };
+  if (!mio.anda) {
+    // Empieza (o vuelve) a sonar: el retrato se coloca UNA vez donde va ella.
+    mio.anda = true;
+    mio.avisar("suena");
+    if (Math.abs(d) > 0.25) {
+      colocar();
+      return;
+    }
   }
+  if (Math.abs(d) > 0.6) colocar();
+  else retrato.playbackRate = Math.min(1.12, Math.max(0.88, 1 - d * 0.6));
 }
 
 function seguir(mio: Turno): void {
@@ -158,7 +185,7 @@ export function sonar(retrato: HTMLVideoElement, src: string | null, avisar: (es
     return;
   }
   const destino = new URL(src ?? (retrato.currentSrc || retrato.src), location.href).href;
-  const mio: Turno = { retrato, el, avisar, vigia: 0 };
+  const mio: Turno = { retrato, el, avisar, vigia: 0, ultimo: -1, anda: false };
   turno = mio;
 
   // Si es la misma pista y aún se estaba apagando, sube otra vez desde donde iba.
@@ -177,7 +204,7 @@ export function sonar(retrato: HTMLVideoElement, src: string | null, avisar: (es
   void (yaSuena ? Promise.resolve() : el.play()).then(
     () => {
       if (turno !== mio) return;
-      avisar("suena");
+      // Que suena lo dice `acompasar`, cuando la ve avanzar de verdad.
       nivel(el, 1, ENTRA);
       seguir(mio);
     },
@@ -219,10 +246,9 @@ export function cederVoz(retrato: HTMLVideoElement): HTMLVideoElement | null {
  */
 export function retomarVoz(retrato: HTMLVideoElement, el: HTMLVideoElement, avisar: (estado: EstadoSonido) => void): void {
   callar();
-  const mio: Turno = { retrato, el, avisar, vigia: 0 };
+  const mio: Turno = { retrato, el, avisar, vigia: 0, ultimo: -1, anda: false };
   turno = mio;
   el.loop = true;
-  avisar("suena");
   nivel(el, 1, 0.4);
   seguir(mio);
 }
