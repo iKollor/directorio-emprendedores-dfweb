@@ -48,8 +48,14 @@ porque abajo a la izquierda está el cartel: con un anillo cerrado las lunas
 pasaban por debajo de él, tapadas, y se pidió cambiarlo. Su frente se
 calcula con la medida del cartel, y ninguna luna pasa por encima del texto
 de la portada ni se sale de la página. En el teléfono el retrato va centrado
-para dejarles sitio. Se cambia pulsando una luna, con las flechas o
-deslizando. La gota grande no se mueve de su sitio. Debajo hubo una franja
+para dejarles sitio. No lleva botones de anterior y siguiente (hubo dos
+flechas amarillas y se pidió quitarlas): se toca lo que se ve. Una luna trae
+a esa persona; el retrato grande pasa a la siguiente o, en su tercio
+izquierdo, a la anterior, como en unas historias; arrastrar o deslizar tira
+de la cola; y con el teclado, flechas izquierda y derecha. El carrusel es un
+grupo con nombre para los lectores de pantalla, cada luna es un botón con
+área de toque de 48 px y enseña su nombre al mirarla, y los cambios que hace
+la persona se anuncian. La gota grande no se mueve de su sitio. Debajo hubo una franja
 de vídeos en carrusel ("En sus propias palabras") y se quitó: repetía lo que
 ya hacen el hero y el listado. No añadas otro carrusel a la portada.
 

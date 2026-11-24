@@ -31,9 +31,21 @@
  * esa persona y suelta a la anterior, que se desprende por detrás, al fondo.
  * Las demás avanzan un puesto.
  *
- * Se cambia de persona pulsando una luna, con las flechas (anterior y
- * siguiente) o deslizando el dedo: tirar de la cola hacia la izquierda trae
- * a la siguiente. Sola, avanza en el orden de la cola.
+ * CÓMO SE MANEJA. No hay botones de anterior y siguiente (los hubo, dos
+ * flechas amarillas, y se pidió quitarlos): se toca lo que se ve.
+ *
+ *   tocar o pulsar una luna      trae a esa persona
+ *   tocar el retrato grande      la siguiente (mitad derecha) o la anterior
+ *                                (mitad izquierda), como en unas historias
+ *   arrastrar o deslizar         tira de la cola: a la izquierda, la siguiente;
+ *                                vale un gesto corto y rápido
+ *   flechas izquierda y derecha  con el foco en el carrusel o en algo suyo
+ *
+ * Sola, avanza en el orden de la cola; se detiene con el puntero encima o
+ * con el foco del teclado dentro. Para quien no ve: el carrusel es un grupo
+ * con nombre, cada luna es un botón ("Ver a…"), al mirarla sale su nombre, y
+ * los cambios que hace la persona se anuncian (los automáticos no, para no
+ * hablar sin parar). Las lunas pequeñas se tocan en un área de 48 px.
  *
  * EL RELEVO. Para pasar de una persona a otra hay un solo movimiento: un
  * cambio de foco. La que está se desenfoca y se acerca, y la siguiente llega
@@ -70,7 +82,8 @@ import { getSitio } from "../lib/sitio";
 
 type Props = { emprendedores: Emprendedor[] };
 const { emprendedores } = Astro.props;
-const { conocelo } = (await getSitio(Astro.locals)).listado;
+const sitio = await getSitio(Astro.locals);
+const { conocelo } = sitio.listado;
 
 const MAXIMO = 8;
 
@@ -88,7 +101,22 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
 {
   escenas.length > 0 && (
-    <div class="escenario" data-escenario data-viaja-ambito data-anim="pop" data-anim-retraso="0.2">
+    <div
+      class="escenario"
+      data-escenario
+      data-viaja-ambito
+      data-anim="pop"
+      data-anim-retraso="0.2"
+      {...(escenas.length > 1
+        ? {
+            tabindex: "0",
+            role: "group",
+            "aria-roledescription": "carrusel",
+            "aria-label": sitio.general.menuEmprendedores,
+            "aria-describedby": "ayuda-escenario",
+          }
+        : {})}
+    >
       <div class="marco" data-marco data-viaja="retrato">
         <div
           class="blob"
@@ -150,7 +178,14 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       {escenas.length > 1 && (
         <div class="orbita" data-orbita>
           {escenas.map(({ e, cat }, i) => (
-            <button type="button" class="luna" data-luna aria-label={`Ver a ${e.nombre}`} style={`--acento:${cat.color};`}>
+            <button
+              type="button"
+              class="luna"
+              data-luna
+              data-nombre={e.nombre}
+              aria-label={`Ver a ${e.nombre}`}
+              style={`--acento:${cat.color};`}
+            >
               <span class="gota">
                 <svg class="definiciones" aria-hidden="true" focusable="false">
                   <defs>
@@ -181,12 +216,19 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         </div>
       )}
 
-      {/* Anterior y siguiente: las flechas de cualquier carrusel. */}
+      {/*
+        El nombre de la luna que se está mirando (con el puntero o con el
+        teclado), y lo que solo oyen los lectores de pantalla: cómo se maneja
+        y a quién se acaba de traer.
+      */}
       {escenas.length > 1 && (
-        <div class="pasos">
-          <button type="button" class="boton-icono" data-paso="-1" aria-label="Persona anterior">←</button>
-          <button type="button" class="boton-icono" data-paso="1" aria-label="Persona siguiente">→</button>
-        </div>
+        <>
+          <span class="nombre-luna" data-nombre-luna aria-hidden="true" />
+          <p id="ayuda-escenario" class="solo-lectores">
+            Flechas izquierda y derecha para cambiar de persona.
+          </p>
+          <p class="solo-lectores" aria-live="polite" data-aviso />
+        </>
       )}
 
       {/*
@@ -229,12 +271,11 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     touch-action: pan-y;
   }
 
-  /*
-   * Con órbita, sitio debajo: ahí van las flechas y por ahí asoma la luna
-   * que pasa por delante. Sin él, en el teléfono pisaban el logo de la escuela.
-   */
-  .escenario:has(.pasos) {
-    margin-block-end: 3.6rem;
+  /* El foco del teclado rodea la gota, no la caja cuadrada. */
+  .escenario:focus-visible {
+    outline: 3px solid var(--df-yellow);
+    outline-offset: 0.5rem;
+    border-radius: 44%;
   }
 
   /*
@@ -250,6 +291,11 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
   .marco .recorte {
     pointer-events: auto;
+  }
+
+  /* Con más de una persona, el retrato se arrastra y se toca para pasar. */
+  .escenario[tabindex] .marco .recorte {
+    cursor: grab;
   }
 
   /*
@@ -302,6 +348,50 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     outline-offset: 2px;
   }
 
+  /*
+   * ÁREA DE TOQUE. Las lunas del fondo son pequeñas; el botón se toca en al
+   * menos 48 px aunque la gota mida menos. `--escala` es la del botón, que
+   * pone el script: el área se calcula en su medida sin escalar.
+   */
+  .luna::before {
+    content: "";
+    position: absolute;
+    inset: min(0px, calc((100% - 48px / var(--escala, 1)) / 2));
+    border-radius: 50%;
+  }
+
+  /*
+   * EL NOMBRE de la luna que se mira, debajo de ella. Una píldora clara,
+   * como el cartel. Dónde va lo pone el script.
+   */
+  .nombre-luna {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 5;
+    padding: 0.3em 0.8em;
+    border-radius: var(--radio-pildora);
+    background: var(--df-bone);
+    color: var(--df-ink);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 0.6rem 1.2rem -0.6rem rgb(7 49 165 / 0.7);
+    font-size: var(--txt-s);
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity var(--dur-rapida) var(--ease-suave),
+      visibility 0s var(--dur-rapida);
+  }
+
+  .nombre-luna[data-visible] {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+  }
+
   .gota,
   .recorte-luna,
   .foto-luna {
@@ -326,35 +416,9 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     display: block;
   }
 
-  /*
-   * Anterior y siguiente, bajo el cartel: son de la persona que nombra. A la
-   * derecha, abajo, es por donde pasan las lunas más grandes.
-   */
-  .pasos {
-    position: absolute;
-    left: 1%;
-    bottom: -3.4rem;
-    z-index: 4;
-    display: flex;
-    gap: 0.6rem;
-  }
-
-  .pasos .boton-icono {
-    border: 0;
-    cursor: pointer;
-    font-family: inherit;
-  }
-
-  .pasos .boton-icono:hover,
-  .pasos .boton-icono:focus-visible {
-    scale: 1.1;
-  }
-
-  .pasos .boton-icono:active {
-    scale: 0.94;
-  }
-
-  .escenario[data-arrastrando] {
+  .escenario[data-arrastrando],
+  .escenario[data-arrastrando] .marco .recorte,
+  .escenario[data-arrastrando] .luna {
     cursor: grabbing;
   }
 
@@ -501,16 +565,6 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
   /* En móvil la etiqueta no puede tapar media cara. */
   @media (max-width: 899px) {
-    .pasos {
-      gap: 0.45rem;
-      bottom: -2.9rem;
-    }
-
-    .pasos .boton-icono {
-      width: 2.6rem;
-      font-size: 1.05rem;
-    }
-
     .rotulos {
       border-radius: 1rem;
     }
@@ -566,8 +620,11 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
   const EXTENSION = 1.5;
   /** Lo que hay que mover el puntero para que sea un arrastre y no un clic. */
   const UMBRAL = 8;
+  /** Un gesto corto también vale si es rápido: estos píxeles a esta velocidad (px/ms). */
+  const GESTO = 24;
+  const GESTO_RAPIDO = 0.25;
   /** A partir de aquí, soltar el arrastre pasa a la persona siguiente o anterior. */
-  const DESLIZAR = 56;
+  const DESLIZAR = 40;
   let soltar: (() => void) | null = null;
 
   function iniciar() {
@@ -581,6 +638,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     const rotulos = [...escenario.querySelectorAll<HTMLElement>("[data-rotulo]")];
     const recorte = escenario.querySelector<HTMLElement>(".recorte");
     const cartel = escenario.querySelector<HTMLElement>("[data-cartel]");
+    const aviso = escenario.querySelector<HTMLElement>("[data-aviso]");
+    const etiqueta = escenario.querySelector<HTMLElement>("[data-nombre-luna]");
 
     const reducido = sinMovimiento();
     let actual = 0;
@@ -815,6 +874,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     function colocar(dt = 0) {
       const avanzado = avance() + mano;
       recolocando = false;
+      let mirada: { luna: (typeof lunas)[number]; px: number; py: number } | null = null;
       for (const luna of lunas) {
         const visible = luna.lista && luna.fuera > 0.02;
         const gota = liquido[luna.indice]!;
@@ -879,6 +939,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         // pulsa. El de las lunas de detrás va por debajo de la gota grande,
         // que lo tapa también para el puntero.
         const escala = (radio * 2 * lado) / Math.max(1, tamanoLuna);
+        luna.el.style.setProperty("--escala", escala.toFixed(3));
+        if (luna.mirada) mirada = { luna, px, py: py + radio * lado };
         luna.el.style.transform = `translate(-50%, -50%) translate3d(${px.toFixed(2)}px, ${py.toFixed(2)}px, 0) scale(${escala.toFixed(4)})`;
         luna.el.style.opacity = Math.min(1, sale * 3).toFixed(3);
         const capa = hondo > 0 || union > 0 ? "2" : "0";
@@ -886,6 +948,17 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
           luna.capa = capa;
           luna.el.style.zIndex = capa;
           luna.el.style.visibility = "visible";
+        }
+      }
+      // El nombre de la luna que se mira, justo debajo de ella.
+      if (etiqueta) {
+        if (mirada && !arrastrando) {
+          const nombre = mirada.luna.el.dataset.nombre ?? "";
+          if (etiqueta.textContent !== nombre) etiqueta.textContent = nombre;
+          etiqueta.style.transform = `translate(-50%, 0) translate3d(${mirada.px.toFixed(1)}px, ${(mirada.py + 8).toFixed(1)}px, 0)`;
+          etiqueta.setAttribute("data-visible", "");
+        } else if (etiqueta.hasAttribute("data-visible")) {
+          etiqueta.removeAttribute("data-visible");
         }
       }
       // La cola avanza despacio: en reposo basta contárselo al material un
@@ -971,8 +1044,24 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     };
 
     // ---- Cambio de persona -------------------------------------------------
-    function irA(siguiente: number, inmediato = false) {
+    /**
+     * `porPersona` es un cambio que alguien ha pedido (tocando, arrastrando o
+     * con el teclado), no el relevo automático: se anuncia a los lectores de
+     * pantalla y, si el foco estaba en algo que desaparece (la luna pulsada,
+     * el cartel anterior), pasa al carrusel para que no se pierda.
+     */
+    function irA(siguiente: number, inmediato = false, porPersona = false) {
       if (siguiente === actual) return;
+      if (porPersona) {
+        const rotulo = rotulos[siguiente];
+        const nombre = rotulo?.querySelector("strong")?.textContent?.trim() ?? "";
+        const oficio = rotulo?.querySelector(".oficio")?.textContent?.trim() ?? "";
+        if (aviso) aviso.textContent = [nombre, oficio].filter(Boolean).join(", ");
+        const enfocado = document.activeElement;
+        if (enfocado && enfocado !== escenario && escenario!.contains(enfocado)) {
+          escenario!.focus({ preventScroll: true });
+        }
+      }
       transicion?.progress(1).kill();
       transicion = null;
 
@@ -987,6 +1076,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
       const lunaEntra = lunas[siguiente];
       const lunaSale = lunas[antes];
+      // Ya no se la mira: va a desaparecer dentro de la gota grande.
+      if (lunaEntra) lunaEntra.mirada = false;
 
       const terminar = () => {
         if (lunaEntra) {
@@ -1158,11 +1249,34 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       luna.el.addEventListener("pointerleave", () => mirar(false), { signal });
       luna.el.addEventListener("focus", () => mirar(luna.el.matches(":focus-visible")), { signal });
       luna.el.addEventListener("blur", () => mirar(false), { signal });
-      luna.el.addEventListener("click", () => irA(i), { signal });
+      luna.el.addEventListener("click", () => irA(i, false, true), { signal });
     });
 
-    for (const boton of escenario.querySelectorAll<HTMLElement>("[data-paso]")) {
-      boton.addEventListener("click", () => irA(vecina(Number(boton.dataset.paso))), { signal });
+    // TECLADO: flechas izquierda y derecha, con el foco en el carrusel o en
+    // cualquier cosa suya (una luna, el cartel).
+    escenario.addEventListener(
+      "keydown",
+      (e) => {
+        if (lunas.length === 0 || e.altKey || e.ctrlKey || e.metaKey) return;
+        const sentido = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+        if (!sentido) return;
+        e.preventDefault();
+        irA(vecina(sentido), false, true);
+      },
+      { signal },
+    );
+
+    // TOCAR EL RETRATO: como en unas historias. La mitad derecha (algo más
+    // de la mitad) pasa a la siguiente; el tercio izquierdo, a la anterior.
+    if (lunas.length > 0) {
+      recorte?.addEventListener(
+        "click",
+        (e) => {
+          const caja = recorte.getBoundingClientRect();
+          irA(vecina((e.clientX - caja.left) / caja.width < 0.36 ? -1 : 1), false, true);
+        },
+        { signal },
+      );
     }
 
     // La cola avanza sola, despacio; el puntero puede tirar de ella y, si no
@@ -1170,6 +1284,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     let pulsado = false;
     let arrastrando = false;
     let inicioPuntero = 0;
+    let inicioTiempo = 0;
     let inicioFase = 0;
     let tragarClic = false;
 
@@ -1186,9 +1301,10 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
     const alPulsar = (e: PointerEvent) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
-      // El cartel y las flechas son para pulsar, no para arrastrar.
-      if ((e.target as HTMLElement).closest("[data-cartel], [data-paso]")) return;
+      // El cartel es para pulsar, no para arrastrar.
+      if ((e.target as HTMLElement).closest("[data-cartel]")) return;
       pulsado = true;
+      inicioTiempo = e.timeStamp;
       inicioPuntero = e.clientX;
       inicioFase = mano;
     };
@@ -1216,8 +1332,11 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       escenario.removeAttribute("data-arrastrando");
       if (escenario.hasPointerCapture(e.pointerId)) escenario.releasePointerCapture(e.pointerId);
       const recorrido = e.clientX - inicioPuntero;
-      // Deslizar pasa de persona: hacia la izquierda, la siguiente.
-      if (Math.abs(recorrido) > DESLIZAR) irA(vecina(recorrido < 0 ? 1 : -1));
+      // Deslizar pasa de persona: hacia la izquierda, la siguiente. Vale un
+      // recorrido largo o uno corto y rápido.
+      const largo = Math.abs(recorrido);
+      const rapido = largo > GESTO && largo / Math.max(1, e.timeStamp - inicioTiempo) > GESTO_RAPIDO;
+      if (largo > DESLIZAR || rapido) irA(vecina(recorrido < 0 ? 1 : -1), false, true);
     };
     const alClic = (e: MouseEvent) => {
       if (!tragarClic) return;
