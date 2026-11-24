@@ -521,10 +521,6 @@ export interface Sitio {
     vacioTexto?: string | null;
     vacioBoton?: string | null;
   };
-  videos?: {
-    titular?: string | null;
-    bajada?: string | null;
-  };
   ficha?: {
     /**
      * El mensaje que ya va escrito cuando alguien pulsa para contactar. {nombre} se cambia por el nombre de cada persona.
@@ -612,12 +608,6 @@ export interface SitioSelect<T extends boolean = true> {
         vacioTitulo?: T;
         vacioTexto?: T;
         vacioBoton?: T;
-      };
-  videos?:
-    | T
-    | {
-        titular?: T;
-        bajada?: T;
       };
   ficha?:
     | T

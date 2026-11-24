@@ -17,6 +17,17 @@
  *      acerca, y la segunda llega desde el desenfoque: un cambio de foco.
  *   6. INERCIA. Al hacer scroll, la imagen se retrasa un poco dentro de la
  *      gota, como un líquido. Responde al scroll, no al puntero.
+ *   7. SISTEMA. En el hero, alrededor de la gota grande giran otras más
+ *      pequeñas (las lunas), cada una con su profundidad. La que pasa por
+ *      detrás es pequeña, está fuera de foco (también su borde), se va al
+ *      azul del fondo y queda tapada por la gota grande, que le da sombra.
+ *      La que pasa por delante es grande, está enfocada y proyecta su sombra
+ *      sobre el retrato. No se tocan: son gotas sueltas, cada una con su
+ *      canto y su brillo. Solo la luna elegida se funde con la gota grande:
+ *      entonces las dos son UNA superficie de líquido (se estiran una hacia
+ *      la otra, se forma un cuello y dentro se mezclan las dos imágenes), y
+ *      al separarse el cuello se estrangula y se rompe. Es un modo de este
+ *      mismo material, no otro shader.
  *
  * El recorte lo sigue haciendo el `clip-path` del SVG. El shader recibe esa
  * misma silueta como radios (lib/blob.ts) solo para saber dónde está el borde.
@@ -51,11 +62,42 @@ export type OpcionesTinta = {
   fuentes: Imagen[];
   /** 0 = vidrio esmerilado en tinta, 1 = enfocado y a color. Estado inicial. */
   foco?: number;
+  /**
+   * Modo sistema (el hero): el lienzo es más grande que la gota, para que
+   * quepan las lunas, y se pinta con transparencia en vez de recortarse con
+   * el `clip-path`. `blob` es el elemento de la silueta de la gota grande y
+   * `extension`, cuántas veces su lado mide el lienzo.
+   */
+  sistema?: { blob: Element; extension: number };
 };
+
+/** Una luna del sistema, en fracciones del lado de la gota grande. */
+export type Luna = {
+  /** Centro, medido desde el centro de la gota grande. */
+  x: number;
+  y: number;
+  /** Radio. Con 0 la luna no se pinta. */
+  radio: number;
+  /** 0 = esmerilada en tinta, 1 = enfocada y a color. */
+  foco: number;
+  /** Profundidad: -1 al fondo, detrás de la gota grande; 1 delante del todo. */
+  hondo: number;
+  /** 0 = gota suelta; 1 = fundida con la gota grande en una sola superficie. */
+  union: number;
+  /** Cuánto se ve su retrato mientras está fundida (1 = entero, 0 = disuelto). */
+  presencia: number;
+};
+
+/** Cuántas lunas admite un sistema (las que caben en su atlas de retratos). */
+export const TOPE_LUNAS = 8;
 
 export type Tinta = {
   /** Enfoca la gota (o la deja fuera de foco). `segundos` es lo que tarda. */
   enfocar(activo: boolean, segundos?: number): gsap.core.Tween;
+  /** Solo en modo sistema: dónde está cada luna en este fotograma. */
+  lunas(estado: readonly Luna[]): void;
+  /** Solo en modo sistema: el retrato de una luna (su foto o un fotograma). */
+  retratoLuna(indice: number, fuente: Imagen): void;
   /** Releva a la persona en pantalla por otra, con un cambio de foco. */
   relevar(indice: number): gsap.core.Tween;
   /** Cambia de persona sin animación. */
@@ -92,6 +134,16 @@ uniform float uRelevo;
 uniform float uFoco;
 uniform float uInercia;
 uniform float uConContorno;
+// SISTEMA (el hero): las lunas que se funden con la gota grande.
+uniform sampler2D uAtlas;
+uniform float uSistema;
+uniform float uExtension;
+uniform float uPixel;
+uniform float uTiempo;
+uniform float uCuenta;
+uniform vec4 uLunas[${TOPE_LUNAS}];
+// De cada luna: profundidad (-1 detrás … 1 delante), unión y presencia.
+uniform vec4 uLunas2[${TOPE_LUNAS}];
 uniform vec3 uSombra;
 uniform vec3 uMedio;
 uniform vec3 uLuz;
@@ -101,6 +153,9 @@ const float MUESTRAS = ${MUESTRAS_CONTORNO}.0;
 // Ancho de la zona curva del borde, en fracción del lado. Estrecho a
 // propósito: el volumen se lee en el filo y la cara queda fuera de él.
 const float CANTO = 0.115;
+// Alcance de la unión suave entre gotas, en fracción del lado: a esta
+// distancia empiezan a estirarse una hacia la otra y a formar el cuello.
+const float UNION = 0.085;
 
 float leerRadio(float indice) {
   vec4 t = texture2D(uRadios, vec2((indice + 0.5) / MUESTRAS, 0.5));
@@ -152,14 +207,168 @@ vec3 lente(sampler2D t, vec2 uv, vec2 escala, float zoom, vec2 desvio, float dis
   return c * 0.1;
 }
 
+// TINTA: fuera de foco, la gota toma los tres tonos de la marca.
+vec3 entintar(vec3 color, float velo) {
+  if (velo <= 0.001) return color;
+  float luz = dot(color, vec3(0.299, 0.587, 0.114));
+  luz = smoothstep(0.02, 0.98, luz);
+  vec3 tinta = mix(uSombra, uMedio, smoothstep(0.0, 0.55, luz));
+  tinta = mix(tinta, uLuz, smoothstep(0.42, 1.0, luz));
+  return mix(color, tinta, smoothstep(0.0, 1.0, velo));
+}
+
+// El retrato de una luna: su casilla del atlas (cuatro por fila).
+vec3 leerLuna(float indice, vec2 uv, float nivel) {
+  vec2 casilla = vec2(mod(indice, 4.0), floor(indice / 4.0));
+  // Sin llegar al borde de la casilla: al desenfocar asomaría la vecina.
+  return texture2D(uAtlas, (casilla + clamp(uv, 0.05, 0.95)) / vec2(4.0, 2.0), nivel).rgb;
+}
+
+// La misma lente, para una luna: más pequeña, se desenfoca con menos.
+vec3 lenteLuna(float indice, vec2 uv, vec2 desvio, float dispersion, float desenfoque) {
+  vec2 rojo = desvio * (1.0 - dispersion);
+  vec2 azul = desvio * (1.0 + dispersion);
+  float nivel = desenfoque * 2.4;
+  vec3 c = vec3(
+    leerLuna(indice, uv + rojo, nivel).r,
+    leerLuna(indice, uv + desvio, nivel).g,
+    leerLuna(indice, uv + azul, nivel).b
+  );
+  if (desenfoque < 0.04) return c;
+  float r = desenfoque * 0.055;
+  c *= 2.0;
+  for (int i = 0; i < 6; i++) {
+    float a = float(i) * 1.047198 + 0.5;
+    c += leerLuna(indice, uv + desvio + vec2(cos(a), sin(a)) * r, nivel);
+  }
+  return c * 0.125;
+}
+
+// Una capa encima de otra (color ya multiplicado por su opacidad).
+vec4 sobre(vec4 abajo, vec4 arriba) {
+  return arriba + abajo * (1.0 - arriba.a);
+}
+
+// El radio de una luna en una dirección: no es un círculo perfecto, respira.
+float radioLuna(float r, float angulo, float indice) {
+  return r * (1.0
+    + 0.05 * sin(3.0 * angulo + uTiempo * 1.1 + indice * 2.3)
+    + 0.028 * sin(5.0 * angulo - uTiempo * 0.8 + indice));
+}
+
+// UNA LUNA SUELTA: una gota entera, con su canto, su refracción y su luz.
+// La profundidad se lee en tres cosas: lejos, el borde también se desenfoca,
+// el color se va al azul del fondo y la gota grande le da sombra.
+vec4 gotaSuelta(float indice, vec2 q, float r0, float foco, float hondo, float dMadre) {
+  float lejos = length(q);
+  float dl = lejos - radioLuna(r0, atan(q.y, q.x), indice);
+  float velo = 1.0 - foco;
+  float borde = uPixel * (1.0 + velo * 5.0);
+  if (dl > borde) return vec4(0.0);
+
+  vec2 haciaFuera = q / max(lejos, 0.0001);
+  float interior = clamp(-dl / (r0 * 0.5), 0.0, 1.0);
+  float curva = pow(1.0 - interior, 1.7);
+
+  vec2 uv = q / (2.2 * r0) + 0.5;
+  vec2 desvio = -haciaFuera * curva * mix(0.05, 0.11, velo);
+  vec3 c = entintar(lenteLuna(indice, uv, desvio, mix(0.3, 0.36, velo) * curva, velo), velo);
+
+  vec3 normal = normalize(vec3(haciaFuera * curva * 1.35, 0.62));
+  float brillo = pow(max(dot(normal, normalize(vec3(-0.55, -0.7, 0.55))), 0.0), 14.0) * smoothstep(0.0, 0.85, curva);
+  float rebote = pow(max(dot(normal, normalize(vec3(0.55, 0.7, 0.5))), 0.0), 7.0) * curva;
+  c *= 1.0 - curva * curva * (0.5 + 0.5 * dot(haciaFuera, vec2(0.62, 0.78))) * 0.3;
+  c += vec3(1.0) * brillo * 0.5 + vec3(0.82, 0.88, 1.0) * rebote * 0.16;
+
+  float lejania = clamp(-hondo, 0.0, 1.0);
+  c = mix(c, uMedio, 0.22 * lejania);
+  // Al asomar por detrás de la gota grande, lleva su sombra encima.
+  c *= 1.0 - 0.45 * lejania * (1.0 - smoothstep(-0.01, 0.1, dMadre));
+
+  float alfa = 1.0 - smoothstep(-borde, borde, dl);
+  return vec4(c * alfa, alfa);
+}
+
 void main() {
-  vec2 p = vUv - 0.5;
+  // En modo sistema el lienzo es más grande que la gota: p sigue midiendo
+  // en lados de la gota grande, con el centro en el suyo.
+  vec2 p = (vUv - 0.5) * uExtension;
   float distancia = length(p);
   vec2 fuera = p / max(distancia, 0.0001);
 
   // PERFIL DE LA GOTA: plana en el centro, curva al acercarse al borde.
+  // d es la distancia al borde: negativa dentro, positiva fuera.
   float radio = uConContorno > 0.5 ? radioEn(atan(p.y, p.x)) : 0.44;
-  float interior = clamp((radio - distancia) / CANTO, 0.0, 1.0);
+  float d = distancia - radio;
+
+  // SISTEMA. Primero, la luna que se está fundiendo: se suma a la superficie
+  // con una unión suave. Donde las dos gotas se acercan, d baja entre ellas y
+  // aparece el cuello. De cada píxel se guarda cuánto es de la luna, para
+  // mezclar después su imagen con la de la gota grande.
+  float pesoLuna = 0.0;
+  float cualLuna = 0.0;
+  vec2 dentroLuna = vec2(0.0);
+  float tamanoLuna = 1.0;
+  float focoLuna = 1.0;
+  float presenciaLuna = 1.0;
+  vec4 detras = vec4(0.0);
+  vec4 delante = vec4(0.0);
+  float sombraLunas = 0.0;
+  if (uSistema > 0.5) {
+    for (int i = 0; i < ${TOPE_LUNAS}; i++) {
+      if (float(i) >= uCuenta) break;
+      vec4 luna = uLunas[i];
+      vec4 mas = uLunas2[i];
+      if (luna.z < 0.003 || mas.y <= 0.0) continue;
+      vec2 q = p - luna.xy;
+      float lejos = length(q);
+      float dl = lejos - radioLuna(luna.z, atan(q.y, q.x), float(i));
+      float k = max(UNION * mas.y, 0.0006);
+      float h = clamp(0.5 + 0.5 * (dl - d) / k, 0.0, 1.0);
+      d = mix(dl, d, h) - k * h * (1.0 - h);
+      fuera = normalize(mix(q / max(lejos, 0.0001), fuera, h) + vec2(0.00001));
+      pesoLuna *= h;
+      if (1.0 - h > pesoLuna) {
+        pesoLuna = 1.0 - h;
+        cualLuna = float(i);
+        dentroLuna = q;
+        tamanoLuna = luna.z;
+        focoLuna = luna.w;
+        presenciaLuna = mas.z;
+      }
+    }
+
+    // Después, las lunas sueltas: las de detrás (profundidad negativa) irán
+    // debajo de la gota grande y las de delante, encima, con su sombra sobre ella. La luz viene de
+    // arriba a la izquierda, así que la sombra cae abajo a la derecha.
+    float dMadre = d;
+    for (int i = 0; i < ${TOPE_LUNAS}; i++) {
+      if (float(i) >= uCuenta) break;
+      vec4 luna = uLunas[i];
+      vec4 mas = uLunas2[i];
+      if (luna.z < 0.003) continue;
+      vec2 q = p - luna.xy;
+      if (mas.x > 0.0) {
+        float ds = length(q - vec2(0.022, 0.032) * (0.4 + mas.x)) - luna.z;
+        sombraLunas = max(sombraLunas, (1.0 - smoothstep(-0.035, 0.06, ds)) * 0.36 * mas.x * (1.0 - mas.y));
+      }
+      if (mas.y > 0.0) continue;
+      vec4 gota = gotaSuelta(float(i), q, luna.z, luna.w, mas.x, dMadre);
+      // El paso de delante a detrás es gradual: si en ese momento la luna
+      // pisa el borde del retrato, no da un salto.
+      float alFrente = smoothstep(-0.12, 0.12, mas.x);
+      detras = sobre(detras, gota * (1.0 - alFrente));
+      delante = sobre(delante, gota * alFrente);
+    }
+
+    // Donde no hay líquido no hay nada que pintar.
+    if (d > uPixel * 1.5 && detras.a + delante.a < 0.004) {
+      gl_FragColor = vec4(0.0);
+      return;
+    }
+  }
+
+  float interior = clamp(-d / CANTO, 0.0, 1.0);
   float curva = pow(1.0 - interior, 1.7);
 
   float movimiento = abs(uInercia);
@@ -174,26 +383,30 @@ void main() {
   desvio.y -= uInercia * 0.022 * (1.0 - curva);
   float dispersion = (mix(0.3, 0.36, velo) + movimiento * 0.3) * curva;
 
+  // La imagen de la gota grande se lee en sus propias coordenadas.
+  vec2 uvGota = p + 0.5;
   vec3 color;
   if (uRelevo > 0.0) {
     // RELEVO: cambio de foco. La que sale se desenfoca y se acerca; la que
     // entra llega desde el desenfoque. A medio camino, las dos son luz.
     float sale = smoothstep(0.0, 0.6, uRelevo);
     float entra = 1.0 - smoothstep(0.4, 1.0, uRelevo);
-    vec3 a = lente(uA, vUv, uEscalaA, uZoomA * (1.0 + sale * 0.14), desvio * (1.0 + sale * 1.6), dispersion + sale * 0.35, max(velo, sale));
-    vec3 b = lente(uB, vUv, uEscalaB, uZoomB * (1.0 + entra * 0.14), desvio * (1.0 + entra * 1.6), dispersion + entra * 0.35, max(velo, entra));
+    vec3 a = lente(uA, uvGota, uEscalaA, uZoomA * (1.0 + sale * 0.14), desvio * (1.0 + sale * 1.6), dispersion + sale * 0.35, max(velo, sale));
+    vec3 b = lente(uB, uvGota, uEscalaB, uZoomB * (1.0 + entra * 0.14), desvio * (1.0 + entra * 1.6), dispersion + entra * 0.35, max(velo, entra));
     color = mix(a, b, smoothstep(0.32, 0.68, uRelevo));
   } else {
-    color = lente(uA, vUv, uEscalaA, uZoomA, desvio, dispersion, velo);
+    color = lente(uA, uvGota, uEscalaA, uZoomA, desvio, dispersion, velo);
   }
+  color = entintar(color, velo);
 
-  // TINTA: fuera de foco, la gota toma los tres tonos de la marca.
-  if (velo > 0.001) {
-    float luz = dot(color, vec3(0.299, 0.587, 0.114));
-    luz = smoothstep(0.02, 0.98, luz);
-    vec3 tinta = mix(uSombra, uMedio, smoothstep(0.0, 0.55, luz));
-    tinta = mix(tinta, uLuz, smoothstep(0.42, 1.0, luz));
-    color = mix(color, tinta, smoothstep(0.0, 1.0, velo));
+  // La luna que se funde: su retrato, con su propio enfoque, mezclado con el
+  // de la gota grande según cuánto de cada una hay en este punto del líquido.
+  if (pesoLuna > 0.002) {
+    float veloLuna = 1.0 - focoLuna;
+    vec2 uvLuna = dentroLuna / (2.2 * tamanoLuna) + 0.5;
+    vec2 desvioLuna = desvio / (2.2 * tamanoLuna) * 0.5;
+    vec3 retrato = lenteLuna(cualLuna, uvLuna, desvioLuna, dispersion, veloLuna);
+    color = mix(color, entintar(retrato, veloLuna), smoothstep(0.0, 1.0, pesoLuna) * presenciaLuna);
   }
 
   // LUZ: la normal se inclina hacia fuera en el canto. La luz viene de
@@ -207,7 +420,15 @@ void main() {
   color *= 1.0 - sombra;
   color += vec3(1.0) * brillo * 0.5 + vec3(0.82, 0.88, 1.0) * rebote * 0.16;
 
-  gl_FragColor = vec4(color, 1.0);
+  if (uSistema > 0.5) {
+    // El borde lo dibuja el propio líquido, suavizado un píxel. Encima, la
+    // sombra de las lunas que pasan por delante; debajo y encima, ellas.
+    float alfa = 1.0 - smoothstep(-uPixel, uPixel, d);
+    color *= 1.0 - sombraLunas;
+    gl_FragColor = sobre(sobre(detras, vec4(color * alfa, alfa)), delante);
+  } else {
+    gl_FragColor = vec4(color, 1.0);
+  }
 }`;
 
 // Tres tonos de la marca: azul hondo, el azul del fondo y una lavanda clara.
@@ -265,6 +486,11 @@ type Pieza = {
   sucia: boolean;
   pintada: boolean;
   tweens: Set<gsap.core.Tween>;
+  /** Modo sistema: cuánto más grande que la gota es el lienzo, y sus lunas. */
+  extension: number;
+  lunas: Float32Array | null;
+  lunas2: Float32Array | null;
+  cuentaLunas: number;
 };
 
 type Motor = {
@@ -309,7 +535,10 @@ function admiteTraspaso(): boolean {
 
 function crearMotor(): Motor | null {
   const OPCIONES_GL: WebGLContextAttributes = {
-    alpha: false,
+    // Con transparencia: el sistema del hero dibuja su propio borde. Los
+    // retratos sueltos pintan opaco y los recorta su `clip-path`, como antes.
+    alpha: true,
+    premultipliedAlpha: true,
     antialias: false,
     depth: false,
     stencil: false,
@@ -365,10 +594,19 @@ function crearMotor(): Motor | null {
     foco: u("uFoco"),
     inercia: u("uInercia"),
     conContorno: u("uConContorno"),
+    sistema: u("uSistema"),
+    extension: u("uExtension"),
+    pixel: u("uPixel"),
+    tiempo: u("uTiempo"),
+    cuenta: u("uCuenta"),
+    lunas: u("uLunas[0]"),
+    lunas2: u("uLunas2[0]"),
   };
   gl.uniform1i(u("uA"), 0);
   gl.uniform1i(u("uB"), 1);
   gl.uniform1i(u("uRadios"), 2);
+  gl.uniform1i(u("uAtlas"), 3);
+  gl.clearColor(0, 0, 0, 0);
   gl.uniform3fv(u("uSombra"), TONOS.sombra);
   gl.uniform3fv(u("uMedio"), TONOS.medio);
   gl.uniform3fv(u("uLuz"), TONOS.luz);
@@ -394,6 +632,55 @@ function crearMotor(): Motor | null {
     }
     gl!.activeTexture(gl!.TEXTURE2);
     gl!.texSubImage2D(gl!.TEXTURE_2D, 0, 0, 0, MUESTRAS_CONTORNO, 1, gl!.RGBA, gl!.UNSIGNED_BYTE, bytesRadios);
+  }
+
+  // ---- Atlas: los retratos de las lunas, en una sola textura ----------------
+  // Ocho casillas de 256 px (cuatro por fila). Una textura por luna no cabe:
+  // un móvil garantiza ocho unidades de textura y ya se usan tres.
+  const CASILLA = 256;
+  const atlasLienzo = document.createElement("canvas");
+  atlasLienzo.width = CASILLA * 4;
+  atlasLienzo.height = CASILLA * 2;
+  const atlasCtx = atlasLienzo.getContext("2d");
+  const atlasTextura = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE3);
+  gl.bindTexture(gl.TEXTURE_2D, atlasTextura);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array([10, 10, 138]));
+
+  function ponerEnAtlas(indice: number, fuente: Imagen) {
+    if (!atlasCtx || indice < 0 || indice >= TOPE_LUNAS) return;
+    const ancho = fuente instanceof HTMLImageElement ? fuente.naturalWidth : fuente.width;
+    const alto = fuente instanceof HTMLImageElement ? fuente.naturalHeight : fuente.height;
+    if (!ancho || !alto) return;
+    // El mismo recorte que las fotos grandes: a cuadrado y con el rostro al
+    // centro (ver `subir`), dando solo el destino.
+    const [rx = 0.5, ry = 0.5, rz = 1] = (fuente.dataset.rostro ?? "").split(",").map(Number).filter(Number.isFinite);
+    const proporcion = ancho / alto;
+    const dw = (proporcion >= 1 ? CASILLA * proporcion : CASILLA) * rz;
+    const dh = (proporcion >= 1 ? CASILLA : CASILLA / proporcion) * rz;
+    const dx = Math.min(0, Math.max(CASILLA - dw, CASILLA / 2 - rx * dw));
+    const dy = Math.min(0, Math.max(CASILLA - dh, CASILLA / 2 - ry * dh));
+    const x0 = (indice % 4) * CASILLA;
+    const y0 = Math.floor(indice / 4) * CASILLA;
+    atlasCtx.save();
+    atlasCtx.beginPath();
+    atlasCtx.rect(x0, y0, CASILLA, CASILLA);
+    atlasCtx.clip();
+    atlasCtx.drawImage(fuente, x0 + dx, y0 + dy, dw, dh);
+    atlasCtx.restore();
+
+    gl!.activeTexture(gl!.TEXTURE3);
+    gl!.bindTexture(gl!.TEXTURE_2D, atlasTextura);
+    try {
+      gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGB, gl!.RGB, gl!.UNSIGNED_BYTE, atlasLienzo);
+    } catch {
+      return;
+    }
+    gl!.generateMipmap(gl!.TEXTURE_2D);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR_MIPMAP_LINEAR);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
   }
 
   // ---- Texturas ------------------------------------------------------------
@@ -537,7 +824,8 @@ function crearMotor(): Motor | null {
   });
 
   function ajustar(pieza: Pieza) {
-    const escala = Math.min(window.devicePixelRatio || 1, 2) * CALIDADES[nivelCalidad]!;
+    // El lienzo del sistema es más grande que su gota: con tope de 1,5.
+    const escala = Math.min(window.devicePixelRatio || 1, pieza.lunas ? 1.5 : 2) * CALIDADES[nivelCalidad]!;
     const lado = Math.max(2, Math.round(pieza.contenedor.clientWidth * escala));
     // Las dos medidas: un lienzo nace de 300 × 150, y si el lado pedido era
     // justo 300 el ancho ya coincidía y el alto se quedaba en 150.
@@ -584,6 +872,16 @@ function crearMotor(): Motor | null {
     gl!.uniform1f(uniformes.foco, pieza.foco);
     gl!.uniform1f(uniformes.inercia, inercia);
     gl!.uniform1f(uniformes.conContorno, contorno ? 1 : 0);
+    gl!.uniform1f(uniformes.extension, pieza.extension);
+    gl!.uniform1f(uniformes.sistema, pieza.lunas ? 1 : 0);
+    if (pieza.lunas) {
+      gl!.uniform1f(uniformes.pixel, pieza.extension / lado);
+      gl!.uniform1f(uniformes.tiempo, (performance.now() / 1000) % 3600);
+      gl!.uniform1f(uniformes.cuenta, pieza.cuentaLunas);
+      gl!.uniform4fv(uniformes.lunas, pieza.lunas);
+      gl!.uniform4fv(uniformes.lunas2, pieza.lunas2!);
+      gl!.clear(gl!.COLOR_BUFFER_BIT);
+    }
     gl!.drawArrays(gl!.TRIANGLES, 0, 3);
 
     if (pieza.salida.modo === "traspaso") {
@@ -592,6 +890,7 @@ function crearMotor(): Motor | null {
     } else {
       // El viewport de WebGL nace abajo a la izquierda; en coordenadas de
       // lienzo eso es el final de la altura.
+      if (pieza.lunas) pieza.salida.ctx.clearRect(0, 0, lado, lado);
       pieza.salida.ctx.drawImage(base, 0, base.height - lado, lado, lado, 0, 0, lado, lado);
     }
 
@@ -710,7 +1009,11 @@ function crearMotor(): Motor | null {
 
     const pieza: Pieza = {
       contenedor,
-      blob: contenedor.closest("[data-blob]"),
+      blob: opciones.sistema?.blob ?? contenedor.closest("[data-blob]"),
+      extension: opciones.sistema?.extension ?? 1,
+      lunas: opciones.sistema ? new Float32Array(TOPE_LUNAS * 4) : null,
+      lunas2: opciones.sistema ? new Float32Array(TOPE_LUNAS * 4) : null,
+      cuentaLunas: 0,
       lienzo,
       salida,
       lado: 0,
@@ -773,6 +1076,34 @@ function crearMotor(): Motor | null {
             : { foco: 0, duration: 0.8 * pieza.foco + 0.1, ease: "power2.inOut" },
         );
         return enfoque;
+      },
+
+      lunas(estado) {
+        if (!pieza.lunas || !pieza.lunas2) return;
+        pieza.lunas.fill(0);
+        pieza.lunas2.fill(0);
+        pieza.cuentaLunas = Math.min(estado.length, TOPE_LUNAS);
+        for (let i = 0; i < pieza.cuentaLunas; i++) {
+          const luna = estado[i]!;
+          pieza.lunas[i * 4] = luna.x;
+          pieza.lunas[i * 4 + 1] = luna.y;
+          pieza.lunas[i * 4 + 2] = luna.radio;
+          pieza.lunas[i * 4 + 3] = luna.foco;
+          pieza.lunas2[i * 4] = luna.hondo;
+          pieza.lunas2[i * 4 + 1] = luna.union;
+          pieza.lunas2[i * 4 + 2] = luna.presencia;
+        }
+        marcar();
+      },
+
+      retratoLuna(indice, fuente) {
+        const poner = () => {
+          ponerEnAtlas(indice, fuente);
+          marcar();
+        };
+        if (fuente instanceof HTMLImageElement && !fuente.complete) {
+          fuente.addEventListener("load", poner, { once: true, signal: avisos.signal });
+        } else poner();
       },
 
       relevar(indice) {

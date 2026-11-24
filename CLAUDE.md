@@ -41,6 +41,35 @@ material. El canto de la gota es fino a propósito: el volumen lo dan la luz
 y la sombra, que no mueven la imagen. Cuándo enfoca cada retrato está en `src/lib/retratos.ts`; el hero,
 en `BlobHero.astro`. La silueta que usa el shader sale de `src/lib/blob.ts`.
 
+**Un solo carrusel: la órbita del hero.** La gota grande de la portada va
+pasando por las personas y, a su alrededor, hay una gota por cada una de las
+demás (`BlobHero.astro`). Es el mismo vidrio (modo sistema de `tinta.ts`, un
+solo lienzo) y lo que cuenta es la PROFUNDIDAD, con medios de lente. Las
+lunas forman una cola sobre un arco abierto que rodea el retrato por arriba
+y por la derecha: la última, arriba a la izquierda, es pequeña, esmerilada y
+azul, con el borde también desenfocado, y asoma por detrás de la gota
+grande; la primera, abajo a la derecha, es grande (casi el 40 % del
+retrato), está enfocada y a color, y proyecta su sombra sobre el retrato.
+Las lunas NO se pegan a la gota grande: son gotas sueltas. Solo se funde la
+que le toca: en el frente crece, se forma el cuello y las dos son un solo
+líquido; la gota cambia de silueta, hace su cambio de foco y suelta a la
+anterior, que sale por detrás, al fondo de la cola. La cola es un reloj: la
+siguiente persona llega al frente justo cuando le toca. El arco es abierto
+porque abajo a la izquierda está el cartel: con un anillo cerrado las lunas
+pasaban por debajo de él, tapadas, y se pidió cambiarlo. Su frente se
+calcula con la medida del cartel, y ninguna luna pasa por encima del texto
+de la portada ni se sale de la página. En el teléfono el retrato va centrado
+para dejarles sitio. No lleva botones de anterior y siguiente (hubo dos
+flechas amarillas y se pidió quitarlas): se toca lo que se ve. Una luna trae
+a esa persona; el retrato grande pasa a la siguiente o, en su tercio
+izquierdo, a la anterior, como en unas historias; arrastrar o deslizar tira
+de la cola; y con el teclado, flechas izquierda y derecha. El carrusel es un
+grupo con nombre para los lectores de pantalla, cada luna es un botón con
+área de toque de 48 px y enseña su nombre al mirarla, y los cambios que hace
+la persona se anuncian. La gota grande no se mueve de su sitio. Debajo hubo una franja
+de vídeos en carrusel ("En sus propias palabras") y se quitó: repetía lo que
+ya hacen el hero y el listado. No añadas otro carrusel a la portada.
+
 **Una curva.** Todo lo que entra sube un poco y se asienta con `expo.out`
 (`CURVA` en `src/lib/animaciones.ts`). Sin rebotes, giros ni desenfoques de
 texto. El único elástico del sitio es el contorno de los blobs.
@@ -75,9 +104,8 @@ logo de la Escuela de Emprendimiento está pintado a mano, en blanco y
 amarillo, como el rótulo de un negocio de barrio. La clase `.pincel`
 (`src/styles/tokens.css`, tipografía Amatic SC, elegida por Diseña Futuro)
 escribe con esa letra las pocas frases que el sitio dice en voz alta: la
-cinta de palabras (un renglón blanco y otro amarillo, como el logo), "En sus
-propias palabras", la llamada de cada tarjeta, "Conoce también a" y el lema
-de la portada. No es para leer ni para la interfaz: titulares, textos,
+cinta de palabras (un renglón blanco y otro amarillo, como el logo), la
+llamada de cada tarjeta, "Conoce también a" y el lema de la portada. No es para leer ni para la interfaz: titulares, textos,
 botones y filtros siguen en General Sans, con su fino + grueso. No se usa
 para destacar una palabra dentro de un titular. Va siempre grande, en blanco
 o en amarillo (o en azul sobre el cartel claro). El subrayado amarillo es
