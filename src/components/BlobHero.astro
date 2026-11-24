@@ -9,32 +9,31 @@
  *
  * LA ÓRBITA. Las gotas pequeñas (lunas) y la grande se pintan en un único
  * lienzo, con el material del sitio (modo sistema de lib/tinta.ts). Las lunas
- * recorren un anillo inclinado EN PROFUNDIDAD, y todo en ellas lo cuenta: la
- * que pasa por delante (abajo a la derecha) es grande, está enfocada y a
- * color, y proyecta su sombra sobre el retrato; la que pasa por detrás
- * (arriba a la izquierda) es pequeña, esmerilada y azul, y queda tapada por
+ * forman una cola EN PROFUNDIDAD sobre un arco abierto que rodea el retrato
+ * por arriba y por la derecha: empieza lejos, arriba a la izquierda, y acaba
+ * cerca, abajo a la derecha. Todo en ellas cuenta esa distancia: la primera
+ * de la cola es grande, está enfocada y a color, y proyecta su sombra sobre
+ * el retrato; la última es pequeña, esmerilada y azul, y asoma por detrás de
  * la gota grande. No se pegan a ella: son gotas sueltas.
  *
- * EL TURNO. El anillo es un reloj: las lunas se reparten por orden de turno
- * y avanzan despacio, de modo que la siguiente persona llega al frente, ya
- * grande y enfocada, justo cuando le toca. Quien acaba de salir queda delante
- * a la izquierda y se va alejando hacia el fondo.
+ * El arco es abierto a propósito: abajo a la izquierda está el cartel, y un
+ * anillo cerrado obligaba a las lunas a pasar por debajo de él, tapadas. El
+ * extremo cercano del arco se calcula con la medida del cartel para que la
+ * luna grande nunca lo toque.
+ *
+ * EL TURNO. La cola es un reloj: cada luna avanza despacio hacia el frente,
+ * y la siguiente persona llega a él, ya grande y enfocada, justo cuando le
+ * toca. Quien acaba de salir se pone al final de la cola, al fondo.
  *
  * EL CAMBIO. Solo la luna a la que le toca se funde. En el frente crece, toca
  * a la gota grande, se forma el cuello y las dos son un solo líquido en el
  * que se mezclan las dos caras. La gota grande cambia de silueta, enfoca a
- * esa persona y suelta a la anterior: el cuello se estrangula y se rompe. Las
- * demás avanzan un puesto.
- *
- * Los botones de las lunas siguen en el HTML, invisibles, justo encima de
- * cada gota pintada: son lo que se pulsa y lo que recorre el teclado. Sin
- * WebGL o con movimiento reducido no hay líquido: esos mismos botones
- * enseñan la foto de cada persona, recortada en su gota.
+ * esa persona y suelta a la anterior, que se desprende por detrás, al fondo.
+ * Las demás avanzan un puesto.
  *
  * Se cambia de persona pulsando una luna, con las flechas (anterior y
- * siguiente) o deslizando el dedo; arrastrar hace girar el anillo. Sola,
- * avanza en el orden del anillo: la siguiente es siempre la que viene
- * llegando al frente por la derecha, y deslizar a la izquierda la trae.
+ * siguiente) o deslizando el dedo: tirar de la cola hacia la izquierda trae
+ * a la siguiente. Sola, avanza en el orden de la cola.
  *
  * EL RELEVO. Para pasar de una persona a otra hay un solo movimiento: un
  * cambio de foco. La que está se desenfoca y se acerca, y la siguiente llega
@@ -550,14 +549,15 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
   /** Segundos que dura cada persona en pantalla. */
   const DURACION = 6.5;
   /**
-   * Inclinación del anillo, en radianes. Su punto más cercano queda a la
-   * derecha, algo abajo, y el más lejano arriba a la izquierda: abajo a la
-   * izquierda está el cartel, y una luna grande delante de él lo taparía.
+   * EL ARCO, en ángulos de pantalla (0 = a la derecha; positivo, hacia abajo).
+   * El fondo de la cola queda a la izquierda, algo arriba; el frente, abajo a
+   * la derecha, todo lo abajo que deje el cartel (hasta este máximo).
    */
-  const INCLINACION = -0.9;
-  /** El ángulo del punto más cercano del anillo: ahí se funde la luna elegida. */
-  const FRENTE = Math.PI / 2;
-  /** Hasta qué fracción del radio del anillo llega una luna al fundirse. */
+  const ANGULO_FONDO = (-165 * Math.PI) / 180;
+  const ANGULO_FRENTE_MAX = (38 * Math.PI) / 180;
+  /** Desde este punto de la cola (0 = frente, 1 = fondo) la luna va por detrás. */
+  const CORTE = 0.72;
+  /** Hasta qué fracción de su distancia al centro llega una luna al fundirse. */
   const FUSION = 0.3;
   /** Radio de una luna, en lados del escenario: al fondo y delante del todo. */
   const RADIO_LEJOS = 0.085;
@@ -654,8 +654,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       mirada: false,
       /** En un cambio: entra a fundirse (crece) o sale de la gota grande. */
       papel: null as "entra" | "sale" | null,
-      /** Su ángulo en el anillo, sin contar el avance del turno ni el arrastre. */
-      base: FRENTE,
+      /** Su sitio en la cola (0 = frente, 1 = fondo), sin contar el avance ni el arrastre. */
+      base: 0,
       capa: "",
       indice: i,
     }));
@@ -670,13 +670,18 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     /** Espacio libre a cada lado del escenario: el anillo no se sale de la página. */
     let libreIzq = 0;
     let libreDer = 0;
+    /** El arco: semiejes, desplazamiento y ángulo del frente, en píxeles y radianes. */
+    let rx = 0;
+    let ry = 0;
+    let centro = 0;
+    let anguloFrente = ANGULO_FRENTE_MAX;
     const medirSitio = () => {
       const caja = escenario.getBoundingClientRect();
       lado = caja.width;
       libreIzq = caja.left;
       libreDer = document.documentElement.clientWidth - caja.right;
       // Si a la izquierda hay texto (el de la portada, en pantallas anchas),
-      // el anillo llega solo hasta él: una luna no pasa por encima de lo que
+      // el arco llega solo hasta él: una luna no pasa por encima de lo que
       // se lee.
       const vecino = document.querySelector<HTMLElement>("[data-junto-al-escenario]");
       if (vecino) {
@@ -684,27 +689,51 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         const mismaFila = v.bottom > caja.top + caja.height * 0.25 && v.top < caja.bottom - caja.height * 0.25;
         if (mismaFila && v.right <= caja.left + 1) libreIzq = caja.left - v.right;
       }
+
+      // El arco ocupa el ancho que haya: hasta el borde de la página por cada
+      // lado, y nunca más que el lienzo del líquido. A la derecha pasan las
+      // lunas grandes; a la izquierda, las pequeñas.
+      const rCerca = RADIO_CERCA * tallaLunas * lado;
+      const rLejos = RADIO_LEJOS * tallaLunas * lado;
+      const tope = lado * (EXTENSION / 2 - 0.03);
+      const haciaIzq = Math.min(tope, lado / 2 + libreIzq - 8);
+      const haciaDer = Math.min(tope, lado / 2 + libreDer - 8);
+      rx = Math.min(lado * 0.5, (haciaIzq + haciaDer - rCerca * 0.9 - rLejos) / 2);
+      ry = lado * 0.5;
+      centro = Math.min(lado * 0.02, haciaDer - rCerca * 0.9 - rx);
+
+      // EL FRENTE, LIBRE DEL CARTEL. El cartel va abajo a la izquierda y
+      // cambia de ancho con cada nombre: se toma el más grande. El frente del
+      // arco baja todo lo que puede sin que la luna grande lo toque.
+      const anchoCartel = Math.max(0, ...rotulos.map((r) => r.offsetWidth));
+      const altoCartel = Math.max(0, ...rotulos.map((r) => r.offsetHeight));
+      const izq = -0.52 * lado;
+      const abajo = 0.46 * lado;
+      const holgura = rCerca * 1.1 + lado * 0.03;
+      anguloFrente = ANGULO_FRENTE_MAX;
+      for (let grados = 38; grados >= -24; grados -= 2) {
+        const a = (grados * Math.PI) / 180;
+        anguloFrente = a;
+        const x = Math.cos(a) * rx + centro;
+        const y = Math.sin(a) * ry;
+        // Distancia del centro de la luna al rectángulo del cartel.
+        const dx = Math.max(izq - x, 0, x - (izq + anchoCartel));
+        const dy = Math.max(abajo - altoCartel - y, 0, y - abajo);
+        if (Math.hypot(dx, dy) >= holgura) break;
+      }
     };
     /**
-     * EL ORDEN DEL ANILLO. Cada luna tiene un puesto según lo que le falta
-     * para su turno: la siguiente, medio paso antes del frente; la que acaba
-     * de salir, medio paso después; las demás, repartidas por detrás.
+     * EL ORDEN DE LA COLA. Cada luna tiene un puesto según lo que le falta
+     * para su turno, de 0 (el frente) a 1 (el fondo): la siguiente, a medio
+     * paso del frente; la que acaba de salir, la última.
      */
-    const paso = (Math.PI * 2) / Math.max(1, lunas.length - 1);
+    const paso = 1 / Math.max(1, lunas.length - 1);
     const puesto = (i: number) => {
       const turno = (i - actual + lunas.length) % lunas.length;
-      return turno === 0 ? FRENTE : FRENTE - (turno - 0.5) * paso;
+      return turno === 0 ? 0 : (turno - 0.5) * paso;
     };
-    const vuelta = (angulo: number) => {
-      let v = angulo % (Math.PI * 2);
-      if (v > Math.PI) v -= Math.PI * 2;
-      if (v < -Math.PI) v += Math.PI * 2;
-      return v;
-    };
-    /** Lo que ha girado el anillo a mano (arrastre e impulso), en radianes. */
+    /** Lo que se ha tirado de la cola a mano, en puestos: positivo, hacia el frente. */
     let mano = 0;
-    /** Velocidad que le queda al anillo tras soltar un arrastre, en radianes por segundo. */
-    let impulso = 0;
     /** Algo se está recolocando: hay que pintar todos los fotogramas. */
     let recolocando = false;
     let lado = escenario.offsetWidth;
@@ -776,28 +805,16 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
      */
     const avance = () => (reloj ? reloj.progress() * paso * 0.5 : 0);
 
-    /** Deja a cada luna donde está y pone a cero el avance y el giro a mano. */
+    /** Deja a cada luna donde está y pone a cero el avance y el tirón a mano. */
     function asentar() {
-      const girado = avance() + mano;
-      for (const luna of lunas) luna.base += girado;
+      const avanzado = avance() + mano;
+      for (const luna of lunas) luna.base -= avanzado;
       mano = 0;
-      impulso = 0;
     }
 
     function colocar(dt = 0) {
-      const girado = avance() + mano;
+      const avanzado = avance() + mano;
       recolocando = false;
-      const radioMedio = ((RADIO_LEJOS + RADIO_CERCA) / 2) * tallaLunas * lado;
-      // El anillo ocupa el ancho que haya: hasta el borde de la página por
-      // cada lado, y nunca más que el lienzo del líquido.
-      const tope = lado * (EXTENSION / 2 - 0.03);
-      const haciaIzq = Math.min(tope, lado / 2 + libreIzq - 8);
-      const haciaDer = Math.min(tope, lado / 2 + libreDer - 8);
-      const rx = Math.min(lado * 0.58, (haciaIzq + haciaDer) / 2 - radioMedio);
-      const ry = lado * 0.5;
-      const centro = (haciaDer - haciaIzq) / 2;
-      const cos = Math.cos(INCLINACION);
-      const sen = Math.sin(INCLINACION);
       for (const luna of lunas) {
         const visible = luna.lista && luna.fuera > 0.02;
         const gota = liquido[luna.indice]!;
@@ -810,23 +827,29 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
           }
           continue;
         }
-        // Cada luna va hacia su puesto por el camino corto, sin saltos.
-        const falta = vuelta(puesto(luna.indice) - luna.base);
-        if (Math.abs(falta) > 0.003) {
+        // Cada luna va hacia su puesto, sin saltos.
+        const falta = puesto(luna.indice) - luna.base;
+        if (Math.abs(falta) > 0.0015) {
           luna.base += falta * (dt > 0 ? Math.min(1, dt * 4.2) : 1);
           recolocando = true;
         }
-        const angulo = luna.base + (luna.papel === "entra" ? 0 : girado);
-        const hondo = Math.sin(angulo);
-        const cerca = hondo * 0.5 + 0.5;
-        const x = Math.cos(angulo) * rx;
-        const y = hondo * ry;
+        // Su sitio en la cola: 0 en el frente, 1 al fondo.
+        const s = Math.max(-0.06, Math.min(1.06, luna.base - (luna.papel === "entra" ? 0 : avanzado)));
+        const cerca = Math.max(0, Math.min(1, 1 - s));
+        const angulo = anguloFrente + (ANGULO_FONDO - anguloFrente) * s;
+        // A media cola el arco se abre un poco: ahí la luna cambia de pasar
+        // por delante a pasar por detrás, y conviene que no pise el retrato.
+        const abre = 1 + 0.08 * Math.sin(Math.PI * Math.max(0, Math.min(1, s)));
+        const x = Math.cos(angulo) * rx * abre;
+        const y = Math.sin(angulo) * ry * abre;
+        // Por delante de la gota grande hasta el corte; desde ahí, por detrás.
+        const hondo = s < CORTE ? 1 - Math.max(0, s) / CORTE : -Math.min(1, (s - CORTE) / (1 - CORTE));
         const sale = luna.fuera;
         // Al fundirse entra en la gota grande, sin llegar al centro, donde
         // está la cara; y de ahí mismo sale la que se va.
         const camino = FUSION + (1 - FUSION) * sale;
-        const px = (x * cos - y * sen) * camino + centro * sale;
-        const py = (x * sen + y * cos) * camino;
+        const px = (x + centro) * camino;
+        const py = y * camino;
 
         // PERSPECTIVA: delante, más del doble de grande que al fondo.
         let radio = (RADIO_LEJOS + (RADIO_CERCA - RADIO_LEJOS) * Math.pow(cerca, 1.25)) * tallaLunas;
@@ -865,9 +888,9 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
           luna.el.style.visibility = "visible";
         }
       }
-      // El anillo gira despacio: en reposo basta contárselo al material un
-      // fotograma de cada dos. En un cambio, un arrastre o un impulso, todos.
-      const deprisa = transicion?.isActive() || recolocando || arrastrando || impulso !== 0;
+      // La cola avanza despacio: en reposo basta contárselo al material un
+      // fotograma de cada dos. En un cambio o un arrastre, todos.
+      const deprisa = transicion?.isActive() || recolocando || arrastrando || mano !== 0;
       if (enLiquido && (++fotograma % 2 === 0 || deprisa)) tinta!.lunas(liquido);
     }
 
@@ -1008,8 +1031,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       // hacia él, si se eligió otra); crece, toca a la gota grande y se funde
       // con ella. En ese momento la gota cambia de silueta (con su resorte,
       // como una gota que absorbe a otra) y empieza el cambio de foco.
-      // Después suelta a la persona anterior, que se desprende delante, a la
-      // izquierda, y las demás avanzan un puesto.
+      // Después suelta a la persona anterior, que se desprende por detrás, al
+      // fondo de la cola, y las demás avanzan un puesto.
       const TRAGA = lunaEntra ? 0.7 : 0;
       if (lunaEntra) {
         lunaEntra.papel = "entra";
@@ -1018,6 +1041,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       transicion.call(formaAlAzar, [], TRAGA);
       if (lunaSale) {
         lunaSale.papel = "sale";
+        // Está escondida dentro de la gota grande: sale ya por el fondo.
+        lunaSale.base = puesto(antes);
         transicion.fromTo(lunaSale, { fuera: 0 }, { fuera: 1, duration: 1.6, ease: "expo.out" }, TRAGA + 0.55);
       }
 
@@ -1140,24 +1165,21 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       boton.addEventListener("click", () => irA(vecina(Number(boton.dataset.paso))), { signal });
     }
 
-    // El giro: avanza solo, despacio; lo lleva el puntero mientras se
-    // arrastra y, al soltar, conserva el impulso y lo va perdiendo.
+    // La cola avanza sola, despacio; el puntero puede tirar de ella y, si no
+    // llega a cambiar de persona, al soltarla vuelve a su sitio.
     let pulsado = false;
     let arrastrando = false;
     let inicioPuntero = 0;
     let inicioFase = 0;
-    let ultimoPuntero = 0;
-    let ultimoTiempo = 0;
-    let velocidadPuntero = 0;
     let tragarClic = false;
 
     const girar = (_tiempo: number, delta: number) => {
       if (lunas.length === 0) return;
       const dt = Math.min(delta, 64) / 1000;
-      if (!arrastrando && impulso !== 0) {
-        impulso *= Math.exp(-dt * 2.6);
-        if (Math.abs(impulso) < 0.004) impulso = 0;
-        mano += impulso * dt;
+      // Al soltar la cola sin cambiar de persona, vuelve a su sitio.
+      if (!arrastrando && mano !== 0) {
+        mano *= Math.exp(-dt * 7);
+        if (Math.abs(mano) < 0.002) mano = 0;
       }
       colocar(dt);
     };
@@ -1167,11 +1189,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       // El cartel y las flechas son para pulsar, no para arrastrar.
       if ((e.target as HTMLElement).closest("[data-cartel], [data-paso]")) return;
       pulsado = true;
-      inicioPuntero = ultimoPuntero = e.clientX;
+      inicioPuntero = e.clientX;
       inicioFase = mano;
-      ultimoTiempo = e.timeStamp;
-      velocidadPuntero = 0;
-      impulso = 0;
     };
     const alMover = (e: PointerEvent) => {
       if (!pulsado) return;
@@ -1182,14 +1201,10 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         escenario.setAttribute("data-arrastrando", "");
         escenario.setPointerCapture(e.pointerId);
       }
-      // El dedo lleva las lunas de delante: a la izquierda, avanza el turno.
-      mano = inicioFase - recorrido / (lado * 0.5);
-      const dt = e.timeStamp - ultimoTiempo;
-      if (dt > 0) {
-        velocidadPuntero = velocidadPuntero * 0.7 + (((e.clientX - ultimoPuntero) / dt) * 1000) * 0.3;
-        ultimoPuntero = e.clientX;
-        ultimoTiempo = e.timeStamp;
-      }
+      // Se tira de la cola: a la izquierda, hacia el frente. Cede medio
+      // puesto y se resiste, como algo elástico.
+      const cede = paso * 0.6;
+      mano = cede * Math.tanh((inicioFase - recorrido / (lado * 1.4)) / cede);
     };
     const alSoltar = (e: PointerEvent) => {
       if (!pulsado) return;
@@ -1201,8 +1216,6 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       escenario.removeAttribute("data-arrastrando");
       if (escenario.hasPointerCapture(e.pointerId)) escenario.releasePointerCapture(e.pointerId);
       const recorrido = e.clientX - inicioPuntero;
-      const quieto = e.timeStamp - ultimoTiempo > 90;
-      impulso = quieto ? 0 : gsap.utils.clamp(-5, 5, -velocidadPuntero / (lado * 0.5));
       // Deslizar pasa de persona: hacia la izquierda, la siguiente.
       if (Math.abs(recorrido) > DESLIZAR) irA(vecina(recorrido < 0 ? 1 : -1));
     };
@@ -1226,7 +1239,12 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     // El cartel se mide al montar, al cargar la tipografía (cambia el ancho
     // del nombre) y al cambiar el tamaño de la ventana.
     ajustarCartel();
-    void document.fonts.ready.then(() => !signal.aborted && ajustarCartel());
+    void document.fonts.ready.then(() => {
+      if (signal.aborted) return;
+      ajustarCartel();
+      // Con la tipografía cambia el ancho del cartel, y con él el frente del arco.
+      medirSitio();
+    });
     const vigiaCartel = new ResizeObserver(() => {
       medirSitio();
       tamanoLuna = lunas[0]?.el.offsetWidth ?? 0;

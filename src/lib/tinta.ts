@@ -338,8 +338,8 @@ void main() {
       }
     }
 
-    // Después, las lunas sueltas: las de detrás irán debajo de la gota grande
-    // y las de delante, encima, con su sombra sobre ella. La luz viene de
+    // Después, las lunas sueltas: las de detrás (profundidad negativa) irán
+    // debajo de la gota grande y las de delante, encima, con su sombra sobre ella. La luz viene de
     // arriba a la izquierda, así que la sombra cae abajo a la derecha.
     float dMadre = d;
     for (int i = 0; i < ${TOPE_LUNAS}; i++) {
@@ -354,8 +354,11 @@ void main() {
       }
       if (mas.y > 0.0) continue;
       vec4 gota = gotaSuelta(float(i), q, luna.z, luna.w, mas.x, dMadre);
-      if (mas.x < 0.0) detras = sobre(detras, gota);
-      else delante = sobre(delante, gota);
+      // El paso de delante a detrás es gradual: si en ese momento la luna
+      // pisa el borde del retrato, no da un salto.
+      float alFrente = smoothstep(-0.12, 0.12, mas.x);
+      detras = sobre(detras, gota * (1.0 - alFrente));
+      delante = sobre(delante, gota * alFrente);
     }
 
     // Donde no hay líquido no hay nada que pintar.

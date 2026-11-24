@@ -89,12 +89,16 @@ const emprendedores = await getEmprendedores();
     padding-inline: var(--gutter);
   }
 
+  /*
+   * En el teléfono va centrado: las gotas que giran alrededor del retrato
+   * (BlobHero) necesitan sitio a los dos lados. Pegado a la derecha, las
+   * grandes no cabían y acababan encima de la cara.
+   */
   .hero-escenario {
     position: relative;
     grid-area: escenario;
-    justify-self: end;
+    justify-self: center;
     width: min(76vw, 420px);
-    margin-inline-end: calc(var(--gutter) * -0.4);
   }
 
   /*
@@ -136,9 +140,9 @@ const emprendedores = await getEmprendedores();
     }
 
     .hero-escenario {
+      justify-self: end;
       width: 100%;
       max-width: 640px;
-      margin-inline-end: 0;
     }
   }
 
