@@ -48,11 +48,13 @@ porque abajo a la izquierda está el cartel: con un anillo cerrado las lunas
 pasaban por debajo de él, tapadas, y se pidió cambiarlo. Su frente se
 calcula con la medida del cartel, y ninguna luna pasa por encima del texto
 de la portada ni se sale de la página. En el teléfono el retrato va centrado
-para dejarles sitio, las lunas son más pequeñas (con su tamaño de pantalla
-grande, la de delante tapaba media cara) y el cartel no va encima del retrato
-sino colgando de su canto inferior, como el de las tarjetas. Ahí la portada
-se lee en este orden: la marca de la escuela, el titular, el retrato y
-después el resto del texto y el botón (`Portada.astro`). No lleva botones de anterior y siguiente (hubo dos
+y lo primero: una persona, grande, con su nombre. Alrededor solo se ve la
+luna de la siguiente persona y, asomando, la de después (toda la cola junto a
+un retrato pequeño era ruido); las demás nacen al acercarse. El cartel no va
+encima del retrato sino colgando de su canto inferior, como el de las
+tarjetas. Debajo van la marca de la escuela, pequeña, el titular, el botón y
+el párrafo (`Portada.astro`). Se probó con la marca y el titular encima del
+retrato y no gustó: tres títulos apilados antes de ver a nadie. No lleva botones de anterior y siguiente (hubo dos
 flechas amarillas y se pidió quitarlas): se toca lo que se ve. Una luna trae
 a esa persona; arrastrar o deslizar tira de la cola; y con el teclado,
 flechas izquierda y derecha. Pulsar el retrato grande abre su vídeo en

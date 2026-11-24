@@ -184,44 +184,56 @@ const emprendedores = await getEmprendedores();
 
 
   /*
-   * EN EL TELÉFONO, PRIMERO QUÉ ES Y DESPUÉS QUIÉN. Arriba la marca de la
-   * escuela y el titular; debajo, el retrato, grande; y después el resto del
-   * texto y el botón. Antes el retrato iba primero y el titular quedaba
-   * cortado al pie de la primera pantalla. El bloque de texto se deshace
-   * (`display: contents`) para poder meter el retrato en medio.
+   * EN EL TELÉFONO, PRIMERO UNA CARA. Lo primero que se ve es una persona,
+   * grande, con su nombre; debajo, la marca de la escuela (pequeña), el
+   * titular y el botón; y después el párrafo. Se probó al revés, con la
+   * marca y el titular encima del retrato, y no gustó: tres títulos
+   * apilados antes de ver a nadie. El bloque de texto se deshace
+   * (`display: contents`) para poder ordenar sus piezas una a una.
    */
   @media (max-width: 639px) {
     .hero {
       grid-template-areas: none;
-      row-gap: 0.8rem;
-      padding-block-start: 0.4rem;
+      row-gap: 1.15rem;
+      padding-block-start: 0.25rem;
     }
 
     .hero-texto {
       display: contents;
     }
 
+    .hero-escenario {
+      grid-area: auto;
+      order: 1;
+      width: min(92vw, 430px);
+      /* El cartel cuelga por debajo del retrato: se le deja su sitio. */
+      margin-block: 0 5.3rem;
+    }
+
     .hero-texto > * {
       grid-area: auto;
-      order: 4;
     }
 
-    .hero-texto > :first-child {
-      order: 1;
-    }
-
-    .hero-texto > h1 {
+    /*
+     * La marca, el titular, el botón y, al final, el párrafo. La marca es
+     * otro componente: sin `:global` la regla no le llega (y sin orden,
+     * quedaba la primera, encima del retrato).
+     */
+    .hero-texto > :global(:first-child) {
       order: 2;
     }
 
-    .hero-escenario {
-      grid-area: auto;
+    .hero-texto > h1 {
       order: 3;
-      width: min(84vw, 400px);
-      /* El cartel cuelga por debajo del retrato: se le deja su sitio. */
-      margin-block: 0.6rem clamp(4.2rem, 21vw, 5.4rem);
     }
 
+    .hero-texto > :last-child {
+      order: 4;
+    }
+
+    .hero-texto > .intro {
+      order: 5;
+    }
   }
 
   /* A media pantalla, el titular baja un punto para que quepa junto al blob. */
