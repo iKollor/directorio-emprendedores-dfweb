@@ -101,7 +101,12 @@ lleva a su ficha) y, pegados al borde inferior, los mandos, al alcance del
 pulgar: la barra de avance a todo lo ancho y, debajo, silencio, reproducir
 (grande, en el centro) y calidad. La gota se devuelve con el dedo:
 arrastrarla hacia abajo la encoge hacia su retrato y, al soltarla, vuelve a
-su sitio. En el listado, el sitio es para las caras: quien tiene retrato lo
+su sitio. El primer plano no es pantalla completa, pero lleva el botón de la
+pantalla completa de verdad, la del sistema: ahí ya no hay gota, solo el
+vídeo entero con los mandos encima (en el iPhone la pone su propio
+reproductor: el sistema no deja otra). Los controles de rango se visten con
+piezas aparte, nunca con `::before` o `::after` del propio control: en el
+iPhone no se dibujan. En el listado, el sitio es para las caras: quien tiene retrato lo
 lleva a todo lo ancho y quien todavía no (sale con sus iniciales) va en una
 fila corta, con las iniciales al lado del cartel.
 

@@ -191,6 +191,10 @@ export const Sitio: GlobalConfig = {
                 texto('auto', 'Calidad automática', 'Este sí se ve: es la primera opción de la lista de calidades.'),
               ],
             },
+            {
+              type: 'row',
+              fields: [texto('completa', 'Pantalla completa'), texto('salirCompleta', 'Salir de pantalla completa')],
+            },
           ],
         },
         {

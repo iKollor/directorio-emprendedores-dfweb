@@ -574,6 +574,8 @@ export interface Sitio {
      * Este sí se ve: es la primera opción de la lista de calidades.
      */
     auto?: string | null;
+    completa?: string | null;
+    salirCompleta?: string | null;
   };
   general?: {
     /**
@@ -669,6 +671,8 @@ export interface SitioSelect<T extends boolean = true> {
         avance?: T;
         calidad?: T;
         auto?: T;
+        completa?: T;
+        salirCompleta?: T;
       };
   general?:
     | T

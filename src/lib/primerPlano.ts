@@ -172,6 +172,23 @@ function medirOrigen(origen: OrigenPlano): Caja {
  * de teléfono. Girándolo se ve el encuadre entero.
  */
 const enMano = () => window.innerWidth < 640 && window.innerHeight > window.innerWidth;
+
+/**
+ * PANTALLA COMPLETA DE VERDAD: la del sistema, no la gota grande. Se pone
+ * entera la pieza (vídeo y mandos), no el vídeo solo, para no perder el
+ * reproductor. El iPhone no lo permite: allí solo se puede poner a pantalla
+ * completa el propio vídeo, con el reproductor del sistema.
+ */
+type ConWebkit = { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => void };
+const enCompleta = (): boolean => {
+  const lienzo = dialogo?.querySelector("[data-lienzo]") ?? null;
+  return Boolean(lienzo) && (document.fullscreenElement === lienzo || (document as ConWebkit).webkitFullscreenElement === lienzo);
+};
+function salirDeCompleta(): void {
+  if (!enCompleta()) return;
+  if (document.exitFullscreen) void document.exitFullscreen().catch(() => {});
+  else (document as ConWebkit).webkitExitFullscreen?.();
+}
 /** Lo que ocupan, bajo la gota, el cartel y los mandos del teléfono (px). */
 const BAJO_LA_GOTA = 238;
 
@@ -179,6 +196,7 @@ const BAJO_LA_GOTA = 238;
 function medirDestino(proporcion: number): Caja {
   const W = window.innerWidth;
   const H = window.innerHeight;
+  if (enCompleta()) return { x: 0, y: 0, ancho: W, alto: H };
   if (enMano()) {
     const lado = 10;
     const arriba = 58;
@@ -272,7 +290,7 @@ export function montarPrimerPlano(): void {
     pieza("mudo").setAttribute("aria-label", mudo ? textos.tSonido! : textos.tSilenciar!);
     pieza("mudo").setAttribute("aria-pressed", String(mudo));
     volumen.value = String(Math.round((ajustes.mudo ? 0 : ajustes.volumen) * 100));
-    volumen.style.setProperty("--p", `${volumen.value}%`);
+    volumen.parentElement!.style.setProperty("--p", `${volumen.value}%`);
   };
   const cerrarLista = () => {
     lista.hidden = true;
@@ -293,7 +311,7 @@ export function montarPrimerPlano(): void {
   gota.addEventListener(
     "pointerdown",
     (e) => {
-      if (!abierto || abierto.cerrando || !enMano() || abierto.estado.p < 0.98) return;
+      if (!abierto || abierto.cerrando || !enMano() || enCompleta() || abierto.estado.p < 0.98) return;
       tiron = { x0: e.clientX, y0: e.clientY, t0: e.timeStamp, activo: false };
     },
     { signal },
@@ -337,6 +355,55 @@ export function montarPrimerPlano(): void {
 
   pieza("reproducir").addEventListener("click", alternar, { signal });
   pieza("pantalla").addEventListener("click", () => !tragarToque && alternar(), { signal });
+
+  // ---- Pantalla completa ---------------------------------------------------
+  const lienzo = pieza("lienzo");
+  const botonCompleta = pieza<HTMLButtonElement>("completa");
+  type VideoIos = HTMLVideoElement & { webkitEnterFullscreen?: () => void; webkitSupportsFullscreen?: boolean };
+  type LienzoWebkit = HTMLElement & { webkitRequestFullscreen?: () => void };
+  const pedir = lienzo.requestFullscreen
+    ? () => lienzo.requestFullscreen({ navigationUI: "hide" })
+    : (lienzo as LienzoWebkit).webkitRequestFullscreen
+      ? () => Promise.resolve((lienzo as LienzoWebkit).webkitRequestFullscreen!())
+      : null;
+  // Sin ninguna de las dos maneras, el botón no sale.
+  botonCompleta.hidden = !pedir && !("webkitEnterFullscreen" in HTMLVideoElement.prototype);
+  const pintarCompleta = () => {
+    const si = enCompleta();
+    dialogo!.toggleAttribute("data-es-completa", si);
+    botonCompleta.setAttribute("aria-pressed", String(si));
+    botonCompleta.setAttribute("aria-label", si ? textos.tSalirCompleta! : textos.tCompleta!);
+    const giro = screen.orientation as (ScreenOrientation & { unlock?: () => void }) | undefined;
+    if (!si) giro?.unlock?.();
+    const v = activa();
+    if (!abierto || !v) return;
+    gsap.killTweensOf(abierto.hasta);
+    abierto.hasta = medirDestino(v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 16 / 9);
+    colocarMandos();
+  };
+  botonCompleta.addEventListener(
+    "click",
+    () => {
+      const v = activa() as VideoIos | null;
+      if (enCompleta()) {
+        salirDeCompleta();
+        return;
+      }
+      const aLaManeraDelIphone = () => v?.webkitEnterFullscreen?.();
+      if (!pedir) {
+        aLaManeraDelIphone();
+        return;
+      }
+      void pedir().then(() => {
+        // Un vídeo apaisado, a pantalla completa, se ve tumbado (donde se pueda).
+        const giro = screen.orientation as (ScreenOrientation & { lock?: (o: string) => Promise<void> }) | undefined;
+        if (v && v.videoWidth > v.videoHeight) void giro?.lock?.("landscape").catch(() => {});
+      }, aLaManeraDelIphone);
+    },
+    { signal },
+  );
+  document.addEventListener("fullscreenchange", pintarCompleta, { signal });
+  document.addEventListener("webkitfullscreenchange", pintarCompleta, { signal });
   for (const v of videos) {
     for (const tipo of ["play", "pause", "ended"]) {
       v.addEventListener(
@@ -505,9 +572,10 @@ export function montarPrimerPlano(): void {
     if (!abierto || !v || !Number.isFinite(v.duration) || v.duration === 0) return;
     const hecho = v.currentTime / v.duration;
     if (!arrastrando) avance.value = String(Math.round(hecho * 1000));
-    avance.style.setProperty("--p", `${(Number(avance.value) / 10).toFixed(2)}%`);
+    const barra = avance.parentElement!;
+    barra.style.setProperty("--p", `${(Number(avance.value) / 10).toFixed(2)}%`);
     const cargado = v.buffered.length ? v.buffered.end(v.buffered.length - 1) / v.duration : 0;
-    avance.style.setProperty("--cargado", `${(cargado * 100).toFixed(1)}%`);
+    barra.style.setProperty("--cargado", `${(cargado * 100).toFixed(1)}%`);
     const hora = reloj(v.currentTime);
     const tiempo = pieza("tiempo");
     if (tiempo.textContent !== hora) {
@@ -548,6 +616,21 @@ function colocarMandos(): void {
   const cerrar = pieza("cerrar");
   const cartel = pieza("cartel");
   const aspa = cerrar.offsetWidth || 48;
+  if (enCompleta()) {
+    // A pantalla completa todo va dentro: el aspa en la esquina y, si el
+    // teléfono no está de pie, los mandos pegados abajo.
+    cerrar.style.left = `${W - aspa - 12}px`;
+    cerrar.style.top = "12px";
+    if (mano) {
+      mandos.style.width = mandos.style.left = mandos.style.top = "";
+      return;
+    }
+    const ancho = Math.min(W - 24, 760);
+    mandos.style.width = `${ancho}px`;
+    mandos.style.left = `${(W - ancho) / 2}px`;
+    mandos.style.top = `${window.innerHeight - (mandos.offsetHeight || 56) - 14}px`;
+    return;
+  }
   if (mano) {
     // En el teléfono los mandos van abajo, al alcance del pulgar (CSS), y el
     // cartel de la persona, pisando el canto inferior de la gota.
@@ -930,6 +1013,8 @@ export function cerrarPrimerPlano(yaMismo = false): void {
   const velo = pieza("velo");
   const mandos = [pieza("mandos"), pieza("cerrar"), pieza("cartel")];
   plano.cerrando = true;
+  salirDeCompleta();
+  dialogo.removeAttribute("data-es-completa");
   plano.linea?.kill();
   plano.esperas.forEach((e) => e.kill());
   plano.relevo?.();
