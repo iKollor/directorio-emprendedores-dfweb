@@ -156,12 +156,18 @@ amarillo, como el rótulo de un negocio de barrio. La clase `.pincel`
 (`src/styles/tokens.css`, tipografía Amatic SC, elegida por Diseña Futuro)
 escribe con esa letra las pocas frases que el sitio dice en voz alta: la
 cinta de palabras (un renglón blanco y otro amarillo, como el logo), la
-llamada de cada tarjeta, "Conoce también a" y el lema de la portada. No es para leer ni para la interfaz: titulares, textos,
+llamada de cada tarjeta y "Conoce también a". No es para leer ni para la interfaz: titulares, textos,
 botones y filtros siguen en General Sans, con su fino + grueso. No se usa
 para destacar una palabra dentro de un titular. Va siempre grande, en blanco
 o en amarillo (o en azul sobre el cartel claro). El subrayado amarillo es
 una pincelada (`.pincelada`), no una barra recta. En la portada el logo va
-grande y un punto torcido, como el cartel del retrato.
+un punto torcido, como el cartel del retrato, pero es la marca de la casa, no
+un segundo titular: va claramente por debajo de él en tamaño.
+
+**La primera pantalla dice una cosa.** Marca, titular, un párrafo y un botón.
+Llevó además una frase de cierre subrayada y un lema a pincel al pie, y se
+pidió limpiarla: eran cinco textos compitiendo. No le añadas frases; si hay
+algo más que decir, va más abajo.
 
 **Patrones conocidos antes que rótulos (Ley de Jakob).** La gente pasa casi
 todo su tiempo en otras aplicaciones y espera que esta funcione igual, así

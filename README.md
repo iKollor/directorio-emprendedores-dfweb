@@ -230,7 +230,7 @@ la misma frase, y CTAs con exclamación de apertura ("¡Conoce su negocio!").
 pueden reutilizar. Se usa **General Sans** (Fontshare) como sustituto del mismo
 género. Confirmar con el manual de marca.
 
-Para los rótulos (la cinta de palabras, la llamada de cada tarjeta, el lema)
+Para los rótulos (la cinta de palabras, la llamada de cada tarjeta)
 se usa **Amatic SC**, una letra a pincel parecida a la del
 logo de la Escuela de Emprendimiento. Ver "Criterio de diseño" en `CLAUDE.md`.
 
