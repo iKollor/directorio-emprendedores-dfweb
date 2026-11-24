@@ -35,7 +35,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
 <Envoltura
   {...props}
   id={e.slug}
-  class:list={["tarjeta", { pendiente: e.fichaPendiente }]}
+  class:list={["tarjeta", { pendiente: e.fichaPendiente, "sin-foto": e.fotoPendiente }]}
   data-tarjeta
   data-viaja-a={e.fichaPendiente ? undefined : e.slug}
   data-comunidad={MOSTRAR_COMUNIDAD ? e.comunidad : undefined}
@@ -221,6 +221,68 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
 
     .retrato :global(.marco) {
       scale: 1;
+    }
+  }
+
+  /*
+   * EN EL TELÉFONO, EL SITIO ES PARA LAS CARAS. Quien tiene retrato lo lleva
+   * a todo lo ancho; quien todavía no (sale con sus iniciales) va en una fila
+   * corta, con las iniciales al lado del cartel, como un contacto de la
+   * agenda. Antes cada par de iniciales ocupaba una pantalla entera y el
+   * listado medía más de diez.
+   */
+  @media (max-width: 767px) {
+    .tarjeta.sin-foto {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .tarjeta.sin-foto .escena {
+      flex: 0 0 31%;
+    }
+
+    .tarjeta.sin-foto .retrato {
+      width: 100%;
+      margin-inline: 0;
+    }
+
+    .tarjeta.sin-foto .texto {
+      flex: 1 1 auto;
+      min-width: 0;
+      width: auto;
+      max-width: none;
+      margin: 0 0 0 -1.1rem;
+      padding: 0.8rem 1rem 0.85rem 1.15rem;
+      border-radius: 1.2rem;
+      rotate: -2deg;
+    }
+
+    .tarjeta.sin-foto .nombre {
+      font-size: 1.25rem;
+    }
+
+    .tarjeta.sin-foto .emprendimiento {
+      font-size: 0.875rem;
+      line-height: 1.3;
+    }
+
+    .tarjeta.sin-foto .pildora {
+      font-size: 0.75rem;
+    }
+
+    .tarjeta.sin-foto .ver .pincel {
+      font-size: 1.75rem;
+    }
+
+    .tarjeta.sin-foto .nota {
+      font-size: 0.8125rem;
+      line-height: 1.3;
+    }
+
+    /* Tan pequeña, la forma de acento solo ensucia. */
+    .tarjeta.sin-foto .acento {
+      display: none;
     }
   }
 

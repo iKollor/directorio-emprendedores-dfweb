@@ -63,6 +63,7 @@ La licencia pide reconocer la autoría: este archivo es ese reconocimiento. Si
 el sitio llega a tener una página de créditos, hay que repetirlo allí.
 
 El de reproducir es el triángulo del icono "Button Play Circle", sin su círculo.
+Los de pantalla completa son "Arrow Expand" y "Exit Full Screen".
 El de sonido es "Volume Level High"; el de silencio es ese mismo altavoz con
 un aspa en lugar de las ondas. Los de pausa y cerrar no están en el conjunto
 gratuito: se dibujaron para este sitio con el mismo trazo grueso y redondeado.

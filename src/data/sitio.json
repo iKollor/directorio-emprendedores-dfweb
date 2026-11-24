@@ -56,6 +56,8 @@
     "silenciar": "Silenciar",
     "volumen": "Volumen",
     "calidad": "Calidad",
-    "auto": "Auto"
+    "auto": "Auto",
+    "completa": "Pantalla completa",
+    "salirCompleta": "Salir de pantalla completa"
   }
 }

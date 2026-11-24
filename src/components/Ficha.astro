@@ -85,7 +85,18 @@ const datosEstructurados = {
           iniciales={inicialesSinFoto(e)}
           tinta="color"
           rostro={e.rostro}
-          plano={e.video ? { etiqueta: conNombre(reproductor.abrir, e.nombre), nombre: e.nombre, sonido: e.videoSonido } : null}
+          plano={
+            e.video
+              ? {
+                  etiqueta: conNombre(reproductor.abrir, e.nombre),
+                  nombre: e.nombre,
+                  sonido: e.videoSonido,
+                  categoria: cat.etiqueta,
+                  oficio: e.emprendimiento ?? "",
+                  colorTexto: cat.colorTexto,
+                }
+              : null
+          }
         />
       </div>
       </div>

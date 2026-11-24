@@ -369,7 +369,12 @@ además el mismo vídeo entero y con sonido, en una o varias calidades:
   la conexión, y baja un escalón si el vídeo se queda parado cargando; el
   cambio de calidad no corta la imagen ni el sonido). Se cierra con el aspa,
   con Escape o pulsando fuera. Si el retrato ya sonaba, se abre con ese mismo
-  sonido, sin corte.
+  sonido, sin corte. Lleva además un botón de pantalla completa de verdad:
+  en el iPhone la pone el reproductor del sistema; en el resto, la pieza
+  entera con sus mandos.
+- **En el teléfono, de pie**, la gota es alta y recorta el vídeo con la
+  persona en el centro, con su cartel debajo y los mandos al alcance del
+  pulgar. Se cierra también arrastrándola hacia abajo.
 
 Sin versión con sonido, se abre el propio vídeo del retrato, sin selector de
 calidad. Los navegadores no dejan sonar nada hasta que la persona pulsa o

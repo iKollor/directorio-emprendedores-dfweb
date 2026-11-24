@@ -273,6 +273,13 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     gap: clamp(3rem, 9vw, 7rem) clamp(2rem, 6vw, 5rem);
   }
 
+  /* En el teléfono las filas van más juntas: muchas son cortas (sin retrato). */
+  @media (max-width: 767px) {
+    .grid {
+      row-gap: 2.4rem;
+    }
+  }
+
   @media (min-width: 768px) {
     .grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
