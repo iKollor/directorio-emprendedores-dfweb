@@ -78,12 +78,14 @@ import { Image } from "astro:assets";
 import { categoria } from "../data/taxonomia";
 import { construirPath, generarBlob } from "../lib/blob";
 import { paraImage, type Emprendedor } from "../lib/directorio";
-import { getSitio } from "../lib/sitio";
+import Icono from "./Icono.astro";
+import { conNombre, getSitio } from "../lib/sitio";
 
 type Props = { emprendedores: Emprendedor[] };
 const { emprendedores } = Astro.props;
 const sitio = await getSitio(Astro.locals);
 const { conocelo } = sitio.listado;
+const { abrir } = sitio.reproductor;
 
 const MAXIMO = 8;
 
@@ -135,7 +137,13 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
           <div class="recorte" style="clip-path: url(#recorte-escenario)" data-tinta="escenario">
             {escenas.map(({ e }, i) => (
-              <div class="escena" data-escena data-activa={i === 0 ? "" : undefined}>
+              <div
+                class="escena"
+                data-escena
+                data-activa={i === 0 ? "" : undefined}
+                data-nombre={e.nombre}
+                data-sonido={e.video ? JSON.stringify(e.videoSonido) : undefined}
+              >
                 <Image
                   {...paraImage(e.foto)}
                   alt=""
@@ -166,6 +174,25 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         {/* El lienzo del líquido: más grande que la gota, para que quepan las lunas. */}
         {escenas.length > 1 && <div class="sistema" data-sistema />}
       </div>
+
+      {/*
+        EL ALTAVOZ. Dice que el retrato tiene sonido y cómo está: tachado
+        mientras calla, con ondas cuando suena (al pasar el puntero). Es el
+        botón que abre el primer plano; pulsar el retrato hace lo mismo.
+      */}
+      {escenas.some(({ e }) => e.video) && (
+        <button
+          type="button"
+          class="boton-icono vidrio altavoz"
+          data-plano
+          data-etiqueta={abrir}
+          aria-label={conNombre(abrir, escenas[0]!.e.nombre)}
+          hidden={!escenas[0]!.e.video}
+        >
+          <span class="con-sonido"><Icono nombre="sonido" /></span>
+          <span class="sin-sonido"><Icono nombre="silencio" /></span>
+        </button>
+      )}
 
       {/*
         LAS LUNAS. Una por persona, también la que está en la gota grande (la
@@ -225,7 +252,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         <>
           <span class="nombre-luna" data-nombre-luna aria-hidden="true" />
           <p id="ayuda-escenario" class="solo-lectores">
-            Flechas izquierda y derecha para cambiar de persona.
+            Flechas izquierda y derecha para cambiar de persona. Pulsa el retrato para ver su vídeo con sonido.
           </p>
           <p class="solo-lectores" aria-live="polite" data-aviso />
         </>
@@ -293,9 +320,39 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     pointer-events: auto;
   }
 
-  /* Con más de una persona, el retrato se arrastra y se toca para pasar. */
-  .escenario[tabindex] .marco .recorte {
-    cursor: grab;
+  /* El retrato con vídeo se pulsa para verlo en primer plano. */
+  .escenario .marco .recorte {
+    cursor: zoom-in;
+  }
+
+  /*
+   * EL ALTAVOZ, una gota de vidrio sobre el retrato, arriba a la izquierda y
+   * lo bastante dentro para que ninguna silueta la deje fuera.
+   */
+  .altavoz {
+    position: absolute;
+    left: 30%;
+    top: 25%;
+    z-index: 3;
+    width: 2.6rem;
+    border: 0;
+    translate: -50% -50%;
+    font-size: 1.1rem;
+    cursor: zoom-in;
+  }
+
+  .altavoz[hidden] {
+    display: none;
+  }
+
+  .altavoz:hover,
+  .altavoz:focus-visible {
+    scale: 1.08;
+  }
+
+  .altavoz:not([data-suena]) .con-sonido,
+  .altavoz[data-suena] .sin-sonido {
+    display: none;
   }
 
   /*
@@ -595,7 +652,10 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
   import { ScrollTrigger } from "gsap/ScrollTrigger";
   import { generarBlob } from "../lib/blob";
   import type { DetalleForma } from "../lib/blobRuntime";
+  import type { VideoSonido } from "../lib/directorio";
+  import { abrirPrimerPlano, primerPlanoAbierto } from "../lib/primerPlano";
   import { sinMovimiento } from "../lib/scroll";
+  import { callar, sonar } from "../lib/sonido";
   import { obtenerTinta, TOPE_LUNAS, type Luna } from "../lib/tinta";
 
   gsap.registerPlugin(ScrollTrigger);
@@ -640,6 +700,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     const cartel = escenario.querySelector<HTMLElement>("[data-cartel]");
     const aviso = escenario.querySelector<HTMLElement>("[data-aviso]");
     const etiqueta = escenario.querySelector<HTMLElement>("[data-nombre-luna]");
+    const altavoz = escenario.querySelector<HTMLButtonElement>("[data-plano]");
 
     const reducido = sinMovimiento();
     let actual = 0;
@@ -657,6 +718,14 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
     const video = (i: number) => escenas[i]?.querySelector<HTMLVideoElement>("video") ?? null;
     const imagen = (i: number) => escenas[i]?.querySelector<HTMLImageElement>("img") ?? null;
+    /** Las calidades con sonido de una persona (lib/directorio.ts). */
+    const calidades = (i: number): VideoSonido[] => {
+      try {
+        return JSON.parse(escenas[i]?.dataset.sonido ?? "[]") as VideoSonido[];
+      } catch {
+        return [];
+      }
+    };
     const blob = escenario.querySelector<HTMLElement>(".blob[data-blob]");
     const LADOS = JSON.parse(blob?.dataset.vertices ?? "[]").length as number;
 
@@ -1168,8 +1237,66 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
      * pantalla y, si el foco estaba en algo que desaparece (la luna pulsada,
      * el cartel anterior), pasa al carrusel para que no se pierda.
      */
+    // ---- Sonido y primer plano ----------------------------------------------
+    // Con el puntero sobre el retrato, su vídeo suena (lib/sonido.ts). Pulsarlo
+    // lo saca en primer plano (lib/primerPlano.ts): la gota se queda atrás,
+    // fuera de foco, y el carrusel espera a que vuelva.
+    let sobreRetrato = false;
+    let esperaSonido: gsap.core.Tween | null = null;
+    const marcarSonido = (estado: string) => altavoz?.toggleAttribute("data-suena", estado === "suena");
+
+    function sonarActual() {
+      const v = video(actual);
+      if (!v || !sobreRetrato || v.paused || primerPlanoAbierto()) return;
+      const c = calidades(actual);
+      // De las calidades, la más ligera: aquí solo se usa su sonido.
+      sonar(v, c.length > 0 ? c[c.length - 1]!.src : null, marcarSonido);
+    }
+
+    function callarRetrato() {
+      esperaSonido?.kill();
+      callar();
+      marcarSonido("calla");
+    }
+
+    function ponerAltavoz() {
+      if (!altavoz) return;
+      altavoz.hidden = !video(actual);
+      altavoz.setAttribute(
+        "aria-label",
+        altavoz.dataset.etiqueta!.replaceAll("{nombre}", escenas[actual]?.dataset.nombre ?? ""),
+      );
+    }
+
+    function abrirPlano() {
+      const i = actual;
+      const v = video(i);
+      if (!v) return;
+      const c = calidades(i);
+      abrirPrimerPlano({
+        caja: recorte!,
+        blob,
+        fotograma: () => (v.readyState >= 2 && v.videoWidth > 0 ? v : imagen(i)),
+        hora: () => v.currentTime,
+        calidades: c.length > 0 ? c : [{ src: v.currentSrc || v.src, alto: v.videoHeight || 720 }],
+        nombre: escenas[i]?.dataset.nombre ?? "",
+        alAbrir: () => {
+          callarRetrato();
+          pausar("plano", true);
+          tinta?.enfocar(false, 0.7);
+        },
+        // Vuelve por donde iba el vídeo grande: son la misma línea de tiempo.
+        alVolver: (hora) => {
+          if (i === actual && Number.isFinite(v.duration)) v.currentTime = Math.min(hora, Math.max(0, v.duration - 0.1));
+          tinta?.enfocar(true, 0.9);
+        },
+        alCerrar: () => pausar("plano", false),
+      });
+    }
+
     function irA(siguiente: number, inmediato = false, porPersona = false) {
       if (siguiente === actual) return;
+      callarRetrato();
       if (porPersona) {
         const rotulo = rotulos[siguiente];
         const nombre = rotulo?.querySelector("strong")?.textContent?.trim() ?? "";
@@ -1187,6 +1314,9 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       asentar();
       const antes = actual;
       actual = siguiente;
+      ponerAltavoz();
+      // Si el puntero sigue encima, suena la persona nueva cuando ya ha enfocado.
+      esperaSonido = gsap.delayedCall(inmediato ? 0.2 : 1.4, sonarActual);
       const sale = escenas[antes]!;
       const entra = escenas[siguiente]!;
       const rotuloSale = rotulos[antes]!;
@@ -1372,18 +1502,35 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       { signal },
     );
 
-    // TOCAR EL RETRATO: como en unas historias. La mitad derecha (algo más
-    // de la mitad) pasa a la siguiente; el tercio izquierdo, a la anterior.
-    if (lunas.length > 0) {
-      recorte?.addEventListener(
-        "click",
-        (e) => {
-          const caja = recorte.getBoundingClientRect();
-          irA(vecina((e.clientX - caja.left) / caja.width < 0.36 ? -1 : 1), false, true);
-        },
-        { signal },
-      );
-    }
+    // PULSAR EL RETRATO: su vídeo, en primer plano y con sonido. (Antes pasaba
+    // de persona, como en unas historias; para eso están las lunas, el
+    // arrastre y las flechas.) El altavoz es el mismo botón, para el teclado.
+    recorte?.addEventListener("click", abrirPlano, { signal });
+    altavoz?.addEventListener("click", abrirPlano, { signal });
+
+    // EL PUNTERO SOBRE EL RETRATO, su cartel o su altavoz: suena. Solo el
+    // ratón: con el dedo no hay "pasar por encima", se pulsa.
+    const enRetrato = (nodo: EventTarget | null) =>
+      nodo instanceof Element && Boolean(nodo.closest(".marco .recorte, [data-cartel], [data-plano]"));
+    escenario.addEventListener(
+      "pointerover",
+      (e) => {
+        if (e.pointerType !== "mouse" || sobreRetrato || !enRetrato(e.target)) return;
+        sobreRetrato = true;
+        sonarActual();
+      },
+      { signal },
+    );
+    escenario.addEventListener(
+      "pointerout",
+      (e) => {
+        if (!sobreRetrato || enRetrato(e.relatedTarget)) return;
+        sobreRetrato = false;
+        callarRetrato();
+      },
+      { signal },
+    );
+    ponerAltavoz();
 
     // La cola avanza sola, despacio; el puntero puede tirar de ella y, si no
     // llega a cambiar de persona, al soltarla vuelve a su sitio.
@@ -1486,12 +1633,16 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       if (detenido) {
         reloj?.pause();
         zooms.forEach((z) => z.pause());
-        video(actual)?.pause();
       } else {
         reloj?.resume();
         zooms.forEach((z) => z.resume());
-        if (!reducido) void video(actual)?.play().catch(() => {});
       }
+      // Con el puntero o el foco encima el carrusel espera, pero el vídeo
+      // sigue: es cuando se le oye. Solo se para si no se ve o si su gota
+      // está en primer plano.
+      const parado = motivos.has("fuera") || motivos.has("pestaña") || motivos.has("plano");
+      if (parado) video(actual)?.pause();
+      else if (!reducido) void video(actual)?.play().catch(() => {});
     };
 
     // Solo el ratón pausa al pasar por encima: en pantallas táctiles un toque
@@ -1534,6 +1685,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       zooms.clear();
       gsap.killTweensOf([...escenas, ...rotulos, cartel]);
       escenas.forEach((e) => e.querySelector("video")?.pause());
+      callarRetrato();
       tinta?.destruir();
     };
   }

@@ -16,7 +16,7 @@ import RecargaVistaPrevia from "./RecargaVistaPrevia.astro";
 import { Image, getImage } from "astro:assets";
 import { MOSTRAR_COMUNIDAD, categoria } from "../data/taxonomia";
 import { inicialesSinFoto, paraImage, type Emprendedor } from "../lib/directorio";
-import { getSitio } from "../lib/sitio";
+import { conNombre, getSitio } from "../lib/sitio";
 
 type Props = {
   emprendedor: Emprendedor;
@@ -27,7 +27,7 @@ type Props = {
 };
 
 const { emprendedor: e, siguiente, vistaPrevia = false } = Astro.props;
-const textos = (await getSitio(Astro.locals)).ficha;
+const { ficha: textos, reproductor } = await getSitio(Astro.locals);
 const cat = categoria(e.categoria);
 const catSiguiente = siguiente ? categoria(siguiente.categoria) : null;
 
@@ -85,6 +85,7 @@ const datosEstructurados = {
           iniciales={inicialesSinFoto(e)}
           tinta="color"
           rostro={e.rostro}
+          plano={e.video ? { etiqueta: conNombre(reproductor.abrir, e.nombre), nombre: e.nombre, sonido: e.videoSonido } : null}
         />
       </div>
       </div>

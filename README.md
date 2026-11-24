@@ -352,6 +352,29 @@ archivo no hay vídeo. Ya no hay placeholder de stock.
   una conexión lenta sería un abuso.
 - **En la ficha**: manda desde el principio, en bucle y sin sonido.
 
+#### Con sonido y en primer plano
+
+El vídeo del retrato es un recorte cuadrado y mudo. Cada persona puede tener
+además el mismo vídeo entero y con sonido, en una o varias calidades:
+`src/assets/videos/sonido/<slug>-<alto>.mp4` (por ejemplo `-1080`, `-720` y
+`-480`). Con eso, en el hero y en la ficha:
+
+- **Al pasar el puntero** por el retrato, suena, y el carrusel espera. El
+  sonido sale de la versión más ligera y se mantiene a la par de la imagen,
+  así que las dos versiones tienen que durar lo mismo.
+- **Al pulsarlo**, su gota sale de su sitio y crece hasta casi llenar la
+  ventana, con un reproductor propio: reproducir y pausar, barra de avance,
+  volumen y silencio, y calidad ("Auto" elige según el tamaño en pantalla y
+  la conexión, y baja un escalón si el vídeo se queda parado cargando). Se
+  cierra con el aspa, con Escape o pulsando fuera.
+
+Sin versión con sonido, se abre el propio vídeo del retrato, sin selector de
+calidad. Los navegadores no dejan sonar nada hasta que la persona pulsa o
+toca algo de la página: hasta entonces el altavoz del retrato sale tachado.
+La lógica está en `src/lib/sonido.ts` y `src/lib/primerPlano.ts`; la pieza y
+sus mandos, en `src/components/PrimerPlano.astro`. Los nombres de los mandos
+salen de "Reproductor de vídeo" en los textos del sitio.
+
 Las fotos de productos o servicios van en `src/assets/productos/<slug>/` y se
 muestran en la ficha bajo "Su trabajo".
 

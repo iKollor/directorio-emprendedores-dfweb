@@ -76,6 +76,27 @@ export async function subirVideo(
   return (await payload.create({ collection: 'medios', data: {}, filePath: archivo, req })).id as number
 }
 
+/**
+ * Sube las versiones con sonido del vídeo de una persona, si las hay:
+ * `assets/videos/sonido/<slug>-<alto>.mp4`, una por calidad.
+ */
+export async function subirVideosConSonido(
+  payload: Payload,
+  raiz: string,
+  slug: string,
+  req?: PayloadRequest,
+): Promise<number[]> {
+  const carpeta = path.join(raiz, 'assets', 'videos', 'sonido')
+  if (!fs.existsSync(carpeta)) return []
+  const ids: number[] = []
+  for (const archivo of fs.readdirSync(carpeta).sort()) {
+    const partes = /^(.+)-(\d{3,4})p?\.(mp4|webm)$/.exec(archivo)
+    if (partes?.[1] !== slug) continue
+    ids.push((await payload.create({ collection: 'medios', data: {}, filePath: path.join(carpeta, archivo), req })).id as number)
+  }
+  return ids
+}
+
 /** La carpeta de la semilla: `src` del sitio en local, `/semilla` en el servidor. */
 export const raizSemilla = () => path.resolve(process.env.SEMILLA_DIR || '../src')
 
@@ -157,6 +178,7 @@ export async function sembrar(payload: Payload) {
         telefono: crudo.telefono ?? undefined,
         foto,
         video: pendiente ? undefined : await subirVideo(payload, raiz, crudo.slug),
+        videoSonido: pendiente ? undefined : await subirVideosConSonido(payload, raiz, crudo.slug),
         _status: crudo.publicado ? 'published' : 'draft',
       },
     })

@@ -1,0 +1,441 @@
+---
+/**
+ * La pieza del primer plano y su reproductor. Va una vez por página, en el
+ * layout; quien la abre es lib/primerPlano.ts, que explica la idea.
+ *
+ * LOS MANDOS son los de cualquier reproductor, para no tener que aprenderlos
+ * (Ley de Jakob): reproducir y pausar, la barra de avance, el altavoz con su
+ * nivel, la calidad y el aspa de cerrar. Lo que cambia es el material: van
+ * en una píldora de vidrio que pisa el borde de la gota, como el cartel pisa
+ * el retrato; lo andado en la barra es una pincelada amarilla y lo que se
+ * arrastra, una gota.
+ */
+import Icono from "./Icono.astro";
+import { getSitio } from "../lib/sitio";
+
+const t = (await getSitio(Astro.locals)).reproductor;
+---
+
+<dialog
+  class="primer-plano"
+  data-primer-plano
+  data-titulo={t.titulo}
+  data-t-reproducir={t.reproducir}
+  data-t-pausar={t.pausar}
+  data-t-sonido={t.sonido}
+  data-t-silenciar={t.silenciar}
+  data-t-auto={t.auto}
+>
+  <div class="velo" data-velo></div>
+
+  <div class="gota" data-gota>
+    <svg class="definiciones" aria-hidden="true" focusable="false">
+      <defs>
+        <clipPath id="recorte-primer-plano" clipPathUnits="objectBoundingBox">
+          <path data-contorno d=""></path>
+        </clipPath>
+        <linearGradient id="luz-primer-plano" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#fff" stop-opacity="0.75"></stop>
+          <stop offset="0.34" stop-color="#fff" stop-opacity="0"></stop>
+          <stop offset="0.62" stop-color="#00002a" stop-opacity="0"></stop>
+          <stop offset="1" stop-color="#00002a" stop-opacity="0.6"></stop>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="vidrio" style="clip-path: url(#recorte-primer-plano)">
+      <canvas class="imagen" data-fotograma aria-hidden="true"></canvas>
+      <video class="imagen" data-video playsinline disablepictureinpicture></video>
+      {/* La luz del canto: clara arriba a la izquierda, sombra abajo a la derecha. */}
+      <svg class="luz" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <path data-luz d="" fill="none" stroke="url(#luz-primer-plano)" vector-effect="non-scaling-stroke"></path>
+      </svg>
+    </div>
+  </div>
+
+  <div class="mandos" data-mandos>
+    <button type="button" class="boton-icono reproducir" data-reproducir aria-label={t.pausar}>
+      <span class="si-suena"><Icono nombre="pausa" /></span>
+      <span class="si-parado"><Icono nombre="reproducir" /></span>
+    </button>
+
+    <input class="barra avance" type="range" min="0" max="1000" step="1" value="0" data-avance aria-label={t.avance} />
+    <span class="tiempo" data-tiempo aria-hidden="true">0:00</span>
+
+    <button type="button" class="mando" data-mudo aria-label={t.silenciar} aria-pressed="false">
+      <span class="con-sonido"><Icono nombre="sonido" /></span>
+      <span class="sin-sonido"><Icono nombre="silencio" /></span>
+    </button>
+    <input class="barra volumen" type="range" min="0" max="100" step="1" value="100" data-volumen aria-label={t.volumen} />
+
+    <div class="calidad" data-calidad>
+      <button type="button" class="mando letra" data-calidad-boton aria-haspopup="true" aria-expanded="false" aria-label={t.calidad}></button>
+      <div class="opciones" role="radiogroup" aria-label={t.calidad} data-calidad-lista hidden></div>
+    </div>
+  </div>
+
+  <button type="button" class="boton-icono vidrio cerrar" data-cerrar aria-label={t.cerrar}>
+    <Icono nombre="cerrar" />
+  </button>
+</dialog>
+
+<script>
+  import { cerrarPrimerPlano, montarPrimerPlano } from "../lib/primerPlano";
+
+  document.addEventListener("astro:page-load", montarPrimerPlano);
+  // Al cambiar de página, la pieza se cierra sin su vuelta: su retrato ya no está.
+  document.addEventListener("astro:before-preparation", () => cerrarPrimerPlano(true));
+</script>
+
+<style>
+  .primer-plano {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    background: transparent;
+    color: var(--df-bone);
+    /* Un dedo sobre la pieza no arrastra la página de debajo. */
+    touch-action: none;
+    overscroll-behavior: contain;
+  }
+
+  .primer-plano::backdrop {
+    background: transparent;
+  }
+
+  /* La página, detrás, fuera de foco y hundida en el azul hondo. */
+  .velo {
+    position: absolute;
+    inset: 0;
+    background: rgb(4 4 138 / 0.58);
+    -webkit-backdrop-filter: blur(16px) saturate(0.85);
+    backdrop-filter: blur(16px) saturate(0.85);
+    cursor: zoom-out;
+  }
+
+  .gota {
+    position: absolute;
+    filter: drop-shadow(0 1.6rem 2.6rem rgb(0 0 40 / 0.55));
+  }
+
+  .definiciones {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  .vidrio {
+    position: absolute;
+    inset: 0;
+    background: var(--df-blue-hondo);
+    overflow: hidden;
+  }
+
+  /*
+   * El fotograma del retrato y, encima, el vídeo. La bruma es el cambio de
+   * foco entre los dos; van un poco más grandes que la caja para que el
+   * desenfoque no deje ver su propio borde.
+   */
+  .imagen {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(var(--bruma, 0px));
+    scale: calc(1 + var(--bruma-n, 0) * 0.08);
+  }
+
+  video.imagen {
+    opacity: var(--mezcla, 0);
+    cursor: pointer;
+  }
+
+  .luz {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    filter: blur(5px);
+    stroke-width: 22px;
+    mix-blend-mode: soft-light;
+  }
+
+  /* ---- Mandos ---------------------------------------------------------- */
+  .mandos {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    box-sizing: border-box;
+    min-height: 3.5rem;
+    padding: 0.4rem 0.6rem 0.4rem 0.4rem;
+    border-radius: var(--radio-pildora);
+    translate: -50% -50%;
+    background: rgb(4 4 138 / 0.62);
+    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    backdrop-filter: blur(18px) saturate(1.3);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.28),
+      inset 0 -0.5rem 0.9rem -0.5rem rgb(0 0 40 / 0.5),
+      0 1.2rem 2rem -1rem rgb(0 0 40 / 0.8);
+  }
+
+  .reproducir {
+    width: 2.75rem;
+    font-size: 1.05rem;
+  }
+
+  .primer-plano:not([data-parado]) .si-parado,
+  .primer-plano[data-parado] .si-suena,
+  .primer-plano:not([data-sin-sonido]) .sin-sonido,
+  .primer-plano[data-sin-sonido] .con-sonido {
+    display: none;
+  }
+
+  /* El triángulo se ve centrado un pelo a la derecha. */
+  .si-parado {
+    translate: 6% 0;
+  }
+
+  .mando {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0 0.5rem;
+    border: 0;
+    border-radius: var(--radio-pildora);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color var(--dur-rapida) var(--ease-suave);
+  }
+
+  .mando:hover,
+  .mando[aria-expanded="true"] {
+    background: rgb(255 255 255 / 0.14);
+  }
+
+  .mando.letra {
+    padding: 0 0.8rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .tiempo {
+    flex: none;
+    min-width: 2.4rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  /*
+   * LA BARRA. Un control de rango de los de siempre (se arrastra, se maneja
+   * con flechas, lo leen los lectores de pantalla), vestido: el carril es
+   * vidrio, lo andado es una pincelada amarilla y el tirador, una gota.
+   */
+  .barra {
+    --p: 0%;
+    --cargado: 0%;
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 3rem;
+    height: 2.75rem;
+    margin: 0 0.35rem;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    cursor: pointer;
+    touch-action: none;
+  }
+
+  .barra::before,
+  .barra::after {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto;
+    pointer-events: none;
+  }
+
+  /* El carril, con lo ya descargado un punto más claro. */
+  .barra::before {
+    height: 0.3rem;
+    translate: 0 -50%;
+    border-radius: var(--radio-pildora);
+    background: linear-gradient(90deg, rgb(255 255 255 / 0.4) var(--cargado), rgb(255 255 255 / 0.2) 0);
+  }
+
+  /* Lo andado: una pincelada, recortada por donde va. */
+  .barra::after {
+    height: 1rem;
+    translate: 0 -50%;
+    background: var(--df-yellow);
+    -webkit-mask: var(--pincelada) no-repeat center / 100% 100%;
+    mask: var(--pincelada) no-repeat center / 100% 100%;
+    clip-path: inset(0 calc(100% - var(--p)) 0 0);
+  }
+
+  .barra::-webkit-slider-runnable-track {
+    height: 100%;
+    background: transparent;
+  }
+
+  .barra::-moz-range-track {
+    height: 100%;
+    background: transparent;
+  }
+
+  .barra::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    position: relative;
+    z-index: 1;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: calc((2.75rem - 1.05rem) / 2);
+    border: 0;
+    border-radius: 50%;
+    background: var(--df-yellow);
+    box-shadow: var(--gota), 0 0.25rem 0.5rem rgb(0 0 40 / 0.5);
+  }
+
+  .barra::-moz-range-thumb {
+    position: relative;
+    z-index: 1;
+    width: 1.05rem;
+    height: 1.05rem;
+    border: 0;
+    border-radius: 50%;
+    background: var(--df-yellow);
+    box-shadow: var(--gota), 0 0.25rem 0.5rem rgb(0 0 40 / 0.5);
+  }
+
+  .barra.volumen {
+    flex: 0 0 4.5rem;
+    margin-left: 0;
+  }
+
+  .barra.volumen::before {
+    background: rgb(255 255 255 / 0.22);
+  }
+
+  .calidad {
+    position: relative;
+    flex: none;
+  }
+
+  .calidad[hidden] {
+    display: none;
+  }
+
+  /* Las calidades salen hacia arriba, sobre el vídeo. */
+  .opciones {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 0.7rem);
+    display: grid;
+    gap: 0.15rem;
+    min-width: 6.5rem;
+    padding: 0.4rem;
+    border-radius: 1.1rem;
+    background: rgb(4 4 138 / 0.82);
+    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    backdrop-filter: blur(18px) saturate(1.3);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.28),
+      0 1rem 1.8rem -0.8rem rgb(0 0 40 / 0.8);
+  }
+
+  .opciones[hidden] {
+    display: none;
+  }
+
+  .opciones :global(.opcion) {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 2.5rem;
+    padding: 0 0.9rem 0 0.7rem;
+    border: 0;
+    border-radius: 0.8rem;
+    background: transparent;
+    color: var(--df-bone);
+    font: inherit;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  /* La elegida lleva delante una gota amarilla, como el tirador de la barra. */
+  .opciones :global(.opcion)::before {
+    content: "";
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--df-yellow);
+    box-shadow: var(--gota);
+    opacity: 0;
+  }
+
+  .opciones :global(.opcion[aria-checked="true"]) {
+    font-weight: 700;
+  }
+
+  .opciones :global(.opcion[aria-checked="true"])::before {
+    opacity: 1;
+  }
+
+  .opciones :global(.opcion:hover) {
+    background: rgb(255 255 255 / 0.14);
+  }
+
+  .cerrar {
+    position: absolute;
+    translate: -78% -22%;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .mandos .boton-icono {
+    border: 0;
+    cursor: pointer;
+  }
+
+  .mandos .boton-icono:active,
+  .cerrar:active {
+    scale: 0.94;
+  }
+
+  /* En el teléfono el nivel de sonido lo dan sus botones: sobra la barra. */
+  @media (max-width: 639px), (hover: none) {
+    .barra.volumen {
+      display: none;
+    }
+  }
+
+  @media (max-width: 419px) {
+    .mandos {
+      gap: 0.1rem;
+    }
+
+    .mando.letra {
+      padding: 0 0.5rem;
+    }
+  }
+</style>

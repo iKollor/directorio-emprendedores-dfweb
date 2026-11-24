@@ -3,6 +3,7 @@ import { ClientRouter } from "astro:transitions";
 import "../styles/tokens.css";
 import Marca from "../components/Marca.astro";
 import Pie from "../components/Pie.astro";
+import PrimerPlano from "../components/PrimerPlano.astro";
 import { getSitio } from "../lib/sitio";
 
 type Props = {
@@ -75,6 +76,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
     </header>
     <slot />
     <Pie />
+    <PrimerPlano />
 
     <script>
       import { gsap } from "gsap";
