@@ -60,9 +60,12 @@ export const Sitio: GlobalConfig = {
           fields: [
             texto('titular', 'Titular', NEGRITA),
             parrafo('intro', 'Presentación', NEGRITA),
-            texto('cierre', 'Frase de cierre', 'La parte entre asteriscos sale subrayada.'),
             texto('boton', 'Botón'),
-            texto('lema', 'Lema', 'La frase pequeña al pie de la portada.'),
+            // La frase de cierre y el lema ya no salen en la portada: se pidió
+            // dejarla limpia, con el titular, la presentación y el botón. Los
+            // campos se quedan, escondidos, para no perder lo que hubiera escrito.
+            { name: 'cierre', type: 'text', label: 'Frase de cierre', admin: { hidden: true } },
+            { name: 'lema', type: 'text', label: 'Lema', admin: { hidden: true } },
             {
               name: 'palabras',
               type: 'text',

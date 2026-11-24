@@ -341,6 +341,16 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     cursor: zoom-in;
   }
 
+  /* En el teléfono, más pequeño y hacia la esquina: lejos de la cara. */
+  @media (max-width: 639px) {
+    .altavoz {
+      left: 23%;
+      top: 20%;
+      width: 2.3rem;
+      font-size: 1rem;
+    }
+  }
+
   .altavoz[hidden] {
     display: none;
   }
@@ -803,6 +813,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       tls: [] as gsap.core.Timeline[],
       tBase: null as gsap.core.Tween | null,
       escalaToque: "",
+      tocable: true,
       /** Ya tiene imagen que enseñar (su foto, o el fotograma de su vídeo). */
       lista: false,
       /** Enfoque que lleva, y si alguien la está mirando. */
@@ -828,6 +839,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
      */
     const tallaBase = lunas.length > 5 ? 0.8 : 1;
     let tallaLunas = tallaBase;
+    let enTelefono = false;
     /** Espacio libre a cada lado del escenario: el anillo no se sale de la página. */
     let libreIzq = 0;
     let libreDer = 0;
@@ -854,7 +866,11 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       // El arco ocupa el ancho que haya: hasta el borde de la página por cada
       // lado, y nunca más que el lienzo del líquido. A la derecha pasan las
       // lunas grandes; a la izquierda, las pequeñas.
-      tallaLunas = tallaBase * (lado < 380 ? 0.74 : 1);
+      // Por el ancho de la pantalla, no por el del retrato: en un teléfono
+      // grande el retrato pasa de 380 px y volvía a salir la cola entera,
+      // encima de los logos de la cabecera.
+      enTelefono = window.matchMedia("(max-width: 639px)").matches;
+      tallaLunas = tallaBase * (enTelefono ? 0.8 : 1);
       const rCerca = RADIO_CERCA * tallaLunas * lado;
       const rLejos = RADIO_LEJOS * tallaLunas * lado;
       const tope = lado * (EXTENSION / 2 - 0.03);
@@ -1114,6 +1130,10 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         // PERSPECTIVA: delante, más del doble de grande que al fondo.
         let radio = (RADIO_LEJOS + (RADIO_CERCA - RADIO_LEJOS) * Math.pow(cerca, 1.25)) * tallaLunas * luna.talla;
         if (luna.mirada) radio *= 1.08;
+        // EN EL TELÉFONO, SOLO LA QUE VIENE. Alrededor de un retrato pequeño,
+        // toda la cola a la vez es ruido: se ve la siguiente persona y, si
+        // acaso, asomando, la de después. Las demás nacen al acercarse.
+        if (enTelefono) radio *= suave(0.4, 0.78, cerca);
 
         // PROFUNDIDAD DE CAMPO: delante, enfocada y a color; al fondo,
         // esmerilada y azul. Mirarla la enfoca.
@@ -1147,6 +1167,14 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         if (luna.mirada) mirada = { luna, px, py: py + radio * lado };
         luna.el.style.transform = `translate(-50%, -50%) translate3d(${px.toFixed(2)}px, ${py.toFixed(2)}px, 0) scale(${escala.toFixed(4)})`;
         luna.el.style.opacity = luna.presencia.toFixed(3);
+        // Mientras se funde con la gota grande (o se suelta de ella) no es un
+        // botón: está encima del retrato, medio disuelta o invisible, y se
+        // llevaba el clic que iba para él.
+        const tocable = union < 0.02 && luna.presencia > 0.9;
+        if (luna.tocable !== tocable) {
+          luna.tocable = tocable;
+          luna.el.style.pointerEvents = tocable ? "" : "none";
+        }
         const capa = hondo > 0 || union > 0 ? "2" : "0";
         if (luna.capa !== capa) {
           luna.capa = capa;

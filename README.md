@@ -230,7 +230,7 @@ la misma frase, y CTAs con exclamación de apertura ("¡Conoce su negocio!").
 pueden reutilizar. Se usa **General Sans** (Fontshare) como sustituto del mismo
 género. Confirmar con el manual de marca.
 
-Para los rótulos (la cinta de palabras, la llamada de cada tarjeta, el lema)
+Para los rótulos (la cinta de palabras, la llamada de cada tarjeta)
 se usa **Amatic SC**, una letra a pincel parecida a la del
 logo de la Escuela de Emprendimiento. Ver "Criterio de diseño" en `CLAUDE.md`.
 
@@ -359,7 +359,8 @@ además el mismo vídeo entero y con sonido, en una o varias calidades:
 `src/assets/videos/sonido/<slug>-<alto>.mp4` (por ejemplo `-1080`, `-720` y
 `-480`). Con eso, en el hero y en la ficha:
 
-- **Al pasar el puntero** por el retrato, suena, y el carrusel espera. El
+- **Al pasar el puntero** por un retrato con vídeo (hero, ficha y tarjetas
+  del listado), suena, y el carrusel espera. El
   sonido sale de la versión más ligera y va a la par de la imagen (es el
   retrato, mudo, el que se ajusta a él), así que las dos versiones tienen que
   durar lo mismo. Entra y sale fundido.

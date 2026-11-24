@@ -68,10 +68,11 @@ const alto = logo ? Math.min(logo.height, ALTO_MAXIMO) : 0;
    * margen que llevaba el texto.
    */
   .con-logo.hero { margin-block-end: 0; rotate: -3deg; transform-origin: 0 100%; }
-  .con-logo.hero img { height: 3.7em; }
+  /* Es la marca de la casa, no un segundo titular: va por debajo de él en tamaño. */
+  .con-logo.hero img { height: 2.5em; }
   .con-logo.pie img { height: 3.3em; }
-  /* En el teléfono va arriba de la portada, sobre el retrato: un punto más corto, para dejarle sitio. */
+  /* En el teléfono va bajo el retrato, encima del titular: pequeño, como una firma. */
   @media (max-width: 639px) {
-    .con-logo.hero img { height: 2.95em; }
+    .con-logo.hero img { height: 2.1em; }
   }
 </style>

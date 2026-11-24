@@ -69,6 +69,7 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
       sizes="(max-width: 767px) 100vw, 42vw"
       video={e.fichaPendiente ? null : e.video}
       videoModo="hover"
+      voz={e.fichaPendiente ? null : (e.videoSonido.at(-1)?.src ?? null)}
       iniciales={inicialesSinFoto(e)}
       rostro={e.rostro}
     />

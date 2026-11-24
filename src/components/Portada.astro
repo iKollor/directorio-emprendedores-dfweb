@@ -35,12 +35,15 @@ const emprendedores = await getEmprendedores();
 
       <h1 id="titulo-hero" data-anim="letras" data-anim-retraso="0.3">{trozos(p.titular).map((t) => (t.destacado ? <strong>{t.texto}</strong> : t.texto))}</h1>
 
-      <div class="intro" data-anim="subir" data-anim-hijos data-anim-retraso="0.75">
+      {/*
+        UNA COSA CADA VEZ. La primera pantalla dice qué es esto (el titular),
+        lo explica en un párrafo y ofrece un botón. Antes llevaba además la
+        frase "Explora, conoce, conecta y apóyalos" y un lema a pincel al pie:
+        cinco textos compitiendo, y se pidió dejarla limpia. Esas palabras
+        siguen en la cinta que cruza la página justo debajo.
+      */}
+      <div class="intro" data-anim="subir" data-anim-retraso="0.75">
         <p>{trozos(p.intro).map((t) => (t.destacado ? <strong>{t.texto}</strong> : t.texto))}</p>
-
-        <p class="cierre">
-          {trozos(p.cierre).map((t) => (t.destacado ? <span class="resalte pincelada" data-anim="subrayado" data-anim-retraso="1.4">{t.texto}</span> : t.texto))}
-        </p>
       </div>
 
       <div data-anim="pop" data-anim-retraso="1.05">
@@ -56,7 +59,6 @@ const emprendedores = await getEmprendedores();
       <BlobHero emprendedores={emprendedores} />
     </div>
     <div class="forma-honda"><Forma tipo="blob" color="var(--df-blue-deep)" semilla="hero-honda" flota={0.07} retraso={0.5} /></div>
-    <p class="hero-lugar pincel" data-anim="subir" data-anim-retraso="1.3">{p.lema}</p>
   </section>
 
   <CintaPalabras />
@@ -81,7 +83,7 @@ const emprendedores = await getEmprendedores();
     position: relative;
     z-index: 2;
     display: grid;
-    grid-template-areas: "escenario" "texto" "lugar";
+    grid-template-areas: "escenario" "texto";
     align-items: center;
     row-gap: clamp(1.5rem, 5vw, 2.5rem);
     min-height: min(80svh, 860px);
@@ -128,14 +130,10 @@ const emprendedores = await getEmprendedores();
     bottom: clamp(-330px, -21vw, -140px);
   }
 
-  .hero-lugar {
-    grid-area: lugar;
-  }
-
   @media (min-width: 900px) {
     .hero {
       grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
-      grid-template-areas: "texto escenario" "lugar escenario";
+      grid-template-areas: "texto escenario";
       column-gap: clamp(2rem, 4vw, 4rem);
     }
 
@@ -152,13 +150,7 @@ const emprendedores = await getEmprendedores();
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: clamp(0.9rem, 2vw, 1.6rem);
-  }
-
-  /* La palabra acento destaca por peso y por su pincelada amarilla (tokens.css). */
-  .resalte {
-    color: inherit;
-    font-weight: 700;
+    gap: clamp(1.1rem, 2.2vw, 2rem);
   }
 
   h1 {
@@ -179,7 +171,7 @@ const emprendedores = await getEmprendedores();
     display: flex;
     flex-direction: column;
     gap: clamp(0.75rem, 1.5vw, 1.1rem);
-    max-width: 44ch;
+    max-width: 46ch;
   }
 
   .intro p {
@@ -190,62 +182,62 @@ const emprendedores = await getEmprendedores();
     font-weight: 600;
   }
 
-  .cierre {
-    font-size: var(--txt-l);
-    font-weight: 400;
-    line-height: 1.15;
-  }
-
-  /* El lema, a pincel: es el rótulo que firma la portada. */
-  .hero-lugar { margin: 0; font-size: clamp(1.9rem, 1.5rem + 1.4vw, 2.6rem); text-wrap: balance; }
 
   /*
-   * EN EL TELÉFONO, PRIMERO QUÉ ES Y DESPUÉS QUIÉN. Arriba la marca de la
-   * escuela y el titular; debajo, el retrato, grande; y después el resto del
-   * texto y el botón. Antes el retrato iba primero y el titular quedaba
-   * cortado al pie de la primera pantalla. El bloque de texto se deshace
-   * (`display: contents`) para poder meter el retrato en medio.
+   * EN EL TELÉFONO, PRIMERO UNA CARA. Lo primero que se ve es una persona,
+   * grande, con su nombre; debajo, la marca de la escuela (pequeña), el
+   * titular y el botón; y después el párrafo. Se probó al revés, con la
+   * marca y el titular encima del retrato, y no gustó: tres títulos
+   * apilados antes de ver a nadie. El bloque de texto se deshace
+   * (`display: contents`) para poder ordenar sus piezas una a una.
    */
   @media (max-width: 639px) {
     .hero {
       grid-template-areas: none;
-      row-gap: 0.8rem;
-      padding-block-start: 0.4rem;
+      row-gap: 1.15rem;
+      padding-block-start: 0.25rem;
     }
 
     .hero-texto {
       display: contents;
     }
 
+    .hero-escenario {
+      grid-area: auto;
+      order: 1;
+      width: min(92vw, 430px);
+      /* El cartel cuelga por debajo del retrato: se le deja su sitio. */
+      margin-block: 0 5.3rem;
+    }
+
     .hero-texto > * {
       grid-area: auto;
-      order: 4;
     }
 
-    .hero-texto > :first-child {
-      order: 1;
-    }
-
-    .hero-texto > h1 {
+    /*
+     * La marca, el titular, el botón y, al final, el párrafo. La marca es
+     * otro componente: sin `:global` la regla no le llega (y sin orden,
+     * quedaba la primera, encima del retrato).
+     */
+    .hero-texto > :global(:first-child) {
       order: 2;
     }
 
-    .hero-escenario {
-      grid-area: auto;
+    .hero-texto > h1 {
       order: 3;
-      width: min(84vw, 400px);
-      /* El cartel cuelga por debajo del retrato: se le deja su sitio. */
-      margin-block: 0.6rem clamp(4.2rem, 21vw, 5.4rem);
     }
 
-    .hero-lugar {
-      grid-area: auto;
+    .hero-texto > :last-child {
+      order: 4;
+    }
+
+    .hero-texto > .intro {
       order: 5;
     }
   }
 
   /* A media pantalla, el titular baja un punto para que quepa junto al blob. */
   @media (min-width: 900px) {
-    h1 { font-size: clamp(2.6rem, 5.3vw, 6.1rem); }
+    h1 { font-size: clamp(2.5rem, 4.4vw, 5rem); }
   }
 </style>

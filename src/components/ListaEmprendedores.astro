@@ -318,6 +318,7 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   import { ScrollTrigger } from "gsap/ScrollTrigger";
   import Snap from "lenis/snap";
   import { obtenerScroll, sinMovimiento } from "../lib/scroll";
+  import { callar, sonar } from "../lib/sonido";
   import { aLaVista } from "../lib/animaciones";
   import { trasAterrizar } from "../lib/aterrizaje";
 
@@ -705,9 +706,11 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   }
 
   /**
-   * El vídeo entra al pasar el puntero y también al enfocar con teclado. En
-   * móvil no se toca: sin hover no hay intención, y catorce vídeos
-   * reproduciéndose solos en una conexión lenta sería un abuso.
+   * El vídeo entra, y suena, al pasar el puntero y también al enfocar con
+   * teclado. En móvil no se toca: sin hover no hay intención, y catorce
+   * vídeos reproduciéndose solos en una conexión lenta sería un abuso. El
+   * sonido es el de lib/sonido.ts, el mismo del hero y de la ficha; aquí
+   * pulsar no abre el primer plano: lleva a la ficha.
    */
   function montarVideos(raiz: ParentNode, signal: AbortSignal) {
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
@@ -722,13 +725,17 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
       if (!blob || !video) return;
 
       let interesado = false;
+      let suena = false;
       const entrar = () => {
         interesado = true;
         // Con `preload="none"` el archivo no se pide hasta este momento.
         void video.play().then(
           () => {
-            if (interesado && !signal.aborted && tarjeta.getClientRects().length) blob.setAttribute("data-video-activo", "");
-            else video.pause();
+            if (interesado && !signal.aborted && tarjeta.getClientRects().length) {
+              blob.setAttribute("data-video-activo", "");
+              suena = true;
+              sonar(video, blob.dataset.voz ?? null, () => {});
+            } else video.pause();
           },
           // Un play() rechazado (política de autoplay, ahorro de datos) no
           // debe romper nada: se queda la foto.
@@ -739,6 +746,10 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
       const salir = () => {
         interesado = false;
         blob.removeAttribute("data-video-activo");
+        // Solo calla quien estaba sonando: si no, al salir de una tarjeta se
+        // apagaría el sonido de otro retrato.
+        if (suena) callar();
+        suena = false;
         video.pause();
       };
 

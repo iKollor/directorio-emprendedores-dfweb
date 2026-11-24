@@ -470,14 +470,8 @@ export interface Sitio {
      * Lo que pongas entre asteriscos sale destacado: "Conoce a nuestros *emprendedores*".
      */
     intro?: string | null;
-    /**
-     * La parte entre asteriscos sale subrayada.
-     */
-    cierre?: string | null;
     boton?: string | null;
-    /**
-     * La frase pequeña al pie de la portada.
-     */
+    cierre?: string | null;
     lema?: string | null;
     /**
      * Las palabras grandes que cruzan la página al bajar. Escribe una y pulsa Intro.
@@ -608,8 +602,8 @@ export interface SitioSelect<T extends boolean = true> {
     | {
         titular?: T;
         intro?: T;
-        cierre?: T;
         boton?: T;
+        cierre?: T;
         lema?: T;
         palabras?: T;
       };

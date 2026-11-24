@@ -59,11 +59,13 @@ porque abajo a la izquierda está el cartel: con un anillo cerrado las lunas
 pasaban por debajo de él, tapadas, y se pidió cambiarlo. Su frente se
 calcula con la medida del cartel, y ninguna luna pasa por encima del texto
 de la portada ni se sale de la página. En el teléfono el retrato va centrado
-para dejarles sitio, las lunas son más pequeñas (con su tamaño de pantalla
-grande, la de delante tapaba media cara) y el cartel no va encima del retrato
-sino colgando de su canto inferior, como el de las tarjetas. Ahí la portada
-se lee en este orden: la marca de la escuela, el titular, el retrato y
-después el resto del texto y el botón (`Portada.astro`). No lleva botones de anterior y siguiente (hubo dos
+y lo primero: una persona, grande, con su nombre. Alrededor solo se ve la
+luna de la siguiente persona y, asomando, la de después (toda la cola junto a
+un retrato pequeño era ruido); las demás nacen al acercarse. El cartel no va
+encima del retrato sino colgando de su canto inferior, como el de las
+tarjetas. Debajo van la marca de la escuela, pequeña, el titular, el botón y
+el párrafo (`Portada.astro`). Se probó con la marca y el titular encima del
+retrato y no gustó: tres títulos apilados antes de ver a nadie. No lleva botones de anterior y siguiente (hubo dos
 flechas amarillas y se pidió quitarlas): se toca lo que se ve. Una luna trae
 a esa persona; arrastrar o deslizar tira de la cola; y con el teclado,
 flechas izquierda y derecha. Pulsar el retrato grande abre su vídeo en
@@ -76,8 +78,10 @@ ya hacen el hero y el listado. No añadas otro carrusel a la portada.
 
 **El primer plano: la gota se acerca.** Los retratos con vídeo suenan y se
 abren (`src/lib/sonido.ts`, `src/lib/primerPlano.ts`, `PrimerPlano.astro`).
-Con el puntero encima del retrato del hero o de la ficha, su vídeo suena y el
-carrusel espera. Al pulsarlo, su gota sale de su sitio y crece hasta casi
+Con el puntero encima de cualquier retrato con vídeo (el del hero, el de la
+ficha y las tarjetas del listado), su vídeo se ve y suena, y el carrusel
+espera. Pulsar abre el primer plano solo en el hero y en la ficha: en el
+listado, la tarjeta lleva a la ficha. Al pulsarlo, su gota sale de su sitio y crece hasta casi
 llenar la ventana: NO es pantalla completa, alrededor se sigue viendo la
 página, fuera de foco. El borde sigue siendo de gota: parte de la silueta del
 retrato y se vuelve una pantalla (una superelipse con la proporción del
@@ -91,7 +95,11 @@ puntero encima sigue sonando. Todo cambio de volumen es un fundido, nunca un
 escalón. Para ir a la par, el sonido no se recoloca nunca (cada recolocación
 es un corte): es el retrato, que es mudo, el que acelera o frena un poco.
 Cambiar de calidad tampoco corta: la nueva carga en un segundo vídeo y entra
-justo donde va el primero. Los mandos son los de cualquier reproductor (reproducir, avance,
+justo donde va el primero. Si la voz se queda cargando (red lenta), el retrato NO la
+espera: sigue a su aire y se coloca una sola vez donde va ella cuando vuelve
+a andar; esperándola se quedaba clavado, y parecía que pasar el puntero
+pausaba el vídeo. Una luna que se está fundiendo con la gota grande no es un
+botón: está encima del retrato, medio invisible, y se llevaba su clic. Los mandos son los de cualquier reproductor (reproducir, avance,
 altavoz y nivel, calidad con "Auto", cerrar) vestidos con el material del
 sitio: píldora de vidrio, lo andado es una pincelada amarilla y el tirador,
 una gota. El retrato lleva un altavoz de vidrio (`.boton-icono.vidrio`) que
@@ -156,12 +164,18 @@ amarillo, como el rótulo de un negocio de barrio. La clase `.pincel`
 (`src/styles/tokens.css`, tipografía Amatic SC, elegida por Diseña Futuro)
 escribe con esa letra las pocas frases que el sitio dice en voz alta: la
 cinta de palabras (un renglón blanco y otro amarillo, como el logo), la
-llamada de cada tarjeta, "Conoce también a" y el lema de la portada. No es para leer ni para la interfaz: titulares, textos,
+llamada de cada tarjeta y "Conoce también a". No es para leer ni para la interfaz: titulares, textos,
 botones y filtros siguen en General Sans, con su fino + grueso. No se usa
 para destacar una palabra dentro de un titular. Va siempre grande, en blanco
 o en amarillo (o en azul sobre el cartel claro). El subrayado amarillo es
 una pincelada (`.pincelada`), no una barra recta. En la portada el logo va
-grande y un punto torcido, como el cartel del retrato.
+un punto torcido, como el cartel del retrato, pero es la marca de la casa, no
+un segundo titular: va claramente por debajo de él en tamaño.
+
+**La primera pantalla dice una cosa.** Marca, titular, un párrafo y un botón.
+Llevó además una frase de cierre subrayada y un lema a pincel al pie, y se
+pidió limpiarla: eran cinco textos compitiendo. No le añadas frases; si hay
+algo más que decir, va más abajo.
 
 **Patrones conocidos antes que rótulos (Ley de Jakob).** La gente pasa casi
 todo su tiempo en otras aplicaciones y espera que esta funcione igual, así

@@ -51,6 +51,12 @@ type Props = {
    * pulsarlo, sale en primer plano (lib/primerPlano.ts). `etiqueta` es el
    * nombre accesible del botón; `sonido`, las calidades con sonido.
    */
+  /**
+   * La versión con sonido más ligera del vídeo: lo que se oye al pasar el
+   * puntero por la tarjeta del listado (lib/sonido.ts). En la ficha viaja
+   * dentro de `plano`.
+   */
+  voz?: string | null;
   plano?: {
     etiqueta: string;
     nombre: string;
@@ -75,6 +81,7 @@ const {
   tinta = "foco",
   rostro,
   plano = null,
+  voz = null,
 } = Astro.props;
 const conPlano = Boolean(video && plano);
 
@@ -100,6 +107,7 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
     data-vertices={JSON.stringify(retrato.vertices)}
     data-encaje={JSON.stringify(retrato.encaje)}
     data-desfase={desfaseRetrato.toFixed(3)}
+    data-voz={video && voz ? voz : undefined}
     data-nombre={conPlano ? plano!.nombre : undefined}
     data-sonido={conPlano ? JSON.stringify(plano!.sonido) : undefined}
     data-categoria={conPlano ? plano!.categoria : undefined}
