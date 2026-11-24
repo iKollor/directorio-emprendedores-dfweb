@@ -45,7 +45,7 @@ entre los de la marca.
 ## Textos y logos
 
 En **Textos y logos** está todo lo que el sitio dice fuera de las fichas,
-repartido en pestañas: portada, listado, vídeos, ficha, pie y general.
+repartido en pestañas: portada, listado, ficha, pie y general.
 
 - Lo que pongas entre asteriscos sale destacado: `Conoce a nuestros
   *emprendedores*`.

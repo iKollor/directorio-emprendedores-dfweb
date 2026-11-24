@@ -140,12 +140,6 @@ export const Sitio: GlobalConfig = {
           ],
         },
         {
-          name: 'videos',
-          label: 'Vídeos',
-          description: 'La franja de vídeos de la portada. Solo aparece si algún emprendedor tiene vídeo.',
-          fields: [texto('titular', 'Titular'), texto('bajada', 'Frase bajo el titular')],
-        },
-        {
           name: 'ficha',
           label: 'Ficha',
           description: 'Los textos comunes a todas las fichas.',

@@ -6,7 +6,6 @@
  */
 import Base from "../layouts/Base.astro";
 import ListaEmprendedores from "./ListaEmprendedores.astro";
-import ReelVideos from "./ReelVideos.astro";
 import NombreEscuela from "./NombreEscuela.astro";
 import CintaPalabras from "./CintaPalabras.astro";
 import BlobHero from "./BlobHero.astro";
@@ -61,8 +60,6 @@ const emprendedores = await getEmprendedores();
   </section>
 
   <CintaPalabras />
-
-  <ReelVideos emprendedores={emprendedores} />
 
   <ListaEmprendedores emprendedores={emprendedores} />
 

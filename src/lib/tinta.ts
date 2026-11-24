@@ -56,6 +56,12 @@ export type OpcionesTinta = {
 export type Tinta = {
   /** Enfoca la gota (o la deja fuera de foco). `segundos` es lo que tarda. */
   enfocar(activo: boolean, segundos?: number): gsap.core.Tween;
+  /**
+   * Deja el enfoque en un punto intermedio, sin animación: 0 es la tinta y 1,
+   * a color. Es la profundidad de campo de las lunas del hero, que enfocan
+   * más o menos según pasan por delante o por detrás (BlobHero.astro).
+   */
+  graduar(valor: number): void;
   /** Releva a la persona en pantalla por otra, con un cambio de foco. */
   relevar(indice: number): gsap.core.Tween;
   /** Cambia de persona sin animación. */
@@ -773,6 +779,13 @@ function crearMotor(): Motor | null {
             : { foco: 0, duration: 0.8 * pieza.foco + 0.1, ease: "power2.inOut" },
         );
         return enfoque;
+      },
+
+      graduar(valor) {
+        enfoque?.kill();
+        enfoque = null;
+        pieza.foco = Math.min(1, Math.max(0, valor));
+        marcar();
       },
 
       relevar(indice) {

@@ -41,6 +41,19 @@ material. El canto de la gota es fino a propósito: el volumen lo dan la luz
 y la sombra, que no mueven la imagen. Cuándo enfoca cada retrato está en `src/lib/retratos.ts`; el hero,
 en `BlobHero.astro`. La silueta que usa el shader sale de `src/lib/blob.ts`.
 
+**Un solo carrusel: la órbita del hero.** La gota grande de la portada va
+pasando por las personas y, a su alrededor, gira una gota pequeña por cada
+una de las demás (`BlobHero.astro`). Son el mismo vidrio y la misma óptica:
+profundidad de campo. La luna que pasa por delante va casi enfocada y a
+color; la que pasa por detrás, esmerilada y azul, medio tapada por la gota
+grande. Para cambiar de persona, su luna cae hacia la gota grande y se funde
+con ella en el canto; la gota la traga (cambia de silueta con su resorte),
+hace su cambio de foco y suelta a la anterior, que sale como luna. Se cambia
+pulsando una luna, con las flechas o deslizando; arrastrar gira el anillo. La
+gota grande no se mueve de su sitio. Debajo hubo una franja de vídeos en
+carrusel ("En sus propias palabras") y se quitó: repetía lo que ya hacen el
+hero y el listado. No añadas otro carrusel a la portada.
+
 **Una curva.** Todo lo que entra sube un poco y se asienta con `expo.out`
 (`CURVA` en `src/lib/animaciones.ts`). Sin rebotes, giros ni desenfoques de
 texto. El único elástico del sitio es el contorno de los blobs.
@@ -75,9 +88,8 @@ logo de la Escuela de Emprendimiento está pintado a mano, en blanco y
 amarillo, como el rótulo de un negocio de barrio. La clase `.pincel`
 (`src/styles/tokens.css`, tipografía Amatic SC, elegida por Diseña Futuro)
 escribe con esa letra las pocas frases que el sitio dice en voz alta: la
-cinta de palabras (un renglón blanco y otro amarillo, como el logo), "En sus
-propias palabras", la llamada de cada tarjeta, "Conoce también a" y el lema
-de la portada. No es para leer ni para la interfaz: titulares, textos,
+cinta de palabras (un renglón blanco y otro amarillo, como el logo), la
+llamada de cada tarjeta, "Conoce también a" y el lema de la portada. No es para leer ni para la interfaz: titulares, textos,
 botones y filtros siguen en General Sans, con su fino + grueso. No se usa
 para destacar una palabra dentro de un titular. Va siempre grande, en blanco
 o en amarillo (o en azul sobre el cartel claro). El subrayado amarillo es

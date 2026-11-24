@@ -230,8 +230,8 @@ la misma frase, y CTAs con exclamación de apertura ("¡Conoce su negocio!").
 pueden reutilizar. Se usa **General Sans** (Fontshare) como sustituto del mismo
 género. Confirmar con el manual de marca.
 
-Para los rótulos (la cinta de palabras, "En sus propias palabras", la llamada
-de cada tarjeta) se usa **Amatic SC**, una letra a pincel parecida a la del
+Para los rótulos (la cinta de palabras, la llamada de cada tarjeta, el lema)
+se usa **Amatic SC**, una letra a pincel parecida a la del
 logo de la Escuela de Emprendimiento. Ver "Criterio de diseño" en `CLAUDE.md`.
 
 Desde el 14 de septiembre de 2026, los WOFF2 se sirven localmente desde
@@ -340,8 +340,11 @@ hasta que GSAP fija su estado inicial, y un rescate en CSS lo muestra a los
 ### El vídeo
 
 Cada emprendedor puede tener el suyo en `src/assets/videos/<slug>.mp4`. Sin
-archivo no hay vídeo, y si nadie tiene, la franja "En sus propias palabras" no
-aparece. Ya no hay placeholder de stock.
+archivo no hay vídeo. Ya no hay placeholder de stock.
+
+- **En el hero**: es lo que se ve dentro de la gota grande cuando le toca a
+  esa persona. Quien no tiene foto propia entra en la órbita con un fotograma
+  de su vídeo.
 
 - **En el listado**: entra al pasar el puntero o al enfocar con teclado. Con
   `preload="none"` el archivo no se pide hasta ese momento. En móvil no se
