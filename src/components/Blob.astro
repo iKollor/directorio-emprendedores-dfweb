@@ -180,7 +180,7 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
 <script>
   import type { VideoSonido } from "../lib/directorio";
   import { abrirPrimerPlano, primerPlanoAbierto } from "../lib/primerPlano";
-  import { callar, sonar } from "../lib/sonido";
+  import { callar, punteroSobre, sonar, vigilarSalida } from "../lib/sonido";
 
   /**
    * EL RETRATO DE LA FICHA SUENA Y SE ACERCA. Con el puntero encima, su vídeo
@@ -214,6 +214,11 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
       const marcar = (estado: string) => boton?.toggleAttribute("data-suena", estado === "suena");
       const enfocar = (si: boolean) => recorte.dispatchEvent(new CustomEvent("retrato:foco", { detail: si }));
 
+      // Solo el ratón "pasa por encima"; con el dedo se pulsa.
+      const dentro = (nodo: EventTarget | null) =>
+        nodo instanceof Element && marco.contains(nodo) && Boolean(nodo.closest(".recorte, [data-plano]"));
+      let encima = false;
+
       const abrir = () =>
         abrirPrimerPlano({
           caja: recorte,
@@ -223,9 +228,13 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
           hora: () => video.currentTime,
           calidades: calidades.length > 0 ? calidades : [{ src: video.currentSrc || video.src, alto: video.videoHeight || 720 }],
           nombre: blob.dataset.nombre ?? "",
+          // Si ya sonaba, el primer plano se abre con ese mismo sonido; y si
+          // al volver el puntero sigue encima, sigue sonando.
+          retrato: video,
+          encima: () => punteroSobre(recorte),
+          alSonar: marcar,
           alAbrir: () => {
-            callar();
-            marcar("calla");
+            encima = false;
             video.pause();
             blob.removeAttribute("data-video-activo");
             enfocar(false);
@@ -235,13 +244,22 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
             enfocar(true);
             sincronizarVideos();
           },
+          alCerrar: (suena) => {
+            if (!suena) {
+              marcar("calla");
+              return;
+            }
+            encima = true;
+            vigilarSalida(dentro, () => {
+              encima = false;
+              callar();
+              marcar("calla");
+            });
+          },
         });
       recorte.addEventListener("click", abrir, { signal });
       boton?.addEventListener("click", abrir, { signal });
 
-      // Solo el ratón "pasa por encima"; con el dedo se pulsa.
-      const dentro = (nodo: EventTarget | null) => nodo instanceof Element && Boolean(nodo.closest(".recorte, [data-plano]"));
-      let encima = false;
       marco.addEventListener(
         "pointerover",
         (e) => {

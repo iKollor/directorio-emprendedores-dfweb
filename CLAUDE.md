@@ -78,9 +78,16 @@ llenar la ventana: NO es pantalla completa, alrededor se sigue viendo la
 página, fuera de foco. El borde sigue siendo de gota: parte de la silueta del
 retrato y se vuelve una pantalla (una superelipse con la proporción del
 vídeo, simétrica para no comerse la imagen) que sigue respirando. El paso del
-recorte cuadrado al vídeo entero es un cambio de foco, igual que cambiar de
-calidad; el retrato que queda atrás vuelve a la tinta y enfoca cuando la gota
-regresa. Los mandos son los de cualquier reproductor (reproducir, avance,
+recorte cuadrado al vídeo entero es un cambio de foco; el retrato que queda
+atrás vuelve a la tinta y enfoca cuando la gota regresa. EL SONIDO ES UNA
+SOLA PISTA (`src/lib/voz.ts`): lo que suena al pasar el puntero y lo que
+suena en el primer plano es la misma reproducción, así que al pulsar un
+retrato que ya suena no se corta ni vuelve a empezar, y al cerrar con el
+puntero encima sigue sonando. Todo cambio de volumen es un fundido, nunca un
+escalón. Para ir a la par, el sonido no se recoloca nunca (cada recolocación
+es un corte): es el retrato, que es mudo, el que acelera o frena un poco.
+Cambiar de calidad tampoco corta: la nueva carga en un segundo vídeo y entra
+justo donde va el primero. Los mandos son los de cualquier reproductor (reproducir, avance,
 altavoz y nivel, calidad con "Auto", cerrar) vestidos con el material del
 sitio: píldora de vidrio, lo andado es una pincelada amarilla y el tirador,
 una gota. El retrato lleva un altavoz de vidrio (`.boton-icono.vidrio`) que

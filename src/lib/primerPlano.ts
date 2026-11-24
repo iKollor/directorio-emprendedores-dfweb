@@ -13,20 +13,33 @@
  * SOLO ÓPTICA, como el resto. El retrato es un recorte cuadrado y el vídeo
  * entero es apaisado: no encajan. Por eso el paso de uno a otro es un cambio
  * de foco: la gota sale desenfocándose, a medio camino las dos imágenes son
- * luz, y enfoca ya en el vídeo. Cambiar de calidad hace lo mismo. Detrás, la
- * página se desenfoca y el retrato que se dejó atrás vuelve a la tinta.
+ * luz, y enfoca ya en el vídeo. Detrás, la página se desenfoca y el retrato
+ * que se dejó atrás vuelve a la tinta.
+ *
+ * EL SONIDO ES UNA SOLA PISTA (lib/voz.ts). Si el retrato ya sonaba al
+ * pulsarlo, la gota se abre con esa misma reproducción: ni se corta ni
+ * vuelve a empezar. Si no sonaba, entra fundido cuando el vídeo ya anda. Al
+ * cerrar, sale fundido mientras la gota vuelve; y si el puntero quedó sobre
+ * el retrato, sigue sonando.
  *
  * CALIDAD, COMO EN UN SERVICIO DE VÍDEO. Con varias calidades (`videoSonido`)
  * la persona elige una o deja "Auto", que escoge según el tamaño de la gota
  * en pantalla y la conexión, y baja un escalón si el vídeo se queda parado
- * cargando. Son archivos enteros, no trozos: cambiar de calidad vuelve a
- * cargar desde el segundo en que iba.
+ * cargando. Son archivos enteros, no trozos, pero el cambio no se nota: la
+ * calidad nueva carga en un segundo vídeo, se coloca un poco por delante y
+ * entra justo cuando el primero llega a ese punto.
  */
 import { gsap } from "gsap";
+import { CustomEase } from "gsap/CustomEase";
 import { CONTORNOS, MUESTRAS_CONTORNO } from "./blob";
 import type { VideoSonido } from "./directorio";
 import { obtenerScroll, sinMovimiento } from "./scroll";
-import { ajustes, callar, guardarAjustes } from "./sonido";
+import { callar, cederVoz, retomarVoz, type EstadoSonido } from "./sonido";
+import { activa, ajustes, aplicar, buscarVoz, fijarNivel, gemela, guardarAjustes, nivel, relevar, vaciar } from "./voz";
+
+gsap.registerPlugin(CustomEase);
+/** Arranca suave y se asienta despacio: la curva de algo grande que se mueve. */
+const SUAVE = CustomEase.create("primer-plano", "0.3,0,0.1,1");
 
 export type OrigenPlano = {
   /** El recorte del retrato: de ahí sale la gota y ahí vuelve. */
@@ -39,6 +52,12 @@ export type OrigenPlano = {
   fotograma: () => CanvasImageSource | null;
   /** Por qué segundo va el vídeo del retrato. */
   hora: () => number;
+  /** El vídeo del retrato: si ya sonaba, la gota se abre con ese sonido. */
+  retrato?: HTMLVideoElement | null;
+  /** ¿Sigue el puntero sobre el retrato? Entonces, al cerrar, sigue sonando. */
+  encima?: () => boolean;
+  /** Cómo queda el altavoz del retrato cuando la voz vuelve a él. */
+  alSonar?: (estado: EstadoSonido) => void;
   /** Las calidades, de mayor a menor. Una sola: sin selector. */
   calidades: VideoSonido[];
   nombre: string;
@@ -46,15 +65,15 @@ export type OrigenPlano = {
   alAbrir?: () => void;
   /** La gota empieza a volver; recibe el segundo por el que iba el vídeo. */
   alVolver?: (hora: number) => void;
-  /** Ya está en su sitio. */
-  alCerrar?: () => void;
+  /** Ya está en su sitio. `suena`: la voz sigue con el retrato. */
+  alCerrar?: (suena: boolean) => void;
 };
 
 /** Puntos del borde. Más que los del retrato: la pantalla es mucho mayor. */
 const PUNTOS = 96;
 const TAU = Math.PI * 2;
 /** Desenfoque máximo del cambio de foco, en píxeles. */
-const BRUMA = 26;
+const BRUMA = 24;
 
 type Caja = { x: number; y: number; ancho: number; alto: number };
 
@@ -73,6 +92,9 @@ let abierto: {
   actual: number;
   auto: boolean;
   paradas: number[];
+  /** Deshace un cambio de calidad que aún no ha entrado. */
+  relevo: (() => void) | null;
+  esperas: gsap.core.Tween[];
 } | null = null;
 
 const pieza = <T extends HTMLElement | SVGElement = HTMLElement>(nombre: string) =>
@@ -172,36 +194,56 @@ function elegirAuto(calidades: VideoSonido[], altoEnPantalla: number): number {
 }
 
 const reloj = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+const completa = (src: string) => new URL(src, location.href).href;
 
 /** Se llama una vez por página: engancha los mandos de la pieza. */
 export function montarPrimerPlano(): void {
   soltarMandos?.();
   dialogo = document.querySelector<HTMLDialogElement>("[data-primer-plano]");
+  buscarVoz(dialogo);
   if (!dialogo) return;
 
   const eventos = new AbortController();
   const { signal } = eventos;
-  const video = pieza<HTMLVideoElement>("video");
+  const videos = [...dialogo.querySelectorAll<HTMLVideoElement>("[data-video]")];
   const avance = pieza<HTMLInputElement>("avance");
   const volumen = pieza<HTMLInputElement>("volumen");
   const botonCalidad = pieza<HTMLButtonElement>("calidad-boton");
   const lista = pieza<HTMLElement>("calidad-lista");
   const textos = dialogo.dataset;
   let arrastrando = false;
+  /** Lo que pidió la persona, aunque el fundido de la pausa no haya acabado. */
+  let quiereParar = false;
 
+  // Pausar y seguir también van fundidos: cortar el sonido en seco da un chasquido.
   const alternar = () => {
-    if (video.paused || video.ended) void video.play().catch(() => {});
-    else video.pause();
+    const v = activa();
+    if (!v) return;
+    if (v.paused || v.ended || quiereParar) {
+      quiereParar = false;
+      if (v.paused || v.ended) fijarNivel(v, 0);
+      void v.play().then(
+        () => nivel(v, 1, 0.3),
+        () => {},
+      );
+      nivel(v, 1, 0.3);
+    } else {
+      quiereParar = true;
+      nivel(v, 0, 0.16, () => {
+        if (quiereParar) v.pause();
+      });
+    }
+    pintarReproducir();
   };
   const pintarReproducir = () => {
-    const parado = video.paused || video.ended;
+    const v = activa();
+    const parado = !v || v.paused || v.ended || quiereParar;
     dialogo!.toggleAttribute("data-parado", parado);
     pieza("reproducir").setAttribute("aria-label", parado ? textos.tReproducir! : textos.tPausar!);
   };
   const pintarSonido = () => {
     const mudo = ajustes.mudo || ajustes.volumen === 0;
-    video.muted = ajustes.mudo;
-    video.volume = ajustes.volumen;
+    aplicar();
     dialogo!.toggleAttribute("data-sin-sonido", mudo);
     pieza("mudo").setAttribute("aria-label", mudo ? textos.tSonido! : textos.tSilenciar!);
     pieza("mudo").setAttribute("aria-pressed", String(mudo));
@@ -214,15 +256,44 @@ export function montarPrimerPlano(): void {
   };
 
   pieza("reproducir").addEventListener("click", alternar, { signal });
-  video.addEventListener("click", alternar, { signal });
-  for (const tipo of ["play", "pause", "ended"]) video.addEventListener(tipo, pintarReproducir, { signal });
+  pieza("pantalla").addEventListener("click", alternar, { signal });
+  for (const v of videos) {
+    for (const tipo of ["play", "pause", "ended"]) {
+      v.addEventListener(
+        tipo,
+        () => {
+          if (v !== activa()) return;
+          if (tipo !== "play") quiereParar = false;
+          pintarReproducir();
+        },
+        { signal },
+      );
+    }
+    // "Auto" baja un escalón si el vídeo se queda parado cargando dos veces
+    // en poco tiempo.
+    v.addEventListener(
+      "waiting",
+      () => {
+        if (!abierto || abierto.cerrando || !abierto.auto || v !== activa() || v.seeking || abierto.relevo) return;
+        const ahora = performance.now();
+        abierto.paradas = abierto.paradas.filter((t) => ahora - t < 12000);
+        abierto.paradas.push(ahora);
+        if (abierto.paradas.length >= 2 && abierto.actual < abierto.origen.calidades.length - 1) {
+          abierto.paradas = [];
+          cambiarCalidad(abierto.actual + 1);
+        }
+      },
+      { signal },
+    );
+  }
 
   avance.addEventListener("pointerdown", () => (arrastrando = true), { signal });
   window.addEventListener("pointerup", () => (arrastrando = false), { signal });
   avance.addEventListener(
     "input",
     () => {
-      if (Number.isFinite(video.duration)) video.currentTime = (Number(avance.value) / 1000) * video.duration;
+      const v = activa();
+      if (v && Number.isFinite(v.duration)) v.currentTime = (Number(avance.value) / 1000) * v.duration;
     },
     { signal },
   );
@@ -264,9 +335,7 @@ export function montarPrimerPlano(): void {
       if (!opcion || !abierto) return;
       const valor = opcion.dataset.opcion!;
       abierto.auto = valor === "auto";
-      const destino = abierto.auto
-        ? elegirAuto(abierto.origen.calidades, abierto.hasta.alto)
-        : Number(valor);
+      const destino = abierto.auto ? elegirAuto(abierto.origen.calidades, abierto.hasta.alto) : Number(valor);
       cerrarLista();
       botonCalidad.focus();
       cambiarCalidad(destino);
@@ -279,28 +348,12 @@ export function montarPrimerPlano(): void {
     (e) => {
       const opciones = [...lista.querySelectorAll<HTMLElement>("[data-opcion]")];
       const i = opciones.indexOf(document.activeElement as HTMLElement);
-      const paso = e.key === "ArrowDown" || e.key === "ArrowRight" ? 1 : e.key === "ArrowUp" || e.key === "ArrowLeft" ? -1 : 0;
+      const paso =
+        e.key === "ArrowDown" || e.key === "ArrowRight" ? 1 : e.key === "ArrowUp" || e.key === "ArrowLeft" ? -1 : 0;
       if (!paso || i < 0) return;
       e.preventDefault();
       e.stopPropagation();
       opciones[(i + paso + opciones.length) % opciones.length]!.focus();
-    },
-    { signal },
-  );
-
-  // "Auto" baja un escalón si el vídeo se queda parado cargando dos veces
-  // en poco tiempo.
-  video.addEventListener(
-    "waiting",
-    () => {
-      if (!abierto || !abierto.auto || video.seeking) return;
-      const ahora = performance.now();
-      abierto.paradas = abierto.paradas.filter((t) => ahora - t < 12000);
-      abierto.paradas.push(ahora);
-      if (abierto.paradas.length >= 2 && abierto.actual < abierto.origen.calidades.length - 1) {
-        abierto.paradas = [];
-        cambiarCalidad(abierto.actual + 1);
-      }
     },
     { signal },
   );
@@ -332,14 +385,20 @@ export function montarPrimerPlano(): void {
     "keydown",
     (e) => {
       if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const v = activa();
       const blanco = e.target as HTMLElement;
       const enMando = blanco.matches("button, input");
       if ((e.key === " " || e.key === "k") && !enMando) {
         e.preventDefault();
         alternar();
-      } else if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && !blanco.matches("input") && !blanco.closest("[data-calidad-lista]")) {
+      } else if (
+        v &&
+        (e.key === "ArrowRight" || e.key === "ArrowLeft") &&
+        !blanco.matches("input") &&
+        !blanco.closest("[data-calidad-lista]")
+      ) {
         e.preventDefault();
-        video.currentTime = Math.max(0, Math.min(video.duration || 0, video.currentTime + (e.key === "ArrowRight" ? 5 : -5)));
+        v.currentTime = Math.max(0, Math.min(v.duration || 0, v.currentTime + (e.key === "ArrowRight" ? 5 : -5)));
       } else if (e.key === "m") {
         pieza<HTMLButtonElement>("mudo").click();
       }
@@ -351,8 +410,11 @@ export function montarPrimerPlano(): void {
   window.addEventListener(
     "resize",
     () => {
-      if (!abierto) return;
-      abierto.hasta = medirDestino(video.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : abierto.hasta.ancho / abierto.hasta.alto);
+      const v = activa();
+      if (!abierto || !v) return;
+      abierto.hasta = medirDestino(
+        v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : abierto.hasta.ancho / abierto.hasta.alto,
+      );
       colocarMandos();
     },
     { signal },
@@ -360,30 +422,35 @@ export function montarPrimerPlano(): void {
 
   // El avance, cada fotograma: `timeupdate` va a saltos.
   const marcar = () => {
-    if (!abierto || !Number.isFinite(video.duration) || video.duration === 0) return;
-    const hecho = video.currentTime / video.duration;
+    const v = activa();
+    if (!abierto || !v || !Number.isFinite(v.duration) || v.duration === 0) return;
+    const hecho = v.currentTime / v.duration;
     if (!arrastrando) avance.value = String(Math.round(hecho * 1000));
     avance.style.setProperty("--p", `${(Number(avance.value) / 10).toFixed(2)}%`);
-    const cargado = video.buffered.length ? video.buffered.end(video.buffered.length - 1) / video.duration : 0;
+    const cargado = v.buffered.length ? v.buffered.end(v.buffered.length - 1) / v.duration : 0;
     avance.style.setProperty("--cargado", `${(cargado * 100).toFixed(1)}%`);
-    const hora = reloj(video.currentTime);
+    const hora = reloj(v.currentTime);
     const tiempo = pieza("tiempo");
     if (tiempo.textContent !== hora) {
       tiempo.textContent = hora;
-      avance.setAttribute("aria-valuetext", `${hora} / ${reloj(video.duration)}`);
+      avance.setAttribute("aria-valuetext", `${hora} / ${reloj(v.duration)}`);
     }
   };
   gsap.ticker.add(marcar);
 
   pintarSonido();
   pintarReproducir();
+  ponerSonido = () => {
+    quiereParar = false;
+    pintarSonido();
+    pintarReproducir();
+  };
   soltarMandos = () => {
     eventos.abort();
     gsap.ticker.remove(marcar);
     cerrarPrimerPlano(true);
     soltarMandos = null;
   };
-  ponerSonido = pintarSonido;
 }
 
 function colocarMandos(): void {
@@ -399,11 +466,17 @@ function colocarMandos(): void {
   cerrar.style.top = `${Math.max(hasta.y, 8)}px`;
 }
 
-/** Copia a la pieza lo que se ve ahora (retrato o vídeo), para el cambio de foco. */
+/** Copia a la pieza lo que se ve ahora en el retrato, para el cambio de foco. */
 function fotografiar(fuente: CanvasImageSource | null): void {
   const lienzo = pieza<HTMLCanvasElement>("fotograma");
-  const ancho = fuente instanceof HTMLVideoElement ? fuente.videoWidth : fuente instanceof HTMLImageElement ? fuente.naturalWidth : 0;
-  const alto = fuente instanceof HTMLVideoElement ? fuente.videoHeight : fuente instanceof HTMLImageElement ? fuente.naturalHeight : 0;
+  const ancho =
+    fuente instanceof HTMLVideoElement ? fuente.videoWidth : fuente instanceof HTMLImageElement ? fuente.naturalWidth : 0;
+  const alto =
+    fuente instanceof HTMLVideoElement
+      ? fuente.videoHeight
+      : fuente instanceof HTMLImageElement
+        ? fuente.naturalHeight
+        : 0;
   if (!fuente || !ancho || !alto) return;
   const escala = Math.min(1, 960 / Math.max(ancho, alto));
   lienzo.width = Math.round(ancho * escala);
@@ -415,40 +488,65 @@ function fotografiar(fuente: CanvasImageSource | null): void {
   }
 }
 
-/** Carga una calidad en el vídeo y lo deja en `hora`, sonando o no. */
-function cargar(indice: number, hora: number, sonando: boolean, alEstarListo: () => void, alAbrir = false): void {
-  if (!abierto) return;
-  const video = pieza<HTMLVideoElement>("video");
+/** Cuál de los dos vídeos se ve: el que suena, entero; el otro, escondido. */
+function mostrar(): void {
+  const v = activa();
+  const g = gemela();
+  if (v) {
+    gsap.killTweensOf(v, "opacity");
+    v.style.opacity = "1";
+    v.style.zIndex = "1";
+  }
+  if (g) {
+    gsap.killTweensOf(g, "opacity");
+    g.style.opacity = "0";
+    g.style.zIndex = "2";
+  }
+}
+
+/**
+ * Empieza un vídeo desde cero (nadie lo traía sonando): lo carga, lo deja en
+ * `hora` y, cuando ya anda, sube su sonido poco a poco.
+ */
+function empezar(indice: number, hora: number, alEstarListo: () => void): void {
+  const v = activa();
+  if (!abierto || !v) return;
   abierto.actual = indice;
-  const calidad = abierto.origen.calidades[indice]!;
   let listo = false;
   const avisar = () => {
     if (listo) return;
     listo = true;
     alEstarListo();
   };
-  video.addEventListener(
+  fijarNivel(v, 0);
+  v.loop = false;
+  v.addEventListener(
     "loadedmetadata",
     () => {
-      if (!Number.isFinite(video.duration)) return;
+      if (!Number.isFinite(v.duration)) return;
       // Si al retrato le quedaba un suspiro, mejor desde el principio.
-      const desde = alAbrir && hora > video.duration - 3 ? 0 : hora;
-      if (desde > 0.05) video.currentTime = Math.min(desde, Math.max(0, video.duration - 0.2));
+      const desde = hora > v.duration - 3 ? 0 : hora;
+      if (desde > 0.05) v.currentTime = Math.min(desde, Math.max(0, v.duration - 0.2));
     },
     { once: true },
   );
-  // Listo cuando ya pinta el fotograma que toca, no solo cuando tiene datos.
-  const comprobar = () => {
-    if (video.readyState >= 2 && !video.seeking) avisar();
-  };
-  video.addEventListener("seeked", comprobar, { once: true });
-  video.addEventListener("canplay", comprobar, { once: true });
-  video.addEventListener("playing", comprobar, { once: true });
-  video.src = calidad.src;
-  video.load();
+  v.src = abierto.origen.calidades[indice]!.src;
+  v.load();
   // La llamada a `play` va dentro del gesto de la persona: es lo que deja
-  // que suene.
-  if (sonando) void video.play().catch(() => {});
+  // que suene. Avisa cuando ya anda: entonces entra el sonido.
+  void v.play().then(
+    () => {
+      if (!abierto || abierto.cerrando || v !== activa()) return;
+      nivel(v, 1, 1);
+      avisar();
+    },
+    () => {
+      // No ha podido arrancar solo: se enseña parado, listo para pulsar.
+      fijarNivel(v, 1);
+      if (v.readyState >= 2) avisar();
+      else v.addEventListener("canplay", avisar, { once: true });
+    },
+  );
   pintarCalidad();
 }
 
@@ -460,10 +558,18 @@ function pintarCalidad(): void {
   const auto = dialogo.dataset.tAuto!;
   const nombre = (c: VideoSonido) => `${c.alto}p`;
   pieza("calidad").hidden = calidades.length < 2;
-  boton.textContent = abierto.auto ? `${auto} · ${nombre(calidades[abierto.actual]!)}` : nombre(calidades[abierto.actual]!);
+  boton.textContent = abierto.auto
+    ? `${auto} · ${nombre(calidades[abierto.actual]!)}`
+    : nombre(calidades[abierto.actual]!);
   lista.replaceChildren(
     ...[{ valor: "auto", texto: auto, marcada: abierto.auto }]
-      .concat(calidades.map((c, i) => ({ valor: String(i), texto: nombre(c), marcada: !abierto!.auto && i === abierto!.actual })))
+      .concat(
+        calidades.map((c, i) => ({
+          valor: String(i),
+          texto: nombre(c),
+          marcada: !abierto!.auto && i === abierto!.actual,
+        })),
+      )
       .map(({ valor, texto, marcada }) => {
         const opcion = document.createElement("button");
         opcion.type = "button";
@@ -478,32 +584,93 @@ function pintarCalidad(): void {
   );
 }
 
-/** Otro archivo, el mismo segundo: se desenfoca, cambia y vuelve a enfocar. */
+/**
+ * OTRA CALIDAD, SIN CORTE. La nueva carga en el vídeo gemelo, parada un poco
+ * por delante de donde va el que suena; cuando este llega a ese punto, el
+ * gemelo arranca y los dos se cruzan en un instante: la imagen gana o pierde
+ * nitidez y el sonido no se entera. Si no le da tiempo a cargar, se coloca
+ * más adelante y lo vuelve a intentar.
+ */
 function cambiarCalidad(indice: number): void {
   if (!abierto || abierto.cerrando) return;
-  const video = pieza<HTMLVideoElement>("video");
-  const { estado } = abierto;
-  if (indice === abierto.actual) {
-    pintarCalidad();
-    return;
-  }
-  const hora = video.currentTime;
-  const sonando = !video.paused && !video.ended;
-  fotografiar(video);
-  estado.mezcla = 0;
-  gsap.killTweensOf(estado, "bruma,mezcla");
-  gsap.to(estado, { bruma: BRUMA * 0.6, duration: 0.25, ease: "power1.out" });
-  cargar(indice, hora, sonando, () => {
-    if (!abierto || abierto.cerrando) return;
-    gsap.to(estado, { mezcla: 1, duration: 0.3, ease: "power1.inOut" });
-    gsap.to(estado, { bruma: 0, duration: 0.55, ease: "power2.out", delay: 0.1 });
-  });
+  const plano = abierto;
+  plano.relevo?.();
+  plano.relevo = null;
+  const de = activa();
+  const a = gemela();
+  const calidad = plano.origen.calidades[indice];
+  if (!de || !calidad) return;
+  plano.actual = indice;
+  pintarCalidad();
+  if (!a || completa(calidad.src) === de.src) return;
+
+  fijarNivel(a, 0);
+  a.loop = false;
+  a.src = calidad.src;
+  a.load();
+
+  let adelanto = 0.8;
+  let objetivo = -1;
+  const quieto = () => de.paused || de.ended || de.readyState < 3;
+  const apuntar = () => {
+    const tope = Math.max(0, (Number.isFinite(de.duration) ? de.duration : 1e9) - 0.08);
+    objetivo = Math.min(quieto() ? de.currentTime : de.currentTime + adelanto, tope);
+    try {
+      a.currentTime = objetivo;
+    } catch {
+      objetivo = -1;
+    }
+  };
+  if (a.readyState >= 1) apuntar();
+  else a.addEventListener("loadedmetadata", apuntar, { once: true });
+
+  const entregar = () => {
+    gsap.ticker.remove(paso);
+    plano.relevo = null;
+    const sonando = !de.paused && !de.ended;
+    if (sonando) void a.play().catch(() => {});
+    // El sonido se cruza en un instante (los dos dicen lo mismo a la vez);
+    // la imagen nueva aparece encima de la vieja.
+    fijarNivel(a, sonando ? 0 : 1);
+    if (sonando) nivel(a, 1, 0.14);
+    nivel(de, 0, 0.14, () => vaciar(de));
+    relevar();
+    a.style.zIndex = "2";
+    de.style.zIndex = "1";
+    gsap.fromTo(
+      a,
+      { opacity: 0 },
+      { opacity: 1, duration: 0.45, ease: "sine.inOut", onComplete: () => void (de.style.opacity = "0") },
+    );
+    ponerSonido?.();
+  };
+
+  const paso = () => {
+    if (objetivo < 0) return;
+    const lista = a.readyState >= 3 && !a.seeking;
+    if (quieto()) {
+      if (!lista) return;
+      // Parado o atascado: el gemelo entra donde está el otro.
+      if (Math.abs(a.currentTime - de.currentTime) > 0.25 && !de.ended) apuntar();
+      else entregar();
+    } else if (objetivo - de.currentTime <= 0.02) {
+      if (lista) entregar();
+      else {
+        adelanto = Math.min(adelanto * 1.8, 5);
+        apuntar();
+      }
+    }
+  };
+  gsap.ticker.add(paso);
+  plano.relevo = () => {
+    gsap.ticker.remove(paso);
+    vaciar(a);
+  };
 }
 
 /** Saca la gota de su retrato. Devuelve si pudo. */
 export function abrirPrimerPlano(origen: OrigenPlano): boolean {
-  if (!dialogo || abierto || origen.calidades.length === 0) return false;
-  const video = pieza<HTMLVideoElement>("video");
+  if (!dialogo || abierto || origen.calidades.length === 0 || !activa()) return false;
   const gota = pieza("gota");
   const velo = pieza("velo");
   const mandos = [pieza("mandos"), pieza("cerrar")];
@@ -511,7 +678,12 @@ export function abrirPrimerPlano(origen: OrigenPlano): boolean {
   const luz = pieza<SVGPathElement>("luz");
   const quieto = sinMovimiento();
 
-  callar();
+  // Si este retrato ya sonaba, la gota se abre con ese mismo sonido.
+  const cedida = origen.retrato ? cederVoz(origen.retrato) : null;
+  if (!cedida) callar(0.35);
+  const g = gemela();
+  if (g) vaciar(g);
+
   const desde = medirOrigen(origen);
   // Mientras no se sabe la proporción del vídeo, apaisada: es lo habitual.
   const hasta = medirDestino(16 / 9);
@@ -536,83 +708,97 @@ export function abrirPrimerPlano(origen: OrigenPlano): boolean {
     luz.setAttribute("d", d);
   };
 
-  abierto = {
+  const plano = {
     origen,
     desde,
     hasta,
     radios: radiosDelRetrato(origen.blob),
     estado,
-    linea: null,
+    linea: null as gsap.core.Timeline | null,
     pintar,
     cerrando: false,
     actual: 0,
     auto: true,
-    paradas: [],
+    paradas: [] as number[],
+    relevo: null as (() => void) | null,
+    esperas: [] as gsap.core.Tween[],
   };
+  abierto = plano;
 
   dialogo.setAttribute("aria-label", dialogo.dataset.titulo!.replaceAll("{nombre}", origen.nombre));
   fotografiar(origen.fotograma());
+  mostrar();
   pintar();
   colocarMandos();
   gsap.set(gota, { autoAlpha: 1 });
   gsap.set(velo, { autoAlpha: 0 });
-  gsap.set(mandos, { autoAlpha: 0, y: 14 });
+  gsap.set(mandos, { opacity: 0, y: 14 });
   dialogo.showModal();
   // El foco, en el botón de pausa: así la barra espaciadora ya lo maneja.
   pieza("reproducir").focus({ preventScroll: true });
   obtenerScroll()?.stop();
   gsap.ticker.add(pintar);
-  ponerSonido?.();
 
   // Con la proporción real del vídeo, la pantalla se ajusta a ella.
-  video.addEventListener(
-    "loadedmetadata",
-    () => {
-      if (!abierto || !video.videoWidth || !video.videoHeight) return;
-      const nueva = medirDestino(video.videoWidth / video.videoHeight);
-      gsap.to(abierto.hasta, { ...nueva, duration: 0.5, ease: "expo.out", onUpdate: colocarMandos });
-    },
-    { once: true },
-  );
+  const v = activa()!;
+  const proporcionar = () => {
+    if (abierto !== plano || !v.videoWidth || !v.videoHeight) return;
+    const nueva = medirDestino(v.videoWidth / v.videoHeight);
+    gsap.to(plano.hasta, { ...nueva, duration: 0.5, ease: "expo.out", onUpdate: colocarMandos });
+  };
 
+  // ENFOCA cuando ya va por medio camino Y el vídeo tiene imagen. Si tarda en
+  // cargar, espera en la bruma.
   let enfocado = false;
   let asentado = quieto;
-  const enfocar = () => {
-    if (enfocado || !abierto || abierto.cerrando) return;
-    enfocado = true;
-    gsap.to(estado, { mezcla: 1, duration: 0.35, ease: "power1.inOut" });
-    gsap.to(estado, { bruma: 0, duration: 0.75, ease: "power2.out", delay: 0.22 });
-  };
   let videoListo = false;
   const intentar = () => {
-    if (videoListo && asentado) enfocar();
+    if (!videoListo || !asentado || enfocado || abierto !== plano || plano.cerrando) return;
+    enfocado = true;
+    gsap.to(estado, { mezcla: 1, duration: 0.45, ease: "sine.inOut" });
+    gsap.to(estado, { bruma: 0, duration: 0.85, ease: "sine.inOut", delay: 0.12 });
   };
-  cargar(elegirAuto(origen.calidades, hasta.alto), origen.hora(), true, () => {
+
+  const quiere = elegirAuto(origen.calidades, hasta.alto);
+  if (cedida) {
+    // Ya anda y ya suena: no se carga nada ni se toca el sonido.
+    const va = origen.calidades.findIndex((c) => completa(c.src) === cedida.src);
+    plano.actual = va >= 0 ? va : origen.calidades.length - 1;
+    nivel(cedida, 1, 0.3);
     videoListo = true;
-    intentar();
-  }, true);
+    proporcionar();
+    pintarCalidad();
+    // Lo que sonaba era la versión más ligera: ya abierta, sube a la que toca.
+    if (quiere !== plano.actual) plano.esperas.push(gsap.delayedCall(1.1, () => cambiarCalidad(quiere)));
+  } else {
+    v.addEventListener("loadedmetadata", proporcionar, { once: true });
+    empezar(quiere, origen.hora(), () => {
+      videoListo = true;
+      intentar();
+    });
+  }
+  ponerSonido?.();
 
   const linea = gsap.timeline();
-  abierto.linea = linea;
-  linea.to(velo, { autoAlpha: 1, duration: 0.55, ease: "power2.out" }, 0);
+  plano.linea = linea;
+  linea.to(velo, { autoAlpha: 1, duration: 0.8, ease: "sine.out" }, 0);
   if (!quieto) {
-    // Sale desenfocándose y crece. Enfoca cuando ya va por medio camino y el
-    // vídeo tiene imagen; si tarda en cargar, espera en la bruma.
-    linea.to(estado, { bruma: BRUMA, duration: 0.28, ease: "power1.out" }, 0);
-    linea.to(estado, { p: 1, duration: 1.1, ease: "power4.out" }, 0);
+    // Sale desenfocándose y crece, despacio al arrancar y al llegar.
+    linea.to(estado, { bruma: BRUMA, duration: 0.42, ease: "sine.inOut" }, 0);
+    linea.to(estado, { p: 1, duration: 1.15, ease: SUAVE }, 0);
     linea.call(
       () => {
         asentado = true;
         intentar();
       },
       [],
-      0.34,
+      0.4,
     );
   } else {
     estado.bruma = BRUMA * 0.5;
     intentar();
   }
-  linea.to(mandos, { autoAlpha: 1, y: 0, duration: 0.7, ease: "expo.out", stagger: 0.06 }, quieto ? 0.1 : 0.5);
+  linea.to(mandos, { opacity: 1, y: 0, duration: 0.8, ease: "expo.out", stagger: 0.07 }, quieto ? 0.1 : 0.6);
 
   origen.alAbrir?.();
   return true;
@@ -624,47 +810,61 @@ export function cerrarPrimerPlano(yaMismo = false): void {
   if (abierto.cerrando && !yaMismo) return;
   const plano = abierto;
   const { origen, estado } = plano;
-  const video = pieza<HTMLVideoElement>("video");
+  const v = activa();
   const gota = pieza("gota");
   const velo = pieza("velo");
   const mandos = [pieza("mandos"), pieza("cerrar")];
   plano.cerrando = true;
   plano.linea?.kill();
+  plano.esperas.forEach((e) => e.kill());
+  plano.relevo?.();
+  plano.relevo = null;
   gsap.killTweensOf([estado, plano.hasta, velo, ...mandos]);
   pieza("calidad-lista").hidden = true;
 
-  const hora = video.ended ? 0 : video.currentTime;
+  const horaDe = () => (!v || v.ended ? 0 : v.currentTime);
+  // Con el puntero sobre el retrato, al volver sigue sonando: la voz pasa a él.
+  let sigue = false;
   const terminar = () => {
     gsap.ticker.remove(plano.pintar);
-    video.pause();
-    video.removeAttribute("src");
-    video.load();
+    if (v && !sigue) vaciar(v);
     abierto = null;
     if (dialogo?.open) dialogo.close();
     obtenerScroll()?.start();
-    origen.alCerrar?.();
+    origen.alCerrar?.(sigue);
   };
 
   if (yaMismo || sinMovimiento()) {
-    origen.alVolver?.(hora);
+    origen.alVolver?.(horaDe());
     terminar();
     return;
   }
+
+  sigue = Boolean(v && origen.retrato && !v.paused && !v.ended && !ajustes.mudo && origen.encima?.());
+  // Si no sigue, el sonido se va apagando mientras la gota vuelve.
+  if (v && !sigue) nivel(v, 0, 0.9);
 
   // El retrato puede haberse movido (cambio de tamaño de la ventana).
   plano.desde = medirOrigen(origen);
   plano.radios = radiosDelRetrato(origen.blob);
   const linea = gsap.timeline({ onComplete: terminar });
   plano.linea = linea;
-  linea.to(mandos, { autoAlpha: 0, y: 10, duration: 0.2, ease: "power1.in" }, 0);
-  linea.to(estado, { bruma: BRUMA * 0.8, duration: 0.3, ease: "power1.out" }, 0);
-  linea.to(estado, { p: 0, duration: 0.85, ease: "power4.out" }, 0.05);
-  linea.to(velo, { autoAlpha: 0, duration: 0.55, ease: "power2.inOut" }, 0.15);
-  // Ya casi en su sitio, el retrato vuelve a enfocar y la gota se deshace
-  // sobre él: las dos están fuera de foco, así que no se ve el relevo.
-  linea.call(() => origen.alVolver?.(hora), [], 0.3);
-  linea.to(video, { volume: 0, duration: 0.3, ease: "power1.in" }, 0);
-  linea.to(gota, { autoAlpha: 0, duration: 0.3, ease: "power1.inOut" }, 0.55);
+  linea.to(mandos, { opacity: 0, y: 10, duration: 0.3, ease: "sine.in" }, 0);
+  linea.to(estado, { bruma: BRUMA * 0.8, duration: 0.5, ease: "sine.inOut" }, 0);
+  linea.to(estado, { p: 0, duration: 1, ease: SUAVE }, 0);
+  linea.to(velo, { autoAlpha: 0, duration: 0.8, ease: "sine.inOut" }, 0.1);
+  // A medio camino, el retrato arranca por donde iba el vídeo y vuelve a
+  // enfocar: cuando la gota llega, ya la espera casi nítido.
+  linea.call(
+    () => {
+      origen.alVolver?.(horaDe());
+      if (sigue && v && origen.retrato) retomarVoz(origen.retrato, v, origen.alSonar ?? (() => {}));
+    },
+    [],
+    0.35,
+  );
+  // La gota se deshace sobre él: las dos están fuera de foco, no se ve el relevo.
+  linea.to(gota, { autoAlpha: 0, duration: 0.45, ease: "sine.inOut" }, 0.62);
 }
 
 export const primerPlanoAbierto = () => abierto !== null;
