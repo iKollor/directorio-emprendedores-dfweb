@@ -30,7 +30,7 @@ const emprendedores = await getEmprendedores();
 <Base titulo={sitio.general.tituloSitio} descripcion={sitio.general.descripcion} sinIndexar={vistaPrevia}>
   <main>
   <section class="hero" aria-labelledby="titulo-hero">
-    <div class="hero-texto">
+    <div class="hero-texto" data-junto-al-escenario>
       <NombreEscuela retraso={0.1} />
 
       <h1 id="titulo-hero" data-anim="letras" data-anim-retraso="0.3">{trozos(p.titular).map((t) => (t.destacado ? <strong>{t.texto}</strong> : t.texto))}</h1>

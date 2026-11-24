@@ -31,17 +31,22 @@ y la sombra, que no mueven la imagen. Cuándo enfoca cada retrato está en `src/
 en `BlobHero.astro`. La silueta que usa el shader sale de `src/lib/blob.ts`.
 
 **Un solo carrusel: la órbita del hero.** La gota grande de la portada va
-pasando por las personas y, a su alrededor, gira una gota pequeña por cada
-una de las demás (`BlobHero.astro`). Son el mismo vidrio y la misma óptica:
-profundidad de campo. La luna que pasa por delante va casi enfocada y a
-color; la que pasa por detrás, esmerilada y azul, medio tapada por la gota
-grande. Para cambiar de persona, su luna cae hacia la gota grande y se funde
-con ella en el canto; la gota la traga (cambia de silueta con su resorte),
-hace su cambio de foco y suelta a la anterior, que sale como luna. Se cambia
+pasando por las personas y, a su alrededor, gira una gota por cada una de las
+demás (`BlobHero.astro`). Es el mismo vidrio (modo sistema de `tinta.ts`, un
+solo lienzo) y lo que cuenta es la PROFUNDIDAD, con medios de lente: la luna
+que pasa por delante es grande (casi el 40 % del retrato), está enfocada y a
+color, y proyecta su sombra sobre el retrato; la que pasa por detrás es
+pequeña, esmerilada y azul, con el borde también desenfocado, y queda tapada
+por la gota grande. Las lunas NO se pegan a la gota grande: son gotas
+sueltas. Solo se funde la que le toca: en el frente crece, se forma el cuello
+y las dos son un solo líquido; la gota cambia de silueta, hace su cambio de
+foco y suelta a la anterior. El anillo es un reloj: la siguiente persona
+espera delante a la derecha y llega al frente justo cuando le toca. Se cambia
 pulsando una luna, con las flechas o deslizando; arrastrar gira el anillo. La
-gota grande no se mueve de su sitio. Debajo hubo una franja de vídeos en
-carrusel ("En sus propias palabras") y se quitó: repetía lo que ya hacen el
-hero y el listado. No añadas otro carrusel a la portada.
+gota grande no se mueve de su sitio, y ninguna luna pasa por encima del texto
+de la portada. Debajo hubo una franja de vídeos en carrusel ("En sus propias
+palabras") y se quitó: repetía lo que ya hacen el hero y el listado. No
+añadas otro carrusel a la portada.
 
 **Una curva.** Todo lo que entra sube un poco y se asienta con `expo.out`
 (`CURVA` en `src/lib/animaciones.ts`). Sin rebotes, giros ni desenfoques de

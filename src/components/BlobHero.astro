@@ -7,17 +7,34 @@
  * Cada escena es una persona: su vídeo si lo tiene y, si no, su foto con un
  * acercamiento lento. Abajo, una etiqueta con su nombre que lleva a su ficha.
  *
- * LA ÓRBITA. Las gotas pequeñas (lunas) son del mismo vidrio que la grande
- * (lib/tinta.ts): fuera de foco, en la tinta azul, hasta que se las mira.
- * Recorren un anillo inclinado: pasan por delante de la gota grande y por
- * detrás, donde quedan medio tapadas. Para cambiar de persona, su luna cae
- * hacia la gota grande y se funde con ella; la gota la traga (tiembla y
- * cambia de forma), enfoca a esa persona y suelta a la anterior, que sale
- * como luna a ocupar su sitio en el anillo.
+ * LA ÓRBITA. Las gotas pequeñas (lunas) y la grande se pintan en un único
+ * lienzo, con el material del sitio (modo sistema de lib/tinta.ts). Las lunas
+ * recorren un anillo inclinado EN PROFUNDIDAD, y todo en ellas lo cuenta: la
+ * que pasa por delante (abajo a la derecha) es grande, está enfocada y a
+ * color, y proyecta su sombra sobre el retrato; la que pasa por detrás
+ * (arriba a la izquierda) es pequeña, esmerilada y azul, y queda tapada por
+ * la gota grande. No se pegan a ella: son gotas sueltas.
+ *
+ * EL TURNO. El anillo es un reloj: las lunas se reparten por orden de turno
+ * y avanzan despacio, de modo que la siguiente persona llega al frente, ya
+ * grande y enfocada, justo cuando le toca. Quien acaba de salir queda delante
+ * a la izquierda y se va alejando hacia el fondo.
+ *
+ * EL CAMBIO. Solo la luna a la que le toca se funde. En el frente crece, toca
+ * a la gota grande, se forma el cuello y las dos son un solo líquido en el
+ * que se mezclan las dos caras. La gota grande cambia de silueta, enfoca a
+ * esa persona y suelta a la anterior: el cuello se estrangula y se rompe. Las
+ * demás avanzan un puesto.
+ *
+ * Los botones de las lunas siguen en el HTML, invisibles, justo encima de
+ * cada gota pintada: son lo que se pulsa y lo que recorre el teclado. Sin
+ * WebGL o con movimiento reducido no hay líquido: esos mismos botones
+ * enseñan la foto de cada persona, recortada en su gota.
  *
  * Se cambia de persona pulsando una luna, con las flechas (anterior y
  * siguiente) o deslizando el dedo; arrastrar hace girar el anillo. Sola,
- * avanza en el orden del anillo.
+ * avanza en el orden del anillo: la siguiente es siempre la que viene
+ * llegando al frente por la derecha, y deslizar a la izquierda la trae.
  *
  * EL RELEVO. Para pasar de una persona a otra hay un solo movimiento: un
  * cambio de foco. La que está se desenfoca y se acerca, y la siguiente llega
@@ -119,6 +136,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
             ))}
           </div>
         </div>
+        {/* El lienzo del líquido: más grande que la gota, para que quepan las lunas. */}
+        {escenas.length > 1 && <div class="sistema" data-sistema />}
       </div>
 
       {/*
@@ -133,13 +152,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         <div class="orbita" data-orbita>
           {escenas.map(({ e, cat }, i) => (
             <button type="button" class="luna" data-luna aria-label={`Ver a ${e.nombre}`} style={`--acento:${cat.color};`}>
-              <span
-                class="gota"
-                data-blob
-                data-vertices={JSON.stringify(lunas[i]!.vertices)}
-                data-encaje={JSON.stringify(lunas[i]!.encaje)}
-                data-desfase={11 + i * 7}
-              >
+              <span class="gota">
                 <svg class="definiciones" aria-hidden="true" focusable="false">
                   <defs>
                     <clipPath id={`recorte-luna-${i}`} clipPathUnits="objectBoundingBox">
@@ -218,6 +231,14 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
   }
 
   /*
+   * Con órbita, sitio debajo: ahí van las flechas y por ahí asoma la luna
+   * que pasa por delante. Sin él, en el teléfono pisaban el logo de la escuela.
+   */
+  .escenario:has(.pasos) {
+    margin-block-end: 3.6rem;
+  }
+
+  /*
    * La caja de la gota grande es un cuadrado; lo que se ve, su silueta. Solo
    * la silueta recibe el puntero: si no, la caja taparía las lunas de detrás.
    */
@@ -230,6 +251,22 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
   .marco .recorte {
     pointer-events: auto;
+  }
+
+  /*
+   * EL LÍQUIDO. Un lienzo vez y media el lado del escenario, centrado en él.
+   * Cuando ya ha pintado, sustituye a la gota recortada y a las fotos de las
+   * lunas, que siguen ahí debajo: son las fuentes de imagen y lo que se pulsa.
+   */
+  .sistema {
+    position: absolute;
+    inset: -25%;
+    pointer-events: none;
+  }
+
+  .escenario:has(.sistema[data-tinta-lista]) .recorte,
+  .escenario:has(.sistema[data-tinta-lista]) .gota {
+    opacity: 0;
   }
 
   /*
@@ -247,7 +284,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     position: absolute;
     left: 50%;
     top: 50%;
-    width: clamp(3.75rem, 21%, 8.5rem);
+    width: 38%;
     aspect-ratio: 1;
     margin: 0;
     padding: 0;
@@ -291,12 +328,12 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
   }
 
   /*
-   * Anterior y siguiente, bajo el escenario, a la derecha: enfrente del
-   * cartel y fuera del anillo, para no tapar las lunas que pasan por delante.
+   * Anterior y siguiente, bajo el cartel: son de la persona que nombra. A la
+   * derecha, abajo, es por donde pasan las lunas más grandes.
    */
   .pasos {
     position: absolute;
-    right: 4%;
+    left: 1%;
     bottom: -3.4rem;
     z-index: 4;
     display: flex;
@@ -506,18 +543,27 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
   import { generarBlob } from "../lib/blob";
   import type { DetalleForma } from "../lib/blobRuntime";
   import { sinMovimiento } from "../lib/scroll";
-  import { obtenerTinta } from "../lib/tinta";
+  import { obtenerTinta, TOPE_LUNAS, type Luna } from "../lib/tinta";
 
   gsap.registerPlugin(ScrollTrigger);
 
   /** Segundos que dura cada persona en pantalla. */
   const DURACION = 6.5;
-  /** Segundos que tarda una luna en dar la vuelta entera. */
-  const VUELTA = 64;
-  /** Inclinación del anillo, en radianes: sube por la derecha. */
-  const INCLINACION = -0.2;
+  /**
+   * Inclinación del anillo, en radianes. Su punto más cercano queda a la
+   * derecha, algo abajo, y el más lejano arriba a la izquierda: abajo a la
+   * izquierda está el cartel, y una luna grande delante de él lo taparía.
+   */
+  const INCLINACION = -0.9;
+  /** El ángulo del punto más cercano del anillo: ahí se funde la luna elegida. */
+  const FRENTE = Math.PI / 2;
   /** Hasta qué fracción del radio del anillo llega una luna al fundirse. */
-  const FUSION = 0.66;
+  const FUSION = 0.3;
+  /** Radio de una luna, en lados del escenario: al fondo y delante del todo. */
+  const RADIO_LEJOS = 0.085;
+  const RADIO_CERCA = 0.19;
+  /** Cuántas veces el lado del escenario mide el lienzo del líquido (`.sistema`). */
+  const EXTENSION = 1.5;
   /** Lo que hay que mover el puntero para que sea un arrastre y no un clic. */
   const UMBRAL = 8;
   /** A partir de aquí, soltar el arrastre pasa a la persona siguiente o anterior. */
@@ -556,10 +602,18 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     const LADOS = JSON.parse(blob?.dataset.vertices ?? "[]").length as number;
 
     // ---- Tinta ---------------------------------------------------------------
+    // Con lunas, la gota grande y ellas se pintan juntas en el lienzo del
+    // sistema; con una sola persona, en la gota recortada de siempre.
     const fotos = escenas.map((_, i) => imagen(i));
+    const lienzoSistema = escenario.querySelector<HTMLElement>("[data-sistema]");
+    const conSistema = Boolean(lienzoSistema && blob && escenas.length <= TOPE_LUNAS);
     const tinta =
       recorte && fotos.every(Boolean)
-        ? (obtenerTinta()?.montar(recorte, { fuentes: fotos as HTMLImageElement[], foco: 0 }) ?? null)
+        ? (obtenerTinta()?.montar(conSistema ? lienzoSistema! : recorte, {
+            fuentes: fotos as HTMLImageElement[],
+            foco: 0,
+            ...(conSistema ? { sistema: { blob: blob!, extension: EXTENSION } } : {}),
+          }) ?? null)
         : null;
 
     /**
@@ -595,25 +649,74 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       fuera: 0,
       /** Ya tiene imagen que enseñar (su foto, o el fotograma de su vídeo). */
       lista: false,
-      /** Enfoque que lleva puesto, y si alguien la está mirando. */
+      /** Enfoque que lleva, y si alguien la está mirando. */
       foco: 0,
-      focoPuesto: -1,
       mirada: false,
+      /** En un cambio: entra a fundirse (crece) o sale de la gota grande. */
+      papel: null as "entra" | "sale" | null,
+      /** Su ángulo en el anillo, sin contar el avance del turno ni el arrastre. */
+      base: FRENTE,
       capa: "",
-      tinta: null as ReturnType<NonNullable<ReturnType<typeof obtenerTinta>>["montar"]>,
       indice: i,
     }));
-    const motor = obtenerTinta();
-    let fase = Math.random() * Math.PI * 2;
-    /** Velocidad extra del anillo tras soltar un arrastre, en radianes por segundo. */
+    /** Lo que se le pasa al material en cada fotograma. */
+    const liquido: Luna[] = lunas.map(() => ({ x: 0, y: 0, radio: 0, foco: 0, hondo: 0, union: 0, presencia: 1 }));
+    const suave = (a: number, b: number, x: number) => {
+      const u = Math.min(1, Math.max(0, (x - a) / (b - a)));
+      return u * u * (3 - 2 * u);
+    };
+    /** Con muchas personas, las lunas encogen un poco para no pisarse. */
+    const tallaLunas = lunas.length > 5 ? 0.8 : 1;
+    /** Espacio libre a cada lado del escenario: el anillo no se sale de la página. */
+    let libreIzq = 0;
+    let libreDer = 0;
+    const medirSitio = () => {
+      const caja = escenario.getBoundingClientRect();
+      lado = caja.width;
+      libreIzq = caja.left;
+      libreDer = document.documentElement.clientWidth - caja.right;
+      // Si a la izquierda hay texto (el de la portada, en pantallas anchas),
+      // el anillo llega solo hasta él: una luna no pasa por encima de lo que
+      // se lee.
+      const vecino = document.querySelector<HTMLElement>("[data-junto-al-escenario]");
+      if (vecino) {
+        const v = vecino.getBoundingClientRect();
+        const mismaFila = v.bottom > caja.top + caja.height * 0.25 && v.top < caja.bottom - caja.height * 0.25;
+        if (mismaFila && v.right <= caja.left + 1) libreIzq = caja.left - v.right;
+      }
+    };
+    /**
+     * EL ORDEN DEL ANILLO. Cada luna tiene un puesto según lo que le falta
+     * para su turno: la siguiente, medio paso antes del frente; la que acaba
+     * de salir, medio paso después; las demás, repartidas por detrás.
+     */
+    const paso = (Math.PI * 2) / Math.max(1, lunas.length - 1);
+    const puesto = (i: number) => {
+      const turno = (i - actual + lunas.length) % lunas.length;
+      return turno === 0 ? FRENTE : FRENTE - (turno - 0.5) * paso;
+    };
+    const vuelta = (angulo: number) => {
+      let v = angulo % (Math.PI * 2);
+      if (v > Math.PI) v -= Math.PI * 2;
+      if (v < -Math.PI) v += Math.PI * 2;
+      return v;
+    };
+    /** Lo que ha girado el anillo a mano (arrastre e impulso), en radianes. */
+    let mano = 0;
+    /** Velocidad que le queda al anillo tras soltar un arrastre, en radianes por segundo. */
     let impulso = 0;
+    /** Algo se está recolocando: hay que pintar todos los fotogramas. */
+    let recolocando = false;
     let lado = escenario.offsetWidth;
+    const enLiquido = Boolean(tinta && conSistema);
+    let tamanoLuna = lunas[0]?.el.offsetWidth ?? 0;
+    let fotograma = 0;
 
     function montarLuna(luna: (typeof lunas)[number], fuente: HTMLImageElement | HTMLCanvasElement) {
       if (!luna.recorte) return;
-      luna.tinta = motor?.montar(luna.recorte, { fuentes: [fuente], foco: 0 }) ?? null;
-      // Sin vidrio, el fotograma del vídeo se enseña tal cual.
-      if (!luna.tinta && fuente instanceof HTMLCanvasElement) {
+      if (enLiquido) tinta!.retratoLuna(luna.indice, fuente);
+      // Sin líquido, el fotograma del vídeo se enseña tal cual.
+      else if (fuente instanceof HTMLCanvasElement) {
         fuente.className = "fotograma";
         luna.recorte.append(fuente);
       }
@@ -621,7 +724,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     }
 
     /** El primer fotograma de un vídeo, para la luna de quien no tiene foto. */
-    function fotograma(src: string, senal: AbortSignal): Promise<HTMLCanvasElement | null> {
+    function primerFotograma(src: string, senal: AbortSignal): Promise<HTMLCanvasElement | null> {
       return new Promise((resolver) => {
         const v = document.createElement("video");
         v.muted = true;
@@ -658,24 +761,48 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
     /**
      * Coloca las lunas. El anillo es una elipse inclinada: `hondo` vale 1
-     * cuando la luna pasa por delante (abajo) y -1 cuando pasa por detrás
-     * (arriba), y de él salen el tamaño y la capa. Al fundirse, la luna
-     * recorre el radio hacia el centro mientras se encoge.
+     * cuando la luna pasa cerca (abajo) y -1 cuando pasa lejos (arriba), y de
+     * él salen el tamaño y el enfoque. Al fundirse, la luna recorre el radio
+     * hacia dentro de la gota grande mientras se encoge.
+     *
+     * Con líquido, además de mover el botón de cada luna (que es lo que se
+     * pulsa), se le dice al material dónde está cada gota. Sin él, el botón
+     * es la luna, y pasa por delante o por detrás de la gota grande.
      */
+    /**
+     * El avance del turno: medio paso a lo largo de lo que dura cada persona.
+     * Va con el reloj del relevo, así que se detiene con él (puntero encima,
+     * pestaña oculta, fuera de pantalla).
+     */
+    const avance = () => (reloj ? reloj.progress() * paso * 0.5 : 0);
+
+    /** Deja a cada luna donde está y pone a cero el avance y el giro a mano. */
+    function asentar() {
+      const girado = avance() + mano;
+      for (const luna of lunas) luna.base += girado;
+      mano = 0;
+      impulso = 0;
+    }
+
     function colocar(dt = 0) {
-      // Ancho y casi tan alto como la gota grande: las lunas la rodean por
-      // fuera y solo la pisan al cruzar por delante o asomar por detrás.
-      const rx = lado * (lado < 380 ? 0.5 : 0.56);
-      const ry = lado * 0.46;
-      // Un poco a la izquierda: a la derecha el escenario toca el borde de la
-      // página y las lunas se cortarían.
-      const centro = lado * -0.045;
+      const girado = avance() + mano;
+      recolocando = false;
+      const radioMedio = ((RADIO_LEJOS + RADIO_CERCA) / 2) * tallaLunas * lado;
+      // El anillo ocupa el ancho que haya: hasta el borde de la página por
+      // cada lado, y nunca más que el lienzo del líquido.
+      const tope = lado * (EXTENSION / 2 - 0.03);
+      const haciaIzq = Math.min(tope, lado / 2 + libreIzq - 8);
+      const haciaDer = Math.min(tope, lado / 2 + libreDer - 8);
+      const rx = Math.min(lado * 0.58, (haciaIzq + haciaDer) / 2 - radioMedio);
+      const ry = lado * 0.5;
+      const centro = (haciaDer - haciaIzq) / 2;
       const cos = Math.cos(INCLINACION);
       const sen = Math.sin(INCLINACION);
-      const total = lunas.length;
       for (const luna of lunas) {
         const visible = luna.lista && luna.fuera > 0.02;
+        const gota = liquido[luna.indice]!;
         if (!visible) {
+          gota.radio = 0;
           if (luna.capa !== "oculta") {
             luna.capa = "oculta";
             luna.el.style.visibility = "hidden";
@@ -683,38 +810,65 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
           }
           continue;
         }
-        const angulo = fase + (luna.indice / total) * Math.PI * 2;
+        // Cada luna va hacia su puesto por el camino corto, sin saltos.
+        const falta = vuelta(puesto(luna.indice) - luna.base);
+        if (Math.abs(falta) > 0.003) {
+          luna.base += falta * (dt > 0 ? Math.min(1, dt * 4.2) : 1);
+          recolocando = true;
+        }
+        const angulo = luna.base + (luna.papel === "entra" ? 0 : girado);
         const hondo = Math.sin(angulo);
+        const cerca = hondo * 0.5 + 0.5;
         const x = Math.cos(angulo) * rx;
         const y = hondo * ry;
         const sale = luna.fuera;
-        // No llega al centro, donde está la cara: se funde al tocar el canto
-        // de la gota grande, y de ahí mismo sale.
-        const tramo = FUSION + (1 - FUSION) * sale;
-        const px = (x * cos - y * sen) * tramo + centro * sale;
-        const py = (x * sen + y * cos) * tramo;
-        const cerca = hondo * 0.5 + 0.5;
-        const escala = (0.78 + 0.22 * cerca) * (0.12 + 0.88 * sale) * (luna.mirada ? 1.1 : 1);
+        // Al fundirse entra en la gota grande, sin llegar al centro, donde
+        // está la cara; y de ahí mismo sale la que se va.
+        const camino = FUSION + (1 - FUSION) * sale;
+        const px = (x * cos - y * sen) * camino + centro * sale;
+        const py = (x * sen + y * cos) * camino;
+
+        // PERSPECTIVA: delante, más del doble de grande que al fondo.
+        let radio = (RADIO_LEJOS + (RADIO_CERCA - RADIO_LEJOS) * Math.pow(cerca, 1.25)) * tallaLunas;
+        if (luna.mirada) radio *= 1.08;
+        // La que entra crece al fundirse y se recoge al final, ya disuelta;
+        // la que sale nace pequeña del canto de la gota grande.
+        if (luna.papel === "entra") radio *= (1 + 0.75 * (1 - sale)) * suave(0, 0.3, sale);
+        else radio *= 0.2 + 0.8 * sale;
+
+        // PROFUNDIDAD DE CAMPO: delante, enfocada y a color; al fondo,
+        // esmerilada y azul. Mirarla la enfoca.
+        const objetivo = luna.mirada ? 1 : 0.14 + 0.86 * suave(0.12, 0.85, cerca);
+        luna.foco += (objetivo - luna.foco) * (dt > 0 ? Math.min(1, dt * 5) : 1);
+
+        // Solo se funde la que cambia: en cuanto deja su sitio en el anillo.
+        const union = luna.papel ? 1 - suave(0.8, 1, sale) : 0;
+
+        gota.x = px / lado;
+        gota.y = py / lado;
+        gota.radio = radio;
+        gota.foco = luna.foco;
+        gota.hondo = hondo;
+        gota.union = union;
+        gota.presencia = suave(0, 0.5, sale);
+
+        // El botón de la luna, justo encima de la gota pintada: es lo que se
+        // pulsa. El de las lunas de detrás va por debajo de la gota grande,
+        // que lo tapa también para el puntero.
+        const escala = (radio * 2 * lado) / Math.max(1, tamanoLuna);
         luna.el.style.transform = `translate(-50%, -50%) translate3d(${px.toFixed(2)}px, ${py.toFixed(2)}px, 0) scale(${escala.toFixed(4)})`;
         luna.el.style.opacity = Math.min(1, sale * 3).toFixed(3);
-
-        // PROFUNDIDAD DE CAMPO: por delante, casi enfocada; por detrás, más
-        // esmerilada y azul. Mirarla la enfoca del todo; al fundirse vuelve
-        // a la tinta, como la gota grande a mitad de su cambio de foco.
-        const objetivo = (luna.mirada ? 1 : 0.55 + 0.4 * cerca) * Math.min(1, sale * 1.4);
-        luna.foco += (objetivo - luna.foco) * (dt > 0 ? Math.min(1, dt * 5) : 1);
-        if (luna.tinta && Math.abs(luna.foco - luna.focoPuesto) > 0.012) {
-          luna.focoPuesto = luna.foco;
-          luna.tinta.graduar(luna.foco);
-        }
-        // Por delante de la gota grande o por detrás. Fundiéndose, por delante.
-        const capa = hondo > 0 || sale < 0.9 ? "2" : "0";
+        const capa = hondo > 0 || union > 0 ? "2" : "0";
         if (luna.capa !== capa) {
           luna.capa = capa;
           luna.el.style.zIndex = capa;
           luna.el.style.visibility = "visible";
         }
       }
+      // El anillo gira despacio: en reposo basta contárselo al material un
+      // fotograma de cada dos. En un cambio, un arrastre o un impulso, todos.
+      const deprisa = transicion?.isActive() || recolocando || arrastrando || impulso !== 0;
+      if (enLiquido && (++fotograma % 2 === 0 || deprisa)) tinta!.lunas(liquido);
     }
 
     // ---- Piezas ------------------------------------------------------------
@@ -799,6 +953,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       transicion?.progress(1).kill();
       transicion = null;
 
+      // Antes de repartir los puestos de nuevo, cada luna se queda donde está.
+      asentar();
       const antes = actual;
       actual = siguiente;
       const sale = escenas[antes]!;
@@ -810,8 +966,14 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       const lunaSale = lunas[antes];
 
       const terminar = () => {
-        if (lunaEntra) lunaEntra.fuera = 0;
-        if (lunaSale) lunaSale.fuera = 1;
+        if (lunaEntra) {
+          lunaEntra.fuera = 0;
+          lunaEntra.papel = null;
+        }
+        if (lunaSale) {
+          lunaSale.fuera = 1;
+          lunaSale.papel = null;
+        }
         entra.setAttribute("data-activa", "");
         sale.removeAttribute("data-activa");
         gsap.set([entra, sale], { clearProps: "opacity,zIndex" });
@@ -832,6 +994,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       marcarTiempo();
 
       if (inmediato || reducido) {
+        for (const luna of lunas) luna.base = puesto(luna.indice);
         tinta?.fijar(siguiente);
         terminar();
         return;
@@ -841,15 +1004,21 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
       transicion = gsap.timeline({ onComplete: terminar });
 
-      // LA FUSIÓN. La luna de quien entra cae hacia la gota grande; cuando la
-      // toca, la gota la traga (cambia de silueta con su resorte, como una
-      // gota que absorbe otra) y empieza el cambio de foco. Después suelta a
-      // la persona anterior, que sale como luna a su sitio del anillo.
-      const TRAGA = lunaEntra ? 0.42 : 0;
-      if (lunaEntra) transicion.to(lunaEntra, { fuera: 0, duration: 0.7, ease: "power2.in" }, 0);
+      // EL CAMBIO. La luna de quien entra acaba de llegar al frente (o va
+      // hacia él, si se eligió otra); crece, toca a la gota grande y se funde
+      // con ella. En ese momento la gota cambia de silueta (con su resorte,
+      // como una gota que absorbe a otra) y empieza el cambio de foco.
+      // Después suelta a la persona anterior, que se desprende delante, a la
+      // izquierda, y las demás avanzan un puesto.
+      const TRAGA = lunaEntra ? 0.7 : 0;
+      if (lunaEntra) {
+        lunaEntra.papel = "entra";
+        transicion.to(lunaEntra, { fuera: 0, duration: 0.8, ease: "power2.in" }, 0.2);
+      }
       transicion.call(formaAlAzar, [], TRAGA);
       if (lunaSale) {
-        transicion.fromTo(lunaSale, { fuera: 0 }, { fuera: 1, duration: 1.5, ease: "expo.out" }, TRAGA + 0.75);
+        lunaSale.papel = "sale";
+        transicion.fromTo(lunaSale, { fuera: 0 }, { fuera: 1, duration: 1.6, ease: "expo.out" }, TRAGA + 0.55);
       }
 
       if (tinta) {
@@ -905,24 +1074,41 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     // primer fotograma de su vídeo. Luego salen de la gota grande una a una.
     const salidas: gsap.core.Tween[] = [];
     // Todas empiezan dentro de la gota grande, también si el arranque al azar
-    // ya movió alguna.
-    lunas.forEach((luna) => (luna.fuera = 0));
+    // ya movió alguna; y salen del canto, como la que se va en un cambio.
+    lunas.forEach((luna) => {
+      luna.fuera = 0;
+      luna.papel = "sale";
+      luna.base = puesto(luna.indice);
+    });
+    medirSitio();
+    window.addEventListener("resize", medirSitio, { signal });
     lunas.forEach((luna, i) => {
       const foto = luna.recorte?.querySelector<HTMLImageElement>("img");
       const src = video(i)?.getAttribute("src");
       const salir = () => {
         if (signal.aborted || i === actual) return;
-        if (reducido) luna.fuera = 1;
+        if (reducido) {
+          luna.fuera = 1;
+          luna.papel = null;
+        }
         else {
           const orden = (i - actual + lunas.length) % lunas.length;
-          salidas.push(gsap.to(luna, { fuera: 1, duration: 1.6, ease: "expo.out", delay: 1.5 + orden * 0.22 }));
+          salidas.push(
+            gsap.to(luna, {
+              fuera: 1,
+              duration: 1.8,
+              ease: "expo.out",
+              delay: 1.5 + orden * 0.25,
+              onComplete: () => void (luna.papel === "sale" && !transicion?.isActive() && (luna.papel = null)),
+            }),
+          );
         }
       };
       if (foto) {
         montarLuna(luna, foto);
         salir();
       } else if (src) {
-        void fotograma(src, signal).then((lienzo) => {
+        void primerFotograma(src, signal).then((lienzo) => {
           if (!lienzo || signal.aborted) return;
           // Sin vidrio (o con movimiento reducido) el vídeo no corre: ese
           // mismo fotograma hace de retrato en la gota grande, en vez de la
@@ -941,7 +1127,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         });
       }
 
-      // Mirarla la enfoca, como a cualquier retrato; pulsarla la trae.
+      // Mirarla la enfoca y la acerca, como a cualquier retrato; pulsarla la trae.
       const mirar = (si: boolean) => (luna.mirada = si);
       luna.el.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && mirar(true), { signal });
       luna.el.addEventListener("pointerleave", () => mirar(false), { signal });
@@ -964,17 +1150,14 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     let ultimoTiempo = 0;
     let velocidadPuntero = 0;
     let tragarClic = false;
-    let paso = 1;
 
     const girar = (_tiempo: number, delta: number) => {
       if (lunas.length === 0) return;
       const dt = Math.min(delta, 64) / 1000;
-      if (!arrastrando && !reducido) {
-        // Con el puntero encima va más despacio, para poder pulsar una luna.
-        paso += ((motivos.has("puntero") || motivos.has("foco") ? 0.2 : 1) - paso) * Math.min(1, dt * 5);
+      if (!arrastrando && impulso !== 0) {
         impulso *= Math.exp(-dt * 2.6);
         if (Math.abs(impulso) < 0.004) impulso = 0;
-        if (!motivos.has("fuera") && !motivos.has("pestaña")) fase += ((Math.PI * 2) / VUELTA) * paso * dt + impulso * dt;
+        mano += impulso * dt;
       }
       colocar(dt);
     };
@@ -985,7 +1168,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       if ((e.target as HTMLElement).closest("[data-cartel], [data-paso]")) return;
       pulsado = true;
       inicioPuntero = ultimoPuntero = e.clientX;
-      inicioFase = fase;
+      inicioFase = mano;
       ultimoTiempo = e.timeStamp;
       velocidadPuntero = 0;
       impulso = 0;
@@ -999,8 +1182,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         escenario.setAttribute("data-arrastrando", "");
         escenario.setPointerCapture(e.pointerId);
       }
-      // El dedo lleva las lunas de delante: a la derecha, giran a la derecha.
-      fase = inicioFase - recorrido / (lado * 0.56);
+      // El dedo lleva las lunas de delante: a la izquierda, avanza el turno.
+      mano = inicioFase - recorrido / (lado * 0.5);
       const dt = e.timeStamp - ultimoTiempo;
       if (dt > 0) {
         velocidadPuntero = velocidadPuntero * 0.7 + (((e.clientX - ultimoPuntero) / dt) * 1000) * 0.3;
@@ -1019,7 +1202,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       if (escenario.hasPointerCapture(e.pointerId)) escenario.releasePointerCapture(e.pointerId);
       const recorrido = e.clientX - inicioPuntero;
       const quieto = e.timeStamp - ultimoTiempo > 90;
-      impulso = quieto ? 0 : gsap.utils.clamp(-5, 5, -velocidadPuntero / (lado * 0.56));
+      impulso = quieto ? 0 : gsap.utils.clamp(-5, 5, -velocidadPuntero / (lado * 0.5));
       // Deslizar pasa de persona: hacia la izquierda, la siguiente.
       if (Math.abs(recorrido) > DESLIZAR) irA(vecina(recorrido < 0 ? 1 : -1));
     };
@@ -1045,7 +1228,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     ajustarCartel();
     void document.fonts.ready.then(() => !signal.aborted && ajustarCartel());
     const vigiaCartel = new ResizeObserver(() => {
-      lado = escenario.offsetWidth;
+      medirSitio();
+      tamanoLuna = lunas[0]?.el.offsetWidth ?? 0;
       ajustarCartel();
     });
     vigiaCartel.observe(escenario);
@@ -1092,7 +1276,6 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       eventos.abort();
       gsap.ticker.remove(girar);
       salidas.forEach((s) => s.kill());
-      lunas.forEach((luna) => luna.tinta?.destruir());
       escenario.removeAttribute("data-arrastrando");
       vigiaCartel.disconnect();
       if (cartel) gsap.set(cartel, { clearProps: "width,height" });
