@@ -167,9 +167,13 @@ export interface Emprendedore {
    */
   foto?: (number | null) | Medio;
   /**
-   * Opcional. Vertical o cuadrado, MP4, sin sonido y de menos de 8 MB. Que no se vean menores ni nada que permita ubicar el negocio o la vivienda (fachadas, letreros con dirección, placas).
+   * Opcional. El que se ve en su retrato, en silencio y en bucle. Vertical o cuadrado, MP4 y de menos de 8 MB. Que no se vean menores ni nada que permita ubicar el negocio o la vivienda (fachadas, letreros con dirección, placas).
    */
   video?: (number | null) | Medio;
+  /**
+   * Opcional. El mismo vídeo, entero y con sonido: es lo que se oye al pasar el puntero por el retrato y lo que se ve al pulsarlo. Debe durar lo mismo que el de arriba, para que el sonido vaya a la par. Puedes subirlo en varias calidades y el sitio deja elegir: termina cada nombre con su alto, por ejemplo "maria-1080.mp4", "maria-720.mp4" y "maria-480.mp4". Escucha el audio antes de subirlo: que no se digan direcciones ni teléfonos.
+   */
+  videoSonido?: (number | Medio)[] | null;
   /**
    * Opcional. Productos o servicios, en el orden en que quieres que se vean. Que no se vean menores ni nada que permita ubicar el negocio o la vivienda.
    */
@@ -349,6 +353,7 @@ export interface EmprendedoresSelect<T extends boolean = true> {
   telefono?: T;
   foto?: T;
   video?: T;
+  videoSonido?: T;
   galeria?: T;
   comunidad?: T;
   slug?: T;
@@ -548,6 +553,28 @@ export interface Sitio {
      */
     derechos?: string | null;
   };
+  reproductor?: {
+    /**
+     * Escribe {nombre} donde va el nombre de la persona.
+     */
+    abrir?: string | null;
+    /**
+     * Escribe {nombre} donde va el nombre de la persona.
+     */
+    titulo?: string | null;
+    reproducir?: string | null;
+    pausar?: string | null;
+    cerrar?: string | null;
+    sonido?: string | null;
+    silenciar?: string | null;
+    volumen?: string | null;
+    avance?: string | null;
+    calidad?: string | null;
+    /**
+     * Este sí se ve: es la primera opción de la lista de calidades.
+     */
+    auto?: string | null;
+  };
   general?: {
     /**
      * El que se ve en la pestaña del navegador y al compartir.
@@ -627,6 +654,21 @@ export interface SitioSelect<T extends boolean = true> {
         textoEscuela?: T;
         tituloEnlaces?: T;
         derechos?: T;
+      };
+  reproductor?:
+    | T
+    | {
+        abrir?: T;
+        titulo?: T;
+        reproducir?: T;
+        pausar?: T;
+        cerrar?: T;
+        sonido?: T;
+        silenciar?: T;
+        volumen?: T;
+        avance?: T;
+        calidad?: T;
+        auto?: T;
       };
   general?:
     | T

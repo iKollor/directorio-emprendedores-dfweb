@@ -44,5 +44,18 @@
     "textoEscuela": "Los emprendedores de esta plataforma se certificaron en el programa de la Escuela de Emprendimiento de Diseña Futuro, luego de culminar un proceso de fortalecimiento de conocimientos y desarrollo de habilidades blandas.",
     "tituloEnlaces": "Conoce más",
     "derechos": "Diseña Futuro · Intervalores"
+  },
+  "reproductor": {
+    "abrir": "Ver el vídeo de {nombre} con sonido",
+    "titulo": "Vídeo de {nombre}",
+    "cerrar": "Cerrar el vídeo",
+    "reproducir": "Reproducir",
+    "pausar": "Pausar",
+    "avance": "Avance del vídeo",
+    "sonido": "Activar el sonido",
+    "silenciar": "Silenciar",
+    "volumen": "Volumen",
+    "calidad": "Calidad",
+    "auto": "Auto"
   }
 }

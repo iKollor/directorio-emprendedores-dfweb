@@ -64,6 +64,12 @@ export type Emprendedor = {
   rostro: Rostro;
   /** Vídeo de presentación propio, o null si todavía no lo hay. */
   video: string | null;
+  /**
+   * El mismo vídeo con sonido y a su proporción real, en una o varias
+   * calidades (de mayor a menor). Es lo que suena al pasar el puntero y lo
+   * que reproduce el primer plano. Vacío: se usa `video` tal cual.
+   */
+  videoSonido: VideoSonido[];
   /** Fotos de sus productos o servicios, en el orden elegido. */
   galeria: Foto[];
 };
@@ -121,6 +127,12 @@ const ARCHIVOS_VIDEO = import.meta.glob<string>("../assets/videos/*.{mp4,webm}",
   import: "default",
 });
 
+const ARCHIVOS_SONIDO = import.meta.glob<string>("../assets/videos/sonido/*.{mp4,webm}", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+
 const ARCHIVOS_PRODUCTO = import.meta.glob<{ default: ImageMetadata }>(
   "../assets/productos/*/*.{jpg,jpeg,png,webp}",
   { eager: true },
@@ -139,6 +151,25 @@ function buscarVideo(slug: string): string | null {
     /\/([^/]+)\.(mp4|webm)$/.exec(ruta)?.[1] === slug,
   );
   return clave ? ARCHIVOS_VIDEO[clave]! : null;
+}
+
+/** Una calidad del vídeo con sonido: su dirección y su alto en píxeles. */
+export type VideoSonido = { src: string; alto: number };
+
+/**
+ * El alto va en el nombre del archivo: `kelly-cedillo-720.mp4`. Sin número se
+ * toma por 720, que es lo que suele salir de un teléfono.
+ */
+const CALIDAD = /-(\d{3,4})p?\.(mp4|webm)$/i;
+const altoDe = (nombre: string) => Number(CALIDAD.exec(nombre)?.[1] ?? 720);
+const ordenar = (lista: VideoSonido[]) => lista.sort((a, b) => b.alto - a.alto);
+
+function buscarSonido(slug: string): VideoSonido[] {
+  return ordenar(
+    Object.keys(ARCHIVOS_SONIDO)
+      .filter((ruta) => ruta.split("/").pop()!.replace(CALIDAD, "") === slug)
+      .map((ruta) => ({ src: ARCHIVOS_SONIDO[ruta]!, alto: altoDe(ruta) })),
+  );
 }
 
 function buscarGaleria(slug: string): ImageMetadata[] {
@@ -191,6 +222,7 @@ function normalizar(crudo: Crudo): Emprendedor | null {
     telefono: fichaPendiente ? null : crudo.telefono,
     whatsapp: fichaPendiente ? null : crudo.whatsapp,
     video: fichaPendiente ? null : buscarVideo(crudo.slug),
+    videoSonido: fichaPendiente ? [] : buscarSonido(crudo.slug),
     galeria: fichaPendiente ? [] : buscarGaleria(crudo.slug),
   };
 }
@@ -232,6 +264,7 @@ type DocCms = {
   telefono?: string | null;
   foto?: MedioCms | number | null;
   video?: MedioCms | number | null;
+  videoSonido?: (MedioCms | number)[] | null;
   galeria?: (MedioCms | number)[] | null;
 };
 
@@ -294,6 +327,13 @@ function deCms(doc: DocCms): Emprendedor | null {
     telefono: pendiente ? null : telefono,
     whatsapp: pendiente ? null : whatsappDe(telefono),
     video: pendiente || !video ? null : `/medios/${encodeURIComponent(video)}`,
+    videoSonido: pendiente
+      ? []
+      : ordenar(
+          (doc.videoSonido ?? [])
+            .filter((m): m is MedioCms & { filename: string } => esMedio(m) && Boolean(m.mimeType?.startsWith("video/")))
+            .map((m) => ({ src: `/medios/${encodeURIComponent(m.filename)}`, alto: altoDe(m.filename) })),
+        ),
     galeria: pendiente ? [] : (doc.galeria ?? []).map(fotoDeCms).filter((f): f is FotoRemota => f !== null),
   };
 }

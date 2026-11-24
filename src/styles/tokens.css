@@ -302,6 +302,21 @@ html.gl [data-tinta]:not(:has(.lienzo-tinta)) img {
   transition: scale var(--dur-media) var(--ease-suave);
 }
 
+/*
+ * La misma pieza en vidrio claro, para ir encima de una imagen sin taparla:
+ * el altavoz de un retrato con vídeo, el aspa del primer plano.
+ */
+.boton-icono.vidrio {
+  background: rgb(239 238 237 / 0.2);
+  color: var(--df-bone);
+  -webkit-backdrop-filter: blur(10px) saturate(1.3);
+  backdrop-filter: blur(10px) saturate(1.3);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    inset 0 -0.42em 0.7em -0.36em rgb(0 0 40 / 0.45),
+    0 0.6em 1.2em -0.6em rgb(0 0 40 / 0.75);
+}
+
 ::selection {
   background: var(--df-yellow);
   color: var(--df-blue-deep);

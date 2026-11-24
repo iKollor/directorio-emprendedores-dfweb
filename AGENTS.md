@@ -50,14 +50,36 @@ calcula con la medida del cartel, y ninguna luna pasa por encima del texto
 de la portada ni se sale de la página. En el teléfono el retrato va centrado
 para dejarles sitio. No lleva botones de anterior y siguiente (hubo dos
 flechas amarillas y se pidió quitarlas): se toca lo que se ve. Una luna trae
-a esa persona; el retrato grande pasa a la siguiente o, en su tercio
-izquierdo, a la anterior, como en unas historias; arrastrar o deslizar tira
-de la cola; y con el teclado, flechas izquierda y derecha. El carrusel es un
+a esa persona; arrastrar o deslizar tira de la cola; y con el teclado,
+flechas izquierda y derecha. Pulsar el retrato grande abre su vídeo en
+primer plano (antes pasaba de persona, como en unas historias). El carrusel es un
 grupo con nombre para los lectores de pantalla, cada luna es un botón con
 área de toque de 48 px y enseña su nombre al mirarla, y los cambios que hace
 la persona se anuncian. La gota grande no se mueve de su sitio. Debajo hubo una franja
 de vídeos en carrusel ("En sus propias palabras") y se quitó: repetía lo que
 ya hacen el hero y el listado. No añadas otro carrusel a la portada.
+
+**El primer plano: la gota se acerca.** Los retratos con vídeo suenan y se
+abren (`src/lib/sonido.ts`, `src/lib/primerPlano.ts`, `PrimerPlano.astro`).
+Con el puntero encima del retrato del hero o de la ficha, su vídeo suena y el
+carrusel espera. Al pulsarlo, su gota sale de su sitio y crece hasta casi
+llenar la ventana: NO es pantalla completa, alrededor se sigue viendo la
+página, fuera de foco. El borde sigue siendo de gota: parte de la silueta del
+retrato y se vuelve una pantalla (una superelipse con la proporción del
+vídeo, simétrica para no comerse la imagen) que sigue respirando. El paso del
+recorte cuadrado al vídeo entero es un cambio de foco, igual que cambiar de
+calidad; el retrato que queda atrás vuelve a la tinta y enfoca cuando la gota
+regresa. Los mandos son los de cualquier reproductor (reproducir, avance,
+altavoz y nivel, calidad con "Auto", cerrar) vestidos con el material del
+sitio: píldora de vidrio, lo andado es una pincelada amarilla y el tirador,
+una gota. El retrato lleva un altavoz de vidrio (`.boton-icono.vidrio`) que
+dice si suena y es el botón que abre el primer plano. Dos cosas que no se
+pueden saltar: el navegador no deja sonar nada antes del primer gesto de la
+persona (hasta entonces el altavoz sale tachado), y el vídeo con sonido
+(`videoSonido`, en `src/assets/videos/sonido/` o en la ficha del panel) tiene
+que durar lo mismo que el del retrato, porque el sonido se le pone a la par.
+No añadas otro visor ni un lightbox: si algo más tiene que verse en grande,
+es esta misma pieza.
 
 **Una curva.** Todo lo que entra sube un poco y se asienta con `expo.out`
 (`CURVA` en `src/lib/animaciones.ts`). Sin rebotes, giros ni desenfoques de

@@ -98,6 +98,13 @@ export function montarRetratos(raiz: ParentNode, primeraCarga: boolean): () => v
 
     if (modo === "color") {
       if (primeraCarga) esperas.push(gsap.delayedCall(0.5, () => tinta.enfocar(true, 1.8)));
+      // Cuando su gota sale en primer plano (lib/primerPlano.ts), el retrato
+      // se queda atrás fuera de foco; enfoca otra vez cuando vuelve.
+      contenedor.addEventListener(
+        "retrato:foco",
+        (e) => tinta.enfocar(Boolean((e as CustomEvent<boolean>).detail), 0.8),
+        { signal },
+      );
       return;
     }
 

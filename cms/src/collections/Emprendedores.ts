@@ -150,7 +150,20 @@ export const Emprendedores: CollectionConfig = {
       admin: {
         condition: conFicha,
         description:
-          'Opcional. Vertical o cuadrado, MP4, sin sonido y de menos de 8 MB. Que no se vean menores ni nada que permita ubicar el negocio o la vivienda (fachadas, letreros con dirección, placas).',
+          'Opcional. El que se ve en su retrato, en silencio y en bucle. Vertical o cuadrado, MP4 y de menos de 8 MB. Que no se vean menores ni nada que permita ubicar el negocio o la vivienda (fachadas, letreros con dirección, placas).',
+      },
+    },
+    {
+      name: 'videoSonido',
+      type: 'upload',
+      relationTo: 'medios',
+      hasMany: true,
+      label: 'Vídeo con sonido (primer plano)',
+      filterOptions: soloVideos,
+      admin: {
+        condition: conFicha,
+        description:
+          'Opcional. El mismo vídeo, entero y con sonido: es lo que se oye al pasar el puntero por el retrato y lo que se ve al pulsarlo. Debe durar lo mismo que el de arriba, para que el sonido vaya a la par. Puedes subirlo en varias calidades y el sitio deja elegir: termina cada nombre con su alto, por ejemplo "maria-1080.mp4", "maria-720.mp4" y "maria-480.mp4". Escucha el audio antes de subirlo: que no se digan direcciones ni teléfonos.',
       },
     },
     {

@@ -46,6 +46,33 @@ datos del archivo original:
 - `CONSUELO_ANTEPARA.mov` no se incluyó: no hay nadie con ese nombre en el
   directorio. Falta su ficha.
 
+## Con sonido: `sonido/`
+
+El vídeo del retrato es mudo y cuadrado. En `sonido/` está el mismo tramo de
+cada entrevista entero (apaisado, 16:9) y con su audio, en tres calidades:
+`<slug>-1080.mp4`, `<slug>-720.mp4` y `<slug>-480.mp4`. Es lo que suena al
+pasar el puntero por el retrato y lo que reproduce el primer plano, que deja
+elegir la calidad. Duran exactamente lo mismo que el recorte cuadrado: el
+sonido se le pone a la par.
+
+- ⚠️ Nadie ha escuchado el audio para comprobar qué se dice. Antes de darlo
+  por bueno, que Diseña Futuro lo oiga entero: que no se mencionen
+  direcciones, teléfonos ni nombres de menores.
+- ⚠️ El encuadre entero enseña más fondo que el recorte: en el de Miriam, la
+  calle con casas; en el de Jonathan, la obra y una casa amarilla.
+- El de Miriam son los mismos tres tramos del recorte, así que el audio son
+  tres comienzos de respuesta que se cortan (con un fundido corto en cada
+  corte). Sus subtítulos incrustados se ven; son solo lo que dice. Para
+  tenerla hablando de corrido haría falta una toma sin editar.
+- Pesan 57 MB entre todos (de 1,2 a 12 MB cada uno).
+
+Cómo se hicieron: `-crf 25` con tope de 2000k (1080), 1100k (720) y `-crf 26`
+con tope de 550k (480); audio AAC a 96k (64k en el de 480); un fotograma
+clave cada 2 s para que cambiar de calidad sea rápido; sin los datos del
+archivo original.
+
+## Los recortes cuadrados
+
 Cómo se hicieron (ffmpeg), con el recorte de cada uno:
 
 ```bash

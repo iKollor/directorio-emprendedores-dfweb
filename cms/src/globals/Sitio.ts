@@ -168,6 +168,32 @@ export const Sitio: GlobalConfig = {
           ],
         },
         {
+          name: 'reproductor',
+          label: 'Reproductor de vídeo',
+          description:
+            'El vídeo que se abre al pulsar un retrato. Casi todo son nombres que no se ven: los leen los lectores de pantalla.',
+          fields: [
+            texto('abrir', 'Botón del retrato', 'Escribe {nombre} donde va el nombre de la persona.'),
+            texto('titulo', 'Nombre de la ventana', 'Escribe {nombre} donde va el nombre de la persona.'),
+            {
+              type: 'row',
+              fields: [texto('reproducir', 'Reproducir'), texto('pausar', 'Pausar'), texto('cerrar', 'Cerrar')],
+            },
+            {
+              type: 'row',
+              fields: [texto('sonido', 'Activar el sonido'), texto('silenciar', 'Silenciar'), texto('volumen', 'Volumen')],
+            },
+            {
+              type: 'row',
+              fields: [
+                texto('avance', 'Barra de avance'),
+                texto('calidad', 'Calidad'),
+                texto('auto', 'Calidad automática', 'Este sí se ve: es la primera opción de la lista de calidades.'),
+              ],
+            },
+          ],
+        },
+        {
           name: 'general',
           label: 'General',
           fields: [

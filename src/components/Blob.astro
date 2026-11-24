@@ -14,7 +14,8 @@
  */
 import { Image } from "astro:assets";
 import { construirPath, generarBlob } from "../lib/blob";
-import { paraImage, type Foto } from "../lib/directorio";
+import Icono from "./Icono.astro";
+import { paraImage, type Foto, type VideoSonido } from "../lib/directorio";
 
 type Props = {
   slug: string;
@@ -45,6 +46,12 @@ type Props = {
   tinta?: "foco" | "color";
   /** Dónde está el rostro en la foto, para centrarlo (lib/directorio.ts). */
   rostro?: { x: number; y: number; zoom: number };
+  /**
+   * El retrato de la ficha: su vídeo suena al pasar el puntero y, al
+   * pulsarlo, sale en primer plano (lib/primerPlano.ts). `etiqueta` es el
+   * nombre accesible del botón; `sonido`, las calidades con sonido.
+   */
+  plano?: { etiqueta: string; nombre: string; sonido: VideoSonido[] } | null;
 };
 
 const {
@@ -59,7 +66,9 @@ const {
   iniciales = null,
   tinta = "foco",
   rostro,
+  plano = null,
 } = Astro.props;
+const conPlano = Boolean(video && plano);
 
 // Las iniciales van en el color de la categoría. Sobre el fondo azul hondo
 // del monograma, la categoría que ya es azul hondo no se vería: va en hueso.
@@ -75,6 +84,7 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
 <div
   class="marco"
   style={`--rot:${retrato.rotacion.toFixed(2)}deg; --esc:${retrato.escala.toFixed(3)}; --acento:${color};`}
+  data-con-plano={conPlano ? "" : undefined}
 >
   <div
     class="blob"
@@ -82,6 +92,8 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
     data-vertices={JSON.stringify(retrato.vertices)}
     data-encaje={JSON.stringify(retrato.encaje)}
     data-desfase={desfaseRetrato.toFixed(3)}
+    data-nombre={conPlano ? plano!.nombre : undefined}
+    data-sonido={conPlano ? JSON.stringify(plano!.sonido) : undefined}
   >
     <svg class="definiciones" aria-hidden="true" focusable="false">
       <defs>
@@ -144,6 +156,20 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
     </div>
   </div>
 
+  {
+    /*
+     * EL ALTAVOZ. Dice que el retrato tiene sonido y cómo está: tachado
+     * mientras calla, con ondas cuando suena. Es el botón que abre el primer
+     * plano; pulsar el retrato hace lo mismo.
+     */
+    conPlano && (
+      <button type="button" class="boton-icono vidrio altavoz" data-plano aria-label={plano!.etiqueta}>
+        <span class="con-sonido"><Icono nombre="sonido" /></span>
+        <span class="sin-sonido"><Icono nombre="silencio" /></span>
+      </button>
+    )
+  }
+
   {/*
     Hubo un botón de reproducir encima del retrato. Se quitó a pedido: no
     era un botón (el vídeo entra solo al pasar el puntero) y tapaba el
@@ -152,6 +178,95 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
 </div>
 
 <script>
+  import type { VideoSonido } from "../lib/directorio";
+  import { abrirPrimerPlano, primerPlanoAbierto } from "../lib/primerPlano";
+  import { callar, sonar } from "../lib/sonido";
+
+  /**
+   * EL RETRATO DE LA FICHA SUENA Y SE ACERCA. Con el puntero encima, su vídeo
+   * suena (lib/sonido.ts); al pulsarlo, la gota sale en primer plano
+   * (lib/primerPlano.ts) y el retrato se queda atrás, fuera de foco.
+   */
+  let soltarPlanos: (() => void) | null = null;
+
+  function montarPlanos() {
+    soltarPlanos?.();
+    const eventos = new AbortController();
+    const { signal } = eventos;
+    soltarPlanos = () => {
+      eventos.abort();
+      callar();
+    };
+
+    for (const marco of document.querySelectorAll<HTMLElement>(".marco[data-con-plano]")) {
+      const blob = marco.querySelector<HTMLElement>(".blob");
+      const recorte = marco.querySelector<HTMLElement>(".recorte");
+      const video = marco.querySelector<HTMLVideoElement>("video");
+      const boton = marco.querySelector<HTMLButtonElement>("[data-plano]");
+      if (!blob || !recorte || !video) continue;
+
+      let calidades: VideoSonido[] = [];
+      try {
+        calidades = JSON.parse(blob.dataset.sonido ?? "[]") as VideoSonido[];
+      } catch {
+        // Sin calidades: suena y se abre con su propio vídeo.
+      }
+      const marcar = (estado: string) => boton?.toggleAttribute("data-suena", estado === "suena");
+      const enfocar = (si: boolean) => recorte.dispatchEvent(new CustomEvent("retrato:foco", { detail: si }));
+
+      const abrir = () =>
+        abrirPrimerPlano({
+          caja: recorte,
+          blob,
+          giro: parseFloat(getComputedStyle(marco).rotate) || 0,
+          fotograma: () => (video.readyState >= 2 && video.videoWidth > 0 ? video : recorte.querySelector("img")),
+          hora: () => video.currentTime,
+          calidades: calidades.length > 0 ? calidades : [{ src: video.currentSrc || video.src, alto: video.videoHeight || 720 }],
+          nombre: blob.dataset.nombre ?? "",
+          alAbrir: () => {
+            callar();
+            marcar("calla");
+            video.pause();
+            blob.removeAttribute("data-video-activo");
+            enfocar(false);
+          },
+          alVolver: (hora) => {
+            if (Number.isFinite(video.duration)) video.currentTime = Math.min(hora, Math.max(0, video.duration - 0.1));
+            enfocar(true);
+            sincronizarVideos();
+          },
+        });
+      recorte.addEventListener("click", abrir, { signal });
+      boton?.addEventListener("click", abrir, { signal });
+
+      // Solo el ratón "pasa por encima"; con el dedo se pulsa.
+      const dentro = (nodo: EventTarget | null) => nodo instanceof Element && Boolean(nodo.closest(".recorte, [data-plano]"));
+      let encima = false;
+      marco.addEventListener(
+        "pointerover",
+        (e) => {
+          if (e.pointerType !== "mouse" || encima || !dentro(e.target)) return;
+          encima = true;
+          if (video.paused || primerPlanoAbierto()) return;
+          sonar(video, calidades.length > 0 ? calidades[calidades.length - 1]!.src : null, marcar);
+        },
+        { signal },
+      );
+      marco.addEventListener(
+        "pointerout",
+        (e) => {
+          if (!encima || dentro(e.relatedTarget)) return;
+          encima = false;
+          callar();
+          marcar("calla");
+        },
+        { signal },
+      );
+    }
+  }
+  document.addEventListener("astro:page-load", montarPlanos);
+  document.addEventListener("astro:before-swap", () => soltarPlanos?.());
+
   function sincronizarVideos() {
     const reducir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     document.querySelectorAll<HTMLVideoElement>('[data-video-modo="auto"]').forEach(video => {
@@ -250,6 +365,34 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
    */
   .blob[data-video-activo] .video {
     opacity: 1;
+  }
+
+  /* El retrato con primer plano se pulsa para acercarlo. */
+  .marco[data-con-plano] .recorte {
+    cursor: zoom-in;
+  }
+
+  /* El altavoz: una gota de vidrio sobre el retrato, bien dentro de la silueta. */
+  .altavoz {
+    position: absolute;
+    left: 30%;
+    top: 25%;
+    z-index: 2;
+    width: 2.6rem;
+    border: 0;
+    translate: -50% -50%;
+    font-size: 1.1rem;
+    cursor: zoom-in;
+  }
+
+  .altavoz:hover,
+  .altavoz:focus-visible {
+    scale: 1.08;
+  }
+
+  .altavoz:not([data-suena]) .con-sonido,
+  .altavoz[data-suena] .sin-sonido {
+    display: none;
   }
 
 </style>

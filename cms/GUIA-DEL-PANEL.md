@@ -14,6 +14,9 @@ con correo y contraseña en la dirección del panel, terminada en `/admin`.
 5. Sube su **retrato**. Después ábrelo con **Editar imagen** y arrastra el
    punto hasta su cara: el retrato se centra ahí.
 6. Si hay, sube el **vídeo** y las **fotos de su trabajo**.
+7. Si tienes ese mismo vídeo entero y con sonido, súbelo en **Vídeo con
+   sonido (primer plano)**: es lo que se oye al pasar el puntero por su
+   retrato y lo que se ve al pulsarlo. Admite varias calidades a la vez.
 
 Si todavía no ha entregado los datos de su negocio, marca **Próximamente**:
 saldrá en el listado sin ficha ni contacto.
@@ -45,7 +48,8 @@ entre los de la marca.
 ## Textos y logos
 
 En **Textos y logos** está todo lo que el sitio dice fuera de las fichas,
-repartido en pestañas: portada, listado, ficha, pie y general.
+repartido en pestañas: portada, listado, ficha, pie, reproductor de vídeo y
+general.
 
 - Lo que pongas entre asteriscos sale destacado: `Conoce a nuestros
   *emprendedores*`.
@@ -71,4 +75,9 @@ sitio hasta pulsar **Publicar**.
 - Que no aparezcan menores de edad.
 - Que no se vea nada que permita ubicar el negocio o la vivienda: fachadas,
   letreros con dirección, placas.
-- Vídeos: verticales o cuadrados, MP4, sin sonido y de menos de 8 MB.
+- Vídeo del retrato: vertical o cuadrado, MP4, sin sonido y de menos de 8 MB.
+- Vídeo con sonido: el mismo, entero (apaisado está bien) y con su audio.
+  Tiene que durar lo mismo que el del retrato, porque el sonido se le pone a
+  la par. Si lo subes en varias calidades, termina cada nombre con su alto:
+  `maria-1080.mp4`, `maria-720.mp4`, `maria-480.mp4`. Escúchalo antes: que no
+  se digan direcciones, teléfonos ni nombres de menores.

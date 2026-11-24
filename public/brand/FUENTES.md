@@ -56,12 +56,15 @@ el panel en su primer arranque y los usa el sitio cuando se construye sin panel.
 
 ## Iconos
 
-Los iconos de enviar, teléfono y reproducir (`src/components/Icono.astro`) son
+Los iconos de enviar, teléfono, reproducir y sonido (`src/components/Icono.astro`) son
 del conjunto **Plump Solid - Free**, de [Streamline](https://www.streamlinehq.com/icons/plump-solid-free),
 con licencia [Creative Commons Atribución 4.0](https://creativecommons.org/licenses/by/4.0/).
 La licencia pide reconocer la autoría: este archivo es ese reconocimiento. Si
 el sitio llega a tener una página de créditos, hay que repetirlo allí.
 
 El de reproducir es el triángulo del icono "Button Play Circle", sin su círculo.
+El de sonido es "Volume Level High"; el de silencio es ese mismo altavoz con
+un aspa en lugar de las ondas. Los de pausa y cerrar no están en el conjunto
+gratuito: se dibujaron para este sitio con el mismo trazo grueso y redondeado.
 El logotipo de WhatsApp es marca de WhatsApp LLC y se usa solo para indicar
 que el mensaje se envía por esa aplicación.
