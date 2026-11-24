@@ -1,6 +1,7 @@
 ---
 /**
- * Una fila del listado: el blob grande, y el nombre fuera de él.
+ * Una fila del listado: el blob grande, y el nombre en un cartel azul hondo
+ * pegado sobre su canto inferior.
  *
  * Quien todavía no entregó los datos de su negocio se lista igual —es parte
  * del programa— pero sin enlace y sin contacto: no se manda a nadie a un
@@ -104,6 +105,13 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
     text-decoration: none;
     /* Al volver desde una ficha se aterriza en esta tarjeta, con aire arriba. */
     scroll-margin-top: 14vh;
+    /*
+     * El cartel se mide por el ancho de la tarjeta (unidades cqi), no por el
+     * de la pantalla: una tarjeta de una columna en móvil y una de dos
+     * columnas en una tableta miden casi lo mismo, y el cartel debe caber
+     * igual en las dos.
+     */
+    container-type: inline-size;
   }
 
   /* Quien aún no tiene ficha se ve, pero un paso atrás. */
@@ -161,15 +169,48 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
   }
 
   /*
-   * El blob se dibuja dentro de una caja cuadrada pero a escala 0.9-1, así que
-   * deja aire por abajo que no es del diseño sino de su propia caja. El margen
-   * negativo compensa ese aire; se añade 1rem para separar la información.
+   * EL CARTEL. El texto no va debajo del retrato, separado de él: sube y se
+   * pega sobre su canto inferior izquierdo, como la pegatina del hero. Va en
+   * azul hondo liso (9:1 con el hueso), así que nunca cae sobre la foto y se
+   * lee igual con cualquier retrato. La subida es un porcentaje del ancho,
+   * el mismo del retrato, y todo lo de dentro escala con la tarjeta: se
+   * monta y cabe igual en cualquier pantalla.
    */
   .texto {
+    position: relative;
+    z-index: 3;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
-    margin-block-start: calc(clamp(-2.5rem, -4vw, -1rem) + 1rem);
+    width: fit-content;
+    max-width: min(88%, 34rem);
+    margin-block-start: -26%;
+    margin-inline-start: 4%;
+    padding: clamp(0.8rem, 3.6cqi, 1.5rem) clamp(1rem, 4.6cqi, 2rem) clamp(0.9rem, 4cqi, 1.6rem);
+    background: var(--df-blue-deep);
+    border-radius: 1.5rem;
+    rotate: -3deg;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.35),
+      0 1.25rem 2.5rem -1rem rgb(4 4 138 / 0.7);
+    transition: rotate var(--dur-media) var(--ease-suave);
+  }
+
+  /* Como en el hero: al pasar el puntero el cartel se endereza. */
+  .tarjeta:hover .texto,
+  .tarjeta:focus-visible .texto {
+    rotate: 0deg;
+  }
+
+  /*
+   * En móvil el retrato se sale del margen y es más ancho que la tarjeta: el
+   * cartel sube un poco más para seguir tocándolo. Alguna silueta acaba alta
+   * en su caja; con menos subida, su cartel quedaba suelto.
+   */
+  @media (max-width: 767px) {
+    .texto {
+      margin-block-start: -30%;
+    }
   }
 
   @media (max-width: 767px) {
@@ -213,13 +254,14 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
     /* Ceñido al texto: es la caja que vuela hasta la ficha (lib/viaje.ts). */
     width: fit-content;
     text-wrap: pretty;
-    font-size: var(--txt-l);
+    font-size: clamp(1.2rem, 6.4cqi, 2.6rem);
     font-weight: 700;
     line-height: 1;
   }
 
   .emprendimiento {
     margin: 0;
+    font-size: clamp(0.85rem, 4.4cqi, 1.3rem);
     color: var(--df-bone);
     opacity: 0.85;
   }
@@ -239,10 +281,13 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
   }
 
   .ver .pincel {
-    font-size: 2.2em;
+    /* Rótulo grande, pero nunca más ancho que el cartel. */
+    font-size: clamp(1.6rem, 9.4cqi, 3.2rem);
     line-height: 0.8;
     /* La letra cuelga un poco: se sube para que la flecha quede a su altura. */
     padding-block-start: 0.12em;
+    /* En una sola línea: partida, la flecha quedaba suelta al borde del cartel. */
+    white-space: nowrap;
   }
 
   .nota {
@@ -265,4 +310,5 @@ const props = e.fichaPendiente ? {} : { href: `/emprendedores/${e.slug}/` };
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     a.tarjeta:hover .retrato, a.tarjeta:focus-visible .retrato { translate: 0 -.6rem; }
   }
+
 </style>

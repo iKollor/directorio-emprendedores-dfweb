@@ -15,7 +15,6 @@
 import { Image } from "astro:assets";
 import { construirPath, generarBlob } from "../lib/blob";
 import { paraImage, type Foto } from "../lib/directorio";
-import Icono from "./Icono.astro";
 
 type Props = {
   slug: string;
@@ -145,15 +144,11 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
     </div>
   </div>
 
-  {/* El triángulo de reproducir se entiende solo: no hace falta "Ver video". */}
-  {
-    video && videoModo === "hover" && (
-      <span class="boton-icono marca-video" aria-hidden="true">
-        <Icono nombre="reproducir" />
-      </span>
-    )
-  }
-
+  {/*
+    Hubo un botón de reproducir encima del retrato. Se quitó a pedido: no
+    era un botón (el vídeo entra solo al pasar el puntero) y tapaba el
+    cartel del nombre.
+  */}
 </div>
 
 <script>
@@ -255,24 +250,6 @@ const desfaseRetrato = (retrato.rotacion + 7) * 1.7;
    */
   .blob[data-video-activo] .video {
     opacity: 1;
-  }
-
-  .marca-video {
-    position: absolute;
-    right: 9%;
-    bottom: 9%;
-    z-index: 2;
-    rotate: calc(var(--rot) * -1);
-    pointer-events: none;
-    transition:
-      opacity 0.3s var(--ease-suave),
-      scale 0.3s var(--ease-suave);
-  }
-
-  /* Mientras el vídeo corre, el cartel sobra. */
-  .marco:has([data-video-activo]) .marca-video {
-    opacity: 0;
-    scale: 0.6;
   }
 
 </style>

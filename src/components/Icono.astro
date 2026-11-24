@@ -2,7 +2,7 @@
 /**
  * Iconos del sitio, en línea y con `currentColor`.
  *
- * `enviar`, `telefono` y `reproducir` son del conjunto Plump Solid - Free de
+ * `enviar` y `telefono` son del conjunto Plump Solid - Free de
  * Streamline (CC BY 4.0, ver public/brand/FUENTES.md). `whatsapp` es el
  * logotipo de WhatsApp. Si hace falta un icono nuevo, que salga del mismo
  * conjunto: mezclar familias se nota.
@@ -10,7 +10,7 @@
  * Son decorativos por defecto (`aria-hidden`): el nombre accesible lo pone
  * quien los usa, en el enlace o el botón.
  */
-type Props = { nombre: "enviar" | "telefono" | "reproducir" | "whatsapp" };
+type Props = { nombre: "enviar" | "telefono" | "whatsapp" };
 const { nombre } = Astro.props;
 
 const ICONOS = {
@@ -24,14 +24,6 @@ const ICONOS = {
     caja: "0 0 48 48",
     trazos: [
       "M46.483 14.556C45.925 32.293 31.372 46.5 13.5 46.5c-6.833 0 -12 -5.335 -12 -12.069a4.5 4.5 0 0 1 2.829 -4.178l6.165 -2.466a5.5 5.5 0 0 1 5.932 1.217l3.076 3.077c0.136 0.136 0.289 0.152 0.382 0.124a18.545 18.545 0 0 0 12.32 -12.32c0.029 -0.094 0.013 -0.247 -0.123 -0.383l-3.077 -3.076a5.5 5.5 0 0 1 -1.217 -5.932l2.466 -6.165A4.5 4.5 0 0 1 34.431 1.5c7.365 0 12.166 5.861 12.052 13.056Z",
-    ],
-  },
-  // El triángulo del icono "Button Play Circle", sin su círculo: aquí el
-  // círculo lo pone el botón.
-  reproducir: {
-    caja: "11 11 26 26",
-    trazos: [
-      "M20.5096 14.2213c-2.4357 -0.9703 -4.7232 0.4957 -5.0757 3.0937C15.1952 19.0749 15 21.3301 15 24c0 2.6699 0.1952 4.9251 0.4339 6.685 0.3525 2.598 2.64 4.064 5.0757 3.0937 1.5341 -0.6111 3.5479 -1.528 6.1375 -2.9037 2.4459 -1.2994 4.3782 -2.4624 5.8778 -3.446 2.6528 -1.74 2.6528 -5.118 0 -6.858 -1.4996 -0.9836 -3.4319 -2.1466 -5.8778 -3.446 -2.5896 -1.3757 -4.6034 -2.2926 -6.1375 -2.9037Z",
     ],
   },
   whatsapp: {
