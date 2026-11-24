@@ -655,7 +655,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
   import type { VideoSonido } from "../lib/directorio";
   import { abrirPrimerPlano, primerPlanoAbierto } from "../lib/primerPlano";
   import { sinMovimiento } from "../lib/scroll";
-  import { callar, sonar } from "../lib/sonido";
+  import { callar, preparar, punteroSobre, sonar, vigilarSalida } from "../lib/sonido";
   import { obtenerTinta, TOPE_LUNAS, type Luna } from "../lib/tinta";
 
   gsap.registerPlugin(ScrollTrigger);
@@ -1280,17 +1280,35 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         hora: () => v.currentTime,
         calidades: c.length > 0 ? c : [{ src: v.currentSrc || v.src, alto: v.videoHeight || 720 }],
         nombre: escenas[i]?.dataset.nombre ?? "",
+        // Si ya sonaba, el primer plano se abre con ese mismo sonido; y si al
+        // volver el puntero sigue encima, sigue sonando.
+        retrato: v,
+        encima: () => i === actual && punteroSobre(recorte!),
+        alSonar: marcarSonido,
         alAbrir: () => {
-          callarRetrato();
+          esperaSonido?.kill();
+          sobreRetrato = false;
           pausar("plano", true);
-          tinta?.enfocar(false, 0.7);
+          tinta?.enfocar(false, 0.9);
         },
         // Vuelve por donde iba el vídeo grande: son la misma línea de tiempo.
         alVolver: (hora) => {
           if (i === actual && Number.isFinite(v.duration)) v.currentTime = Math.min(hora, Math.max(0, v.duration - 0.1));
-          tinta?.enfocar(true, 0.9);
+          pausar("plano", false);
+          tinta?.enfocar(true, 1.1);
         },
-        alCerrar: () => pausar("plano", false),
+        alCerrar: (suena) => {
+          pausar("plano", false);
+          if (!suena) {
+            marcarSonido("calla");
+            return;
+          }
+          sobreRetrato = true;
+          vigilarSalida(enRetrato, () => {
+            sobreRetrato = false;
+            callarRetrato();
+          });
+        },
       });
     }
 
@@ -1647,7 +1665,18 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
 
     // Solo el ratón pausa al pasar por encima: en pantallas táctiles un toque
     // no es "estar leyendo", y la pausa podía no soltarse nunca.
-    escenario.addEventListener("pointerenter", (e) => pausar("puntero", e.pointerType === "mouse"), { signal });
+    escenario.addEventListener(
+      "pointerenter",
+      (e) => {
+        pausar("puntero", e.pointerType === "mouse");
+        // El puntero ya anda cerca del retrato: su sonido se va cargando.
+        if (e.pointerType === "mouse" && !primerPlanoAbierto()) {
+          const c = calidades(actual);
+          preparar(c.length > 0 ? c[c.length - 1]!.src : null);
+        }
+      },
+      { signal },
+    );
     escenario.addEventListener("pointerleave", () => pausar("puntero", false), { signal });
     // Solo el foco de teclado pausa: un clic deja el foco en el enlace, y con
     // el ratón ya fuera la rotación se quedaba detenida para siempre.

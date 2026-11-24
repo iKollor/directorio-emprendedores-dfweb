@@ -360,18 +360,22 @@ además el mismo vídeo entero y con sonido, en una o varias calidades:
 `-480`). Con eso, en el hero y en la ficha:
 
 - **Al pasar el puntero** por el retrato, suena, y el carrusel espera. El
-  sonido sale de la versión más ligera y se mantiene a la par de la imagen,
-  así que las dos versiones tienen que durar lo mismo.
+  sonido sale de la versión más ligera y va a la par de la imagen (es el
+  retrato, mudo, el que se ajusta a él), así que las dos versiones tienen que
+  durar lo mismo. Entra y sale fundido.
 - **Al pulsarlo**, su gota sale de su sitio y crece hasta casi llenar la
   ventana, con un reproductor propio: reproducir y pausar, barra de avance,
   volumen y silencio, y calidad ("Auto" elige según el tamaño en pantalla y
-  la conexión, y baja un escalón si el vídeo se queda parado cargando). Se
-  cierra con el aspa, con Escape o pulsando fuera.
+  la conexión, y baja un escalón si el vídeo se queda parado cargando; el
+  cambio de calidad no corta la imagen ni el sonido). Se cierra con el aspa,
+  con Escape o pulsando fuera. Si el retrato ya sonaba, se abre con ese mismo
+  sonido, sin corte.
 
 Sin versión con sonido, se abre el propio vídeo del retrato, sin selector de
 calidad. Los navegadores no dejan sonar nada hasta que la persona pulsa o
 toca algo de la página: hasta entonces el altavoz del retrato sale tachado.
-La lógica está en `src/lib/sonido.ts` y `src/lib/primerPlano.ts`; la pieza y
+La lógica está en `src/lib/voz.ts` (la pista de sonido, una sola),
+`src/lib/sonido.ts` y `src/lib/primerPlano.ts`; la pieza y
 sus mandos, en `src/components/PrimerPlano.astro`. Los nombres de los mandos
 salen de "Reproductor de vídeo" en los textos del sitio.
 

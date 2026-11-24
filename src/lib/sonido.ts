@@ -2,200 +2,242 @@
  * EL SONIDO DE LOS RETRATOS. Los vídeos de los retratos van en silencio y en
  * bucle; al pasar el puntero por encima de uno, suena.
  *
- * El retrato es un recorte cuadrado y mudo. El sonido sale de la versión con
+ * El retrato es un recorte cuadrado y mudo. Lo que suena es la versión con
  * sonido del mismo vídeo (`videoSonido` en lib/directorio.ts), que tiene la
- * misma línea de tiempo: se reproduce aparte, solo el audio, y se mantiene a
- * la par del retrato. Si la persona no tiene esa versión, se le quita el
- * silencio a su propio vídeo.
+ * misma línea de tiempo, reproducida en la voz del sitio (lib/voz.ts). Si la
+ * persona no tiene esa versión, suena el propio archivo del retrato.
+ *
+ * EL SONIDO NO SE TOCA; SE AJUSTA LA IMAGEN. Para que boca y voz vayan a la
+ * par, una de las dos tiene que ceder. Antes cedía el sonido: se recolocaba
+ * cada vez que se separaba de la imagen, y cada recolocación era un corte
+ * (con el vídeo llegando por la red, varios seguidos: entraba, se iba y
+ * volvía). Ahora la voz arranca una vez, donde va el retrato, y a partir de
+ * ahí es el retrato, que es mudo, el que acelera o frena un poco para seguirla:
+ * eso no se oye ni se ve.
+ *
+ * ENTRA Y SALE FUNDIDO, nunca de golpe, y solo cuando ya está sonando de
+ * verdad (no mientras carga). Si el puntero sale y vuelve antes de que
+ * termine de apagarse, sube otra vez desde donde iba.
  *
  * LOS NAVEGADORES NO DEJAN SONAR NADA SIN UN GESTO. Pasar el puntero no cuenta
  * como gesto: hasta que la persona pulsa o toca algo de la página, pedir
  * sonido falla. Por eso `sonar` avisa de cómo quedó (`suena` o `bloqueado`) y
  * quien lo llama enseña el altavoz tachado: pulsar el retrato sí es un gesto.
- * En el primer gesto se "despierta" el reproductor de audio, que es lo que
- * pide Safari para dejarlo sonar después sin otro gesto.
- *
- * El volumen y el silencio que la persona elige en el primer plano
- * (lib/primerPlano.ts) valen también aquí, y se recuerdan en su navegador.
+ * En el primer gesto se "despiertan" los vídeos de la voz, que es lo que pide
+ * Safari para dejarlos sonar después sin otro gesto.
  */
-import { gsap } from "gsap";
+import { activa, ajustes, fijarNivel, gemela, nivel } from "./voz";
 
 export type EstadoSonido = "calla" | "suena" | "bloqueado";
 
-/** Lo que eligió la persona. Se recuerda entre visitas, si el navegador deja. */
-export const ajustes = { volumen: 1, mudo: false };
-
-try {
-  const guardado = JSON.parse(localStorage.getItem("df-sonido") ?? "null") as Partial<typeof ajustes> | null;
-  if (guardado && typeof guardado.volumen === "number") ajustes.volumen = Math.min(1, Math.max(0, guardado.volumen));
-  if (guardado && typeof guardado.mudo === "boolean") ajustes.mudo = guardado.mudo;
-} catch {
-  // Sin almacenamiento (ventana privada, bloqueado): valen los de partida.
-}
-
-export function guardarAjustes(): void {
-  try {
-    localStorage.setItem("df-sonido", JSON.stringify(ajustes));
-  } catch {
-    // No pasa nada: se pierde al cerrar.
-  }
-}
-
-/** Cuánto se pueden separar el audio y la imagen antes de recolocarlo (s). */
-const DESFASE = 0.09;
-/** Lo que tarda el audio en arrancar tras recolocarlo: se le adelanta eso (s). */
-const ARRANQUE = 0.06;
-/** Un WAV vacío, para despertar el reproductor en el primer gesto. */
+/** Lo que tarda en entrar y en salir el sonido de un retrato (s). */
+const ENTRA = 0.9;
+const SALE = 0.6;
+/** Lo que suele tardar la voz en arrancar: se la coloca ese poco por delante (s). */
+const ADELANTO = 0.1;
+/** Un WAV vacío, para despertar los vídeos de la voz en el primer gesto. */
 const SILENCIO = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
 
-let voz: HTMLAudioElement | null = null;
-let despierta = false;
-let turno: {
-  video: HTMLVideoElement;
-  propio: boolean;
+type Turno = {
+  retrato: HTMLVideoElement;
+  el: HTMLVideoElement;
   avisar: (estado: EstadoSonido) => void;
   vigia: number;
-  nivel: { v: number };
-} | null = null;
+};
+let turno: Turno | null = null;
 
-function laVoz(): HTMLAudioElement {
-  if (!voz) {
-    voz = new Audio();
-    voz.preload = "auto";
-  }
-  return voz;
-}
+/** Dónde está el puntero, por si hay que saberlo sin esperar a que se mueva. */
+const puntero = { x: -1, y: -1, raton: false };
+let despierta = false;
 
 function despertar(): void {
   if (despierta) return;
   despierta = true;
-  const a = laVoz();
-  if (turno && !turno.propio) return;
-  a.src = SILENCIO;
-  void a.play().then(
-    () => a.pause(),
-    () => {},
-  );
+  for (const el of [activa(), gemela()]) {
+    if (!el || el.getAttribute("src")) continue;
+    el.src = SILENCIO;
+    void el.play().then(
+      () => {
+        if (el.getAttribute("src") === SILENCIO) {
+          el.pause();
+          el.removeAttribute("src");
+          el.load();
+        }
+      },
+      () => {},
+    );
+  }
 }
 
 if (typeof window !== "undefined") {
-  window.addEventListener("pointerdown", despertar, { capture: true, passive: true });
+  const anotar = (e: PointerEvent) => {
+    puntero.x = e.clientX;
+    puntero.y = e.clientY;
+    puntero.raton = e.pointerType === "mouse";
+  };
+  window.addEventListener("pointermove", anotar, { capture: true, passive: true });
+  window.addEventListener(
+    "pointerdown",
+    (e) => {
+      anotar(e);
+      despertar();
+    },
+    { capture: true, passive: true },
+  );
   window.addEventListener("keydown", despertar, { capture: true, passive: true });
 }
 
-/** Quién suena: el propio vídeo o el audio aparte. */
-const fuente = () => (turno ? (turno.propio ? turno.video : laVoz()) : null);
+/**
+ * ¿Está el ratón sobre este retrato? Por geometría (la gota es casi un
+ * círculo), porque con el primer plano abierto la página de debajo no recibe
+ * el puntero y no se le puede preguntar.
+ */
+export function punteroSobre(caja: Element): boolean {
+  if (!puntero.raton) return false;
+  const r = caja.getBoundingClientRect();
+  const dx = (puntero.x - (r.left + r.width / 2)) / (r.width * 0.45);
+  const dy = (puntero.y - (r.top + r.height / 2)) / (r.height * 0.45);
+  return dx * dx + dy * dy < 1;
+}
 
-function subir(): void {
-  if (!turno) return;
-  const { nivel } = turno;
-  gsap.killTweensOf(nivel);
-  gsap.to(nivel, {
-    v: 1,
-    duration: 0.45,
-    ease: "power1.out",
-    onUpdate: () => {
-      const f = fuente();
-      if (f) f.volume = nivel.v * ajustes.volumen;
-    },
-  });
+/** El retrato, mudo, sigue a la voz: acelera o frena un poco, sin que se note. */
+function acompasar({ retrato, el }: Turno): void {
+  // Si el retrato se para (pestaña oculta, fuera de pantalla), la voz espera.
+  if (retrato.paused || retrato.ended) {
+    if (!el.paused) el.pause();
+    return;
+  }
+  if (el.paused) {
+    void el.play().catch(() => {});
+    return;
+  }
+  const dura = el.duration;
+  if (!Number.isFinite(dura) || dura <= 0) return;
+  let d = retrato.currentTime - el.currentTime;
+  // Los dos van en bucle: al dar la vuelta uno antes que otro, no es un desfase.
+  if (d > dura / 2) d -= dura;
+  if (d < -dura / 2) d += dura;
+  if (Math.abs(d) > 0.6) {
+    retrato.playbackRate = 1;
+    retrato.currentTime = Math.min(el.currentTime + 0.04, Math.max(0, retrato.duration - 0.05));
+  } else {
+    retrato.playbackRate = Math.min(1.12, Math.max(0.88, 1 - d * 0.6));
+  }
+}
+
+function seguir(mio: Turno): void {
+  window.clearInterval(mio.vigia);
+  mio.vigia = window.setInterval(() => turno === mio && acompasar(mio), 200);
+  acompasar(mio);
+}
+
+/**
+ * Va cargando el sonido de un retrato antes de que haga falta (cuando el
+ * puntero se acerca): así, al llegar, entra sin espera. No suena nada.
+ */
+export function preparar(src: string | null): void {
+  const el = activa();
+  if (!el || !src || turno || ajustes.mudo || !el.paused) return;
+  const destino = new URL(src, location.href).href;
+  if (el.src === destino) return;
+  fijarNivel(el, 0);
+  el.preload = "auto";
+  el.src = destino;
 }
 
 /**
  * Hace sonar un retrato. `src` es su versión con sonido; sin ella, suena el
- * propio vídeo. `avisar` recibe cómo quedó, también si después cambia.
+ * propio archivo. `avisar` recibe cómo quedó.
  */
-export function sonar(video: HTMLVideoElement, src: string | null, avisar: (estado: EstadoSonido) => void): void {
+export function sonar(retrato: HTMLVideoElement, src: string | null, avisar: (estado: EstadoSonido) => void): void {
+  if (turno?.retrato === retrato) return;
   callar();
-  if (ajustes.mudo) {
+  const el = activa();
+  if (!el || ajustes.mudo) {
     avisar("bloqueado");
     return;
   }
-  const mio = { video, propio: !src, avisar, vigia: 0, nivel: { v: 0 } };
+  const destino = new URL(src ?? (retrato.currentSrc || retrato.src), location.href).href;
+  const mio: Turno = { retrato, el, avisar, vigia: 0 };
   turno = mio;
-  const sigue = () => turno === mio;
-  const bloqueado = () => {
-    if (!sigue()) return;
-    callar();
-    avisar("bloqueado");
-  };
 
-  if (!src) {
-    // Su propio vídeo. Sin gesto previo el navegador lo pausa al quitarle el
-    // silencio: si pasa, se le devuelve y sigue reproduciéndose en silencio.
-    video.volume = 0;
-    video.muted = false;
-    mio.vigia = window.setTimeout(() => {
-      if (!sigue()) return;
-      if (video.paused) {
-        video.muted = true;
-        void video.play().catch(() => {});
-        bloqueado();
-        return;
-      }
-      avisar("suena");
-      subir();
-    }, 140);
-    return;
+  // Si es la misma pista y aún se estaba apagando, sube otra vez desde donde iba.
+  const yaSuena = el.src === destino && !el.paused && !el.ended;
+  el.loop = true;
+  if (!yaSuena) {
+    fijarNivel(el, 0);
+    if (el.src !== destino) el.src = destino;
+    const situar = () => {
+      if (Number.isFinite(el.duration) && el.duration > 0) el.currentTime = (retrato.currentTime + ADELANTO) % el.duration;
+    };
+    if (el.readyState >= 1) situar();
+    else el.addEventListener("loadedmetadata", situar, { once: true });
   }
-
-  const a = laVoz();
-  const destino = new URL(src, location.href).href;
-  if (a.src !== destino) a.src = destino;
-  a.loop = false;
-  a.muted = false;
-  a.volume = 0;
-  const alinear = () => {
-    if (!Number.isFinite(video.currentTime)) return;
-    if (Math.abs(a.currentTime - video.currentTime) > DESFASE) {
-      try {
-        a.currentTime = video.currentTime + ARRANQUE;
-      } catch {
-        // Todavía sin metadatos: se alinea en la siguiente vuelta.
-      }
-    }
-  };
-  alinear();
-  void a.play().then(() => {
-    if (!sigue()) return;
-    alinear();
-    avisar("suena");
-    subir();
-    // A la par del retrato: si este se pausa o vuelve a empezar, el audio
-    // hace lo mismo.
-    mio.vigia = window.setInterval(() => {
-      if (!sigue()) return;
-      if (video.paused) {
-        if (!a.paused) a.pause();
-        return;
-      }
-      alinear();
-      if (a.paused) void a.play().catch(() => {});
-    }, 300);
-  }, bloqueado);
+  // `play` avisa cuando ya suena de verdad: hasta entonces no se oye nada.
+  void (yaSuena ? Promise.resolve() : el.play()).then(
+    () => {
+      if (turno !== mio) return;
+      avisar("suena");
+      nivel(el, 1, ENTRA);
+      seguir(mio);
+    },
+    () => {
+      if (turno !== mio) return;
+      turno = null;
+      avisar("bloqueado");
+    },
+  );
 }
 
-/** Deja de sonar, bajando el volumen en vez de cortar. */
-export function callar(): void {
+/** Deja de sonar, apagándose poco a poco. */
+export function callar(segundos = SALE): void {
   if (!turno) return;
-  const { video, propio, vigia, nivel } = turno;
-  const f = fuente()!;
+  const { retrato, el, vigia } = turno;
   turno = null;
-  window.clearTimeout(vigia);
   window.clearInterval(vigia);
-  gsap.killTweensOf(nivel);
-  gsap.to(nivel, {
-    v: 0,
-    duration: 0.22,
-    ease: "power1.in",
-    onUpdate: () => {
-      // Si mientras tanto empezó a sonar otro retrato, no se le toca.
-      if (!turno || fuente() !== f) f.volume = nivel.v * ajustes.volumen;
+  retrato.playbackRate = 1;
+  nivel(el, 0, segundos, () => el.pause());
+}
+
+/**
+ * El primer plano se queda con la voz TAL COMO VA: si este retrato estaba
+ * sonando, devuelve su vídeo, que sigue sin corte. Si no, no devuelve nada.
+ */
+export function cederVoz(retrato: HTMLVideoElement): HTMLVideoElement | null {
+  if (!turno || turno.retrato !== retrato || turno.el.paused || turno.el.readyState < 2) return null;
+  const { el, vigia } = turno;
+  turno = null;
+  window.clearInterval(vigia);
+  retrato.playbackRate = 1;
+  el.loop = false;
+  return el;
+}
+
+/**
+ * Al cerrar el primer plano con el puntero sobre el retrato: la voz sigue
+ * sonando y el retrato vuelve a ir a su par.
+ */
+export function retomarVoz(retrato: HTMLVideoElement, el: HTMLVideoElement, avisar: (estado: EstadoSonido) => void): void {
+  callar();
+  const mio: Turno = { retrato, el, avisar, vigia: 0 };
+  turno = mio;
+  el.loop = true;
+  avisar("suena");
+  nivel(el, 1, 0.4);
+  seguir(mio);
+}
+
+/**
+ * Tras volver del primer plano el navegador no avisa de que el puntero "sale"
+ * de un retrato en el que nunca le vio entrar. Se mira el primer movimiento:
+ * si ya no está encima, se llama a `alSalir`.
+ */
+export function vigilarSalida(dentro: (nodo: EventTarget | null) => boolean, alSalir: () => void): void {
+  window.addEventListener(
+    "pointermove",
+    (e) => {
+      if (!dentro(e.target)) alSalir();
     },
-    onComplete: () => {
-      if (turno && fuente() === f) return;
-      if (propio) video.muted = true;
-      else f.pause();
-    },
-  });
+    { once: true, passive: true },
+  );
 }

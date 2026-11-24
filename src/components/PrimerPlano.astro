@@ -44,7 +44,11 @@ const t = (await getSitio(Astro.locals)).reproductor;
     </svg>
     <div class="vidrio" style="clip-path: url(#recorte-primer-plano)">
       <canvas class="imagen" data-fotograma aria-hidden="true"></canvas>
-      <video class="imagen" data-video playsinline disablepictureinpicture></video>
+      {/* Dos vídeos: el que suena y el que prepara otra calidad (lib/voz.ts). */}
+      <div class="pantalla" data-pantalla>
+        <video class="imagen" data-video playsinline disablepictureinpicture></video>
+        <video class="imagen" data-video playsinline disablepictureinpicture></video>
+      </div>
       {/* La luz del canto: clara arriba a la izquierda, sombra abajo a la derecha. */}
       <svg class="luz" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <path data-luz d="" fill="none" stroke="url(#luz-primer-plano)" vector-effect="non-scaling-stroke"></path>
@@ -152,7 +156,9 @@ const t = (await getSitio(Astro.locals)).reproductor;
     scale: calc(1 + var(--bruma-n, 0) * 0.08);
   }
 
-  video.imagen {
+  .pantalla {
+    position: absolute;
+    inset: 0;
     opacity: var(--mezcla, 0);
     cursor: pointer;
   }
