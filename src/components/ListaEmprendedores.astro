@@ -16,6 +16,7 @@
  * quien navegaba.
  */
 import Forma from "./Forma.astro";
+import Icono from "./Icono.astro";
 import TarjetaEmprendedor from "./TarjetaEmprendedor.astro";
 import {
   clavesCategoriaReales,
@@ -36,6 +37,17 @@ const textos = (await getSitio(Astro.locals)).listado;
 const categoriasPresentes = clavesCategoriaReales().filter((c) =>
   emprendedores.some((e) => e.categoria === c),
 );
+/**
+ * LO QUE SE BUSCA de cada persona: su nombre, su negocio, su categoría y su
+ * descripción, en minúsculas y sin tildes (así "peluqueria" encuentra
+ * "peluquería"). La comunidad no: la ubicación no se publica.
+ */
+const sinTildes = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const textoDe = (e: Emprendedor) =>
+  sinTildes([e.nombre, e.emprendimiento ?? "", categoria(e.categoria).etiqueta, ...e.parrafos].join(" "))
+    .replace(/\s+/g, " ")
+    .trim();
+
 const comunidadesPresentes = MOSTRAR_COMUNIDAD
   ? COMUNIDADES.filter((c) => emprendedores.some((e) => e.comunidad === c))
   : [];
@@ -59,7 +71,28 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     <p data-anim="lectura">{lineas(textos.bajada).map((l, i) => (<>{i > 0 && <br />}{l}</>))}</p>
   </div>
 
-  <div class="filtros" data-filtros data-anim="pop" data-anim-hijos="legend, button">
+  <div class="filtros" data-filtros data-anim="pop" data-anim-hijos="legend, button, .buscador">
+    {/*
+      EL BUSCADOR: el campo de búsqueda de siempre, con su lupa y su botón de
+      borrar. Filtra mientras se escribe y se suma a la categoría elegida.
+    */}
+    <div class="buscador" role="search">
+      <label class="solo-lectores" for="buscar-emprendedores">{textos.buscar}</label>
+      <span class="lupa" aria-hidden="true"><Icono nombre="buscar" /></span>
+      <input
+        id="buscar-emprendedores"
+        type="search"
+        data-buscar
+        placeholder={textos.buscar}
+        autocomplete="off"
+        spellcheck="false"
+        enterkeyhint="search"
+      />
+      <button class="borrar boton-icono vidrio" type="button" data-borrar-busqueda aria-label={textos.borrarBusqueda} hidden>
+        <Icono nombre="cerrar" />
+      </button>
+    </div>
+
     {comunidadesPresentes.length > 0 && (
     <fieldset>
       <legend>Comunidad</legend>
@@ -114,7 +147,7 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   <div class="grid" data-grid>
     {
       emprendedores.map((e, i) => (
-        <div class="celda" data-columna={i % 2 === 0 ? "izq" : "der"}>
+        <div class="celda" data-columna={i % 2 === 0 ? "izq" : "der"} data-texto={textoDe(e)}>
           <div class="flota">
             <TarjetaEmprendedor emprendedor={e} indice={i} acento={acentoDe(i)} />
           </div>
@@ -193,6 +226,72 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     opacity: 0.9;
   }
 
+  /* El buscador va el primero, en su propia fila: es lo que más se usa. */
+  .buscador {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 100%;
+    max-width: 30rem;
+  }
+
+  .buscador input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 3.2rem 0 2.9rem;
+    border: 1.5px solid var(--df-bone);
+    border-radius: var(--radio-pildora);
+    background: rgb(239 238 237 / 0.08);
+    color: var(--df-bone);
+    font: inherit;
+    font-size: var(--txt-s);
+    font-weight: 500;
+    appearance: none;
+    transition: background var(--dur-rapida) var(--ease-suave);
+  }
+
+  .buscador input::placeholder {
+    color: rgb(239 238 237 / 0.78);
+    font-weight: 400;
+  }
+
+  .buscador input:hover,
+  .buscador input:focus {
+    background: rgb(239 238 237 / 0.15);
+  }
+
+  .buscador input:focus-visible {
+    outline: 3px solid var(--df-yellow);
+    outline-offset: 3px;
+  }
+
+  /* El aspa propia del navegador no se ve sobre el azul: va la del sitio. */
+  .buscador input::-webkit-search-cancel-button,
+  .buscador input::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .lupa {
+    position: absolute;
+    left: 1.05rem;
+    font-size: 1.05rem;
+    pointer-events: none;
+  }
+
+  .buscador .borrar {
+    position: absolute;
+    right: 0.3rem;
+    width: 2.4rem;
+    font-size: 0.8rem;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .buscador .borrar[hidden] {
+    display: none;
+  }
+
   .opciones {
     /* Referencia de posición de sus botones (alaVista mide desde aquí). */
     position: relative;
@@ -217,6 +316,10 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     /* Un fieldset en una columna flexible se estira hasta su contenido: se le fija el ancho de la fila. */
     .filtros > fieldset {
       width: 100%;
+    }
+
+    .buscador {
+      max-width: none;
     }
 
     .opciones {
@@ -518,17 +621,26 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     }
 
     // ---- Filtros ---------------------------------------------------------
+    const campo = seccion.querySelector<HTMLInputElement>("[data-buscar]");
+    const borrar = seccion.querySelector<HTMLButtonElement>("[data-borrar-busqueda]");
+    const sinTildes = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
     const activos = {
       comunidad: seccion.querySelector<HTMLElement>('[data-filtro="comunidad"][aria-pressed="true"]')?.dataset.valor ?? "todas",
       categoria: seccion.querySelector<HTMLElement>('[data-filtro="categoria"][aria-pressed="true"]')?.dataset.valor ?? "todas",
+      // Lo escrito, en palabras sueltas: tienen que estar todas.
+      palabras: campo ? sinTildes(campo.value).split(/\s+/).filter(Boolean) : ([] as string[]),
     };
+    const hayFiltro = () => activos.comunidad !== "todas" || activos.categoria !== "todas" || activos.palabras.length > 0;
 
     const coincide = (celda: HTMLElement) => {
       const t = celda.querySelector<HTMLElement>("[data-tarjeta]");
       if (!t) return false;
+      const texto = celda.dataset.texto ?? "";
       return (
         (activos.comunidad === "todas" || t.dataset.comunidad === activos.comunidad) &&
-        (activos.categoria === "todas" || t.dataset.categoria === activos.categoria)
+        (activos.categoria === "todas" || t.dataset.categoria === activos.categoria) &&
+        activos.palabras.every((p) => texto.includes(p))
       );
     };
 
@@ -576,7 +688,7 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
         // de los retratos (lib/retratos.ts): entran ya enfocados o en tinta
         // según les toque, sin cambiar de golpe después.
         ScrollTrigger.refresh();
-        limpiarBoton?.toggleAttribute("hidden", activos.comunidad === "todas" && activos.categoria === "todas");
+        limpiarBoton?.toggleAttribute("hidden", !hayFiltro());
       };
 
       const rematar = () => {
@@ -656,9 +768,51 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
       }, { signal });
     });
 
+    /*
+     * BUSCAR MIENTRAS SE ESCRIBE, con un respiro: el listado cambia cuando se
+     * deja de teclear un momento, no con cada letra (cada cambio apaga y
+     * enciende las tarjetas).
+     */
+    let espera = 0;
+    const buscar = () => {
+      window.clearTimeout(espera);
+      const palabras = campo ? sinTildes(campo.value).split(/\s+/).filter(Boolean) : [];
+      if (palabras.join(" ") === activos.palabras.join(" ")) return;
+      activos.palabras = palabras;
+      contexto?.add(aplicarFiltros);
+    };
+    const vaciarCampo = () => {
+      if (!campo) return;
+      campo.value = "";
+      borrar?.setAttribute("hidden", "");
+    };
+    campo?.addEventListener("input", () => {
+      borrar?.toggleAttribute("hidden", campo.value === "");
+      window.clearTimeout(espera);
+      espera = window.setTimeout(buscar, 220);
+    }, { signal });
+    campo?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        buscar();
+      } else if (e.key === "Escape" && campo.value) {
+        e.preventDefault();
+        vaciarCampo();
+        buscar();
+      }
+    }, { signal });
+    borrar?.addEventListener("click", () => {
+      vaciarCampo();
+      buscar();
+      campo?.focus();
+    }, { signal });
+    signal.addEventListener("abort", () => window.clearTimeout(espera), { once: true });
+
     seccion.querySelectorAll<HTMLButtonElement>("[data-limpiar], [data-restablecer]").forEach(boton => {
       boton.addEventListener("click", () => {
         activos.comunidad = activos.categoria = "todas";
+        vaciarCampo();
+        activos.palabras = [];
         seccion.querySelectorAll<HTMLButtonElement>("[data-filtro]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.valor === "todas")));
         seccion.querySelectorAll<HTMLElement>("[data-opciones]").forEach((fila) => fila.scrollTo({ left: 0, behavior: sinMovimiento() ? "auto" : "smooth" }));
         contexto?.add(aplicarFiltros);

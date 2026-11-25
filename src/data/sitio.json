@@ -26,8 +26,10 @@
     "conocelo": "¡Conoce su negocio!",
     "proximamente": "Próximamente",
     "notaProximamente": "Su ficha estará disponible pronto.",
+    "buscar": "Busca por nombre, negocio o servicio",
+    "borrarBusqueda": "Borrar la búsqueda",
     "vacioTitulo": "Aún no hay coincidencias.",
-    "vacioTexto": "Prueba otra categoría para conocer más negocios.",
+    "vacioTexto": "Prueba con otra palabra o categoría.",
     "vacioBoton": "Ver todos los emprendedores"
   },
   "ficha": {

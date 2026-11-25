@@ -5,6 +5,7 @@
  * `enviar`, `telefono`, `sonido`, `reproducir`, `completa` y `reducir` son del conjunto Plump
  * Solid - Free de Streamline (CC BY 4.0, ver public/brand/FUENTES.md).
  * `silencio` es el altavoz de `sonido` con un aspa en lugar de las ondas;
+ * `buscar` es la lupa de "Zoom In" del mismo conjunto, sin el signo más.
  * `pausa` y `cerrar` no existen en ese conjunto y están dibujados aquí con
  * su mismo trazo grueso y redondeado. `whatsapp` es el logotipo de WhatsApp. Si hace falta un icono nuevo, que salga del mismo
  * conjunto: mezclar familias se nota.
@@ -12,10 +13,18 @@
  * Son decorativos por defecto (`aria-hidden`): el nombre accesible lo pone
  * quien los usa, en el enlace o el botón.
  */
-type Props = { nombre: "enviar" | "telefono" | "whatsapp" | "sonido" | "silencio" | "reproducir" | "pausa" | "cerrar" | "completa" | "reducir" };
+type Props = { nombre: "buscar" | "enviar" | "telefono" | "whatsapp" | "sonido" | "silencio" | "reproducir" | "pausa" | "cerrar" | "completa" | "reducir" };
 const { nombre } = Astro.props;
 
 const ICONOS = {
+  buscar: {
+    caja: "0 0 48 48",
+    // El aro es un hueco: necesita la regla par-impar, como en el original.
+    regla: "evenodd",
+    trazos: [
+      "M22 1.5C10.678 1.5 1.5 10.678 1.5 22S10.678 42.5 22 42.5a20.4 20.4 0 0 0 10.668 -2.991c0.292 0.349 0.581 0.698 0.87 1.047l0.13 0.156c1.258 1.517 2.516 3.035 3.898 4.535 1.947 2.114 5.044 2.429 7.194 0.331a45.92 45.92 0 0 0 0.819 -0.818c2.097 -2.15 1.782 -5.247 -0.332 -7.194 -1.5 -1.382 -3.018 -2.64 -4.535 -3.897l-0.157 -0.13 -1.047 -0.87A20.404 20.404 0 0 0 42.5 22c0 -11.322 -9.178 -20.5 -20.5 -20.5ZM35 22c0 7.18 -5.82 13 -13 13S9 29.18 9 22 14.82 9 22 9s13 5.82 13 13Z",
+    ],
+  },
   enviar: {
     caja: "0 0 48 48",
     trazos: [
@@ -88,10 +97,11 @@ const ICONOS = {
 } as const;
 
 const icono = ICONOS[nombre];
+const regla = "regla" in icono ? icono.regla : undefined;
 ---
 
 <svg class="icono" viewBox={icono.caja} aria-hidden="true" focusable="false" fill="currentColor">
-  {icono.trazos.map((d) => <path d={d} />)}
+  {icono.trazos.map((d) => <path d={d} fill-rule={regla} clip-rule={regla} />)}
 </svg>
 
 <style>
