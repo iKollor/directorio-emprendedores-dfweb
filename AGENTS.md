@@ -97,9 +97,15 @@ retrato continúa la misma (antes se cargaba otra desde cero y el sonido se
 apagaba y volvía a entrar). Si la voz se queda cargando (red lenta), el retrato NO la
 espera: sigue a su aire y se coloca una sola vez donde va ella cuando vuelve
 a andar; esperándola se quedaba clavado, y parecía que pasar el puntero
-pausaba el vídeo. Una luna que se está fundiendo con la gota grande no es un
-botón: está encima del retrato, medio invisible, y se llevaba su clic. Los mandos son los de cualquier reproductor (reproducir, avance,
-altavoz y nivel, calidad con "Auto", cerrar) vestidos con el material del
+pausaba el vídeo. MIENTRAS EL VÍDEO CARGA no hay mandos: la gota espera en
+la bruma, que es la señal de que carga, y los mandos aparecen (ni se ven ni
+se pulsan antes) cuando la imagen enfoca; el aspa de cerrar está desde el
+principio. En el iPhone un vídeo puede decir que ya anda sin haber pintado
+nada: el material solo lo usa cuando consta que pintó un fotograma, y hasta
+entonces pone su foto (las fotos de las dos personas siguientes se cargan
+por adelantado). Sin eso, el retrato se quedaba en una gota azul vacía. Una luna que se está fundiendo con la gota grande no es un
+botón: está encima del retrato, medio invisible, y se llevaba su clic. Los mandos son los de cualquier reproductor (reproducir, volver al inicio,
+avance, altavoz y nivel, calidad con "Auto", cerrar) vestidos con el material del
 sitio: píldora de vidrio, lo andado es una pincelada amarilla y el tirador,
 una gota. El retrato lleva un altavoz de vidrio (`.boton-icono.vidrio`) que
 dice si suena y ES UN INTERRUPTOR DE SONIDO, como el de cualquier

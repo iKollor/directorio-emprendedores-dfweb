@@ -8,6 +8,7 @@ import * as migration_20261124_183244_pantalla_completa from './20261124_183244_
 import * as migration_20261125_051117_mensaje_whatsapp from './20261125_051117_mensaje_whatsapp';
 import * as migration_20261125_054543_lema_escuela from './20261125_054543_lema_escuela';
 import * as migration_20261125_164052_buscador from './20261125_164052_buscador';
+import * as migration_20261125_172048_reproductor_reiniciar from './20261125_172048_reproductor_reiniciar';
 
 export const migrations = [
   {
@@ -58,6 +59,11 @@ export const migrations = [
   {
     up: migration_20261125_164052_buscador.up,
     down: migration_20261125_164052_buscador.down,
-    name: '20261125_164052_buscador'
+    name: '20261125_164052_buscador',
+  },
+  {
+    up: migration_20261125_172048_reproductor_reiniciar.up,
+    down: migration_20261125_172048_reproductor_reiniciar.down,
+    name: '20261125_172048_reproductor_reiniciar'
   },
 ];

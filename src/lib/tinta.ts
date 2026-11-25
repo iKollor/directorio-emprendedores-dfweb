@@ -61,6 +61,31 @@ import { AGITADOS, CONTORNOS, MUESTRAS_CONTORNO } from "./blob";
 type Imagen = HTMLImageElement | HTMLCanvasElement;
 type Fuente = Imagen | HTMLVideoElement;
 
+/**
+ * VÍDEOS QUE YA HAN ENSEÑADO UN FOTOGRAMA. En el iPhone, `play()` responde y
+ * el vídeo dice tener datos antes de haber pintado nada: copiado a la
+ * textura en ese momento sale negro, y el retrato se veía como una gota azul
+ * vacía. Un vídeo solo se usa cuando consta que ya pintó un fotograma; hasta
+ * entonces va su foto.
+ */
+const conFotograma = new WeakSet<HTMLVideoElement>();
+
+function vigilarFotograma(video: HTMLVideoElement, alLlegar: () => void, signal: AbortSignal): void {
+  if (conFotograma.has(video)) return;
+  const llega = () => {
+    if (conFotograma.has(video)) return;
+    conFotograma.add(video);
+    alLlegar();
+  };
+  const conCallback = video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number };
+  if (typeof conCallback.requestVideoFrameCallback === "function") conCallback.requestVideoFrameCallback(llega);
+  // Por si no hay requestVideoFrameCallback: que el tiempo haya avanzado.
+  const avanza = () => {
+    if (video.currentTime > 0 && !video.paused) llega();
+  };
+  video.addEventListener("timeupdate", avanza, { signal });
+}
+
 export type OpcionesTinta = {
   /** Una imagen por persona. En los retratos sueltos, una sola. */
   fuentes: Imagen[];
@@ -870,7 +895,7 @@ function crearMotor(): Motor | null {
     let entrada = texturas.get(fuente);
 
     if (esVideo) {
-      if (fuente.readyState < 2 || !fuente.videoWidth) return null;
+      if (fuente.readyState < 2 || !fuente.videoWidth || !conFotograma.has(fuente)) return null;
       gl!.activeTexture(gl!.TEXTURE0);
       if (!entrada) {
         const textura = gl!.createTexture()!;
@@ -1316,6 +1341,7 @@ function crearMotor(): Motor | null {
         pieza.videos[indice] = video;
         // Al reanudarse tras una pausa hay que despertar el bucle de dibujo.
         video?.addEventListener("playing", marcar, { signal: avisos.signal });
+        if (video) vigilarFotograma(video, marcar, avisos.signal);
         marcar();
       },
 

@@ -78,6 +78,10 @@ const t = sitio.reproductor;
       <span class="si-suena"><Icono nombre="pausa" /></span>
       <span class="si-parado"><Icono nombre="reproducir" /></span>
     </button>
+    {/* Volver al inicio: la flecha que vuelve, la de cualquier reproductor. */}
+    <button type="button" class="mando" data-reiniciar aria-label={t.reiniciar}>
+      <Icono nombre="reiniciar" />
+    </button>
 
     {/*
       El carril y lo andado son piezas aparte: dibujados como adornos del
@@ -314,7 +318,11 @@ const t = sitio.reproductor;
     background: rgb(255 255 255 / 0.14);
   }
 
+  /* En línea: lleva dos piezas ("Auto ·" y la calidad) y en rejilla salían una encima de otra. */
   .mando.letra {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 0 0.8rem;
     font-size: 0.875rem;
     font-weight: 600;
@@ -523,10 +531,14 @@ const t = sitio.reproductor;
   .primer-plano[data-en-mano] .mandos {
     inset: auto 10px calc(12px + env(safe-area-inset-bottom, 0px));
     display: grid;
-    grid-template-columns: auto 1fr auto 1fr auto;
+    /* Las dos columnas de en medio, iguales aunque el contenido no lo sea:
+       así reproducir queda en el centro exacto. */
+    grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
+    /* El tiempo, al final de la barra; abajo, simétricos: silencio y pantalla
+       completa fuera, volver al inicio y calidad dentro, reproducir en medio. */
     grid-template-areas:
-      "avance avance avance avance avance"
-      "mudo tiempo play calidad completa";
+      "avance avance avance avance tiempo"
+      "mudo reiniciar play calidad completa";
     align-items: center;
     gap: 0 0.5rem;
     min-height: 0;
@@ -563,8 +575,17 @@ const t = sitio.reproductor;
 
   .primer-plano[data-en-mano] .tiempo {
     grid-area: tiempo;
-    justify-self: center;
+    justify-self: end;
+    padding-inline-start: 0.6rem;
     font-size: 0.9375rem;
+  }
+
+  .primer-plano[data-en-mano] [data-reiniciar] {
+    grid-area: reiniciar;
+    justify-self: center;
+    min-width: 3rem;
+    height: 3rem;
+    font-size: 1.3rem;
   }
 
   .primer-plano[data-en-mano] .calidad {
@@ -572,10 +593,19 @@ const t = sitio.reproductor;
     justify-self: center;
   }
 
+  /* En un teléfono estrecho (iPhone SE) "Auto · 480p" se montaba sobre reproducir: solo la calidad. */
+  @media (max-width: 359px) {
+    .primer-plano[data-en-mano] :global(.auto-prefijo) {
+      display: none;
+    }
+  }
+
   .primer-plano[data-en-mano] .mando.letra {
     min-height: 3rem;
-    padding: 0 0.75rem;
-    font-size: 0.9375rem;
+    max-width: 100%;
+    padding: 0 0.6rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
     background: rgb(255 255 255 / 0.12);
   }
 

@@ -575,6 +575,7 @@ export interface Sitio {
     titulo?: string | null;
     reproducir?: string | null;
     pausar?: string | null;
+    reiniciar?: string | null;
     cerrar?: string | null;
     sonido?: string | null;
     silenciar?: string | null;
@@ -678,6 +679,7 @@ export interface SitioSelect<T extends boolean = true> {
         titulo?: T;
         reproducir?: T;
         pausar?: T;
+        reiniciar?: T;
         cerrar?: T;
         sonido?: T;
         silenciar?: T;

@@ -382,6 +382,17 @@ export function montarPrimerPlano(): void {
   window.addEventListener("pointercancel", soltarTiron, { signal });
 
   pieza("reproducir").addEventListener("click", alternar, { signal });
+  // VOLVER AL INICIO: al principio y, si estaba parado, a andar.
+  pieza("reiniciar").addEventListener(
+    "click",
+    () => {
+      const v = activa();
+      if (!v) return;
+      v.currentTime = 0;
+      if (v.paused || v.ended || quiereParar) alternar();
+    },
+    { signal },
+  );
   pieza("pantalla").addEventListener("click", () => !tragarToque && alternar(), { signal });
 
   // ---- Pantalla completa ---------------------------------------------------
@@ -788,9 +799,15 @@ function pintarCalidad(): void {
   const auto = dialogo.dataset.tAuto!;
   const nombre = (c: VideoSonido) => `${c.alto}p`;
   pieza("calidad").hidden = calidades.length < 2;
-  boton.textContent = abierto.auto
-    ? `${auto} · ${nombre(calidades[abierto.actual]!)}`
-    : nombre(calidades[abierto.actual]!);
+  // "Auto ·" va aparte: en un teléfono estrecho no cabe y se queda solo la calidad.
+  const ahora = nombre(calidades[abierto.actual]!);
+  if (abierto.auto) {
+    const prefijo = document.createElement("span");
+    prefijo.className = "auto-prefijo";
+    // Espacio fijo al final: en una fila flexible el espacio normal se pierde.
+    prefijo.textContent = `${auto} ·\u00a0`;
+    boton.replaceChildren(prefijo, ahora);
+  } else boton.replaceChildren(ahora);
   lista.replaceChildren(
     ...[{ valor: "auto", texto: auto, marcada: abierto.auto }]
       .concat(
@@ -1069,11 +1086,17 @@ export function abrirPrimerPlano(origen: OrigenPlano): boolean {
   gsap.set(gota, { autoAlpha: 1 });
   gsap.set(velo, { autoAlpha: 0 });
   gsap.set(mandos, { opacity: 0, y: 14 });
+  // Los mandos del vídeo, escondidos de verdad (ni se ven ni se pulsan)
+  // hasta que el vídeo está listo; el aspa y el cartel salen como siempre.
+  const panel = pieza("mandos");
+  gsap.set(panel, { autoAlpha: 0 });
   dialogo.showModal();
   // Otra vez, ya abierta: cerrada, la pieza no tiene medidas.
   colocarMandos();
   // El foco, en el botón de pausa: así la barra espaciadora ya lo maneja.
-  pieza("reproducir").focus({ preventScroll: true });
+  // El foco, en el aspa mientras el vídeo carga (los mandos aún no están);
+  // al aparecer ellos, pasa al botón de pausa.
+  pieza("cerrar").focus({ preventScroll: true });
   obtenerScroll()?.stop();
   gsap.ticker.add(pintar);
 
@@ -1095,6 +1118,21 @@ export function abrirPrimerPlano(origen: OrigenPlano): boolean {
     enfocado = true;
     gsap.to(estado, { mezcla: 1, duration: 0.45, ease: "sine.inOut" });
     gsap.to(estado, { bruma: 0, duration: 0.85, ease: "sine.inOut", delay: 0.12 });
+    // LOS MANDOS, CUANDO HAY VÍDEO. Mientras carga, la gota espera en la
+    // bruma (es la señal de que carga) y no hay mandos que no harían nada.
+    // Aparecen a la vez que la imagen enfoca.
+    gsap.to(panel, {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.8,
+      ease: "expo.out",
+      delay: 0.15,
+      onComplete: () => {
+        // El foco pasa al botón de pausa si seguía en el aspa: así la barra
+        // espaciadora ya lo maneja. Al terminar: escondido no se puede enfocar.
+        if (document.activeElement === pieza("cerrar")) pieza("reproducir").focus({ preventScroll: true });
+      },
+    });
   };
 
   const quiere = elegirAuto(origen.calidades, hasta.alto);
@@ -1136,7 +1174,11 @@ export function abrirPrimerPlano(origen: OrigenPlano): boolean {
     estado.bruma = BRUMA * 0.5;
     intentar();
   }
-  linea.to(mandos, { opacity: 1, y: 0, duration: 0.8, ease: "expo.out", stagger: 0.07 }, quieto ? 0.1 : 0.6);
+  linea.to(
+    mandos.filter((m) => m !== panel),
+    { opacity: 1, y: 0, duration: 0.8, ease: "expo.out", stagger: 0.07 },
+    quieto ? 0.1 : 0.6,
+  );
 
   origen.alAbrir?.();
   return true;
