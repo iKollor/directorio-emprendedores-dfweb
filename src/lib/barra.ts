@@ -1,6 +1,7 @@
 /**
  * LA BARRA: el logo de la escuela se queda pegado arriba, como una barra de
- * navegación, con los enlaces a los emprendedores y a la escuela.
+ * navegación, con los logos de Diseña Futuro e Intervalores, que llevan a
+ * sus webs.
  *
  * EN LA PORTADA, EL LOGO GRANDE SE CONVIERTE EN LA BARRA. Al bajar, el logo
  * del hero se va encogiendo con el propio desplazamiento hasta caber en el

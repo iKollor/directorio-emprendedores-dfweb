@@ -90,17 +90,18 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       )}
     </header>
     {/*
-      LA BARRA (lib/barra.ts): el logo de la escuela pegado arriba, con los
-      enlaces. Escondida hasta que se baja; en la portada es el logo grande
+      LA BARRA (lib/barra.ts): el logo de la escuela pegado arriba (lleva al
+      inicio) y, a la derecha, los de Diseña Futuro e Intervalores, que llevan
+      a sus webs. Escondida hasta que se baja; en la portada es el logo grande
       del hero el que se encoge hasta ella. Mientras no se ve, no se enfoca.
     */}
     <nav class="barra" data-barra aria-label="Navegación" inert>
       <a class="barra-logo" data-barra-logo href={portada ? "#inicio" : "/"}>
         <NombreEscuela tamano="barra" />
       </a>
+      {/* Las organizaciones: cada logo lleva a su web. */}
       <div class="barra-enlaces">
-        <a href={portada ? "#contenido" : "/#contenido"}>{general.menuEmprendedores}</a>
-        <a href="#sobre-la-escuela">{general.menuEscuela}</a>
+        <Marca barra />
       </div>
     </nav>
     <slot />
@@ -415,21 +416,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         opacity: var(--barra);
         translate: 0 calc((1 - var(--barra)) * -0.4rem);
       }
-      .barra-enlaces a {
-        display: inline-flex;
-        align-items: center;
-        min-height: 44px;
-        padding-inline: 0.9rem;
-        border-radius: var(--radio-pildora, 999px);
-        font-size: var(--txt-s);
-        font-weight: 500;
-        text-decoration: none;
-        transition: background var(--dur-rapida) var(--ease-suave);
-      }
-      .barra-enlaces a:hover { background: rgb(239 238 237 / 0.14); }
-      @media (max-width: 400px) {
-        .barra-enlaces a { padding-inline: 0.6rem; }
-      }
+
       .saltar {
         position: absolute;
         top: -100px;

@@ -207,8 +207,10 @@ hay menú (`portada` en `Base.astro`); en las demás páginas, a la izquierda.
 **La barra: el logo se queda arriba.** Al bajar por la portada, el logo
 grande se encoge con el propio desplazamiento hasta caber en una barra fija
 arriba (`src/lib/barra.ts`): una píldora de vidrio azul, el material de los
-mandos del reproductor, con el logo a la izquierda y los enlaces a los
-emprendedores y a la escuela a la derecha. El logo llega primero y después
+mandos del reproductor, con el logo a la izquierda (lleva al inicio) y, a la
+derecha, los logos de Diseña Futuro e Intervalores, que llevan a sus webs en
+otra pestaña (hubo enlaces de texto a los emprendedores y a la escuela, y se
+pidió cambiarlos por los logos). El logo llega primero y después
 aparece el vidrio a su alrededor: si apareciera antes, lo taparía (la barra
 va por encima de la página). Va atado al desplazamiento, no a un reloj, así
 que se para y vuelve donde se pare la persona. En las demás páginas la barra
