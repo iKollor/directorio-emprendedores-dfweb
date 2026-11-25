@@ -71,21 +71,25 @@ que el mensaje se envía por esa aplicación.
 
 ## Favicon
 
-Es de la Escuela de Emprendimiento: la E de "ESCUELA" y una pincelada,
-recortadas del logo pintado a mano (`escuela-emprendimiento.webp`),
-vectorizadas y engrosadas lo justo para leerse a 16 px. En modo claro es una
-tesela azul con la E blanca y la pincelada amarilla (las dos líneas del
-logo); en modo oscuro, amarilla con la E azul hondo. Lleva la luz de las
-gotas del sitio: velo de gel arriba, filo de luz, sombra interior abajo y la
-E en relieve.
+Es de la Escuela de Emprendimiento: una gota como las formas del sitio
+(`src/lib/blob.ts`, semilla "emprendimiento") con la E de "ESCUELA" y una
+pincelada, recortadas del logo pintado a mano (`escuela-emprendimiento.webp`),
+vectorizadas y engrosadas lo justo para leerse a 16 px. En modo claro, la gota
+es azul con la E blanca y la pincelada amarilla (las dos líneas del logo); en
+modo oscuro, amarilla con la E azul hondo.
+
+Es plana, como el sitio: solo lleva un reflejo difuso arriba a la izquierda,
+que se apaga sin dejar borde, y una sombra leve abajo. Se probaron versiones
+con degradados, brillos, filo de luz en el canto y borde de color, y se
+rechazaron por exageradas: no añadas efectos.
 
 - `/icon.svg`: el original, adaptativo.
-- `scripts/favicon/icono-lleno.svg`: el mismo a sangre y opaco, para el
+- `scripts/favicon/icono-lleno.svg`: la misma gota sobre hueso, opaca, para el
   iPhone y Android.
 - `/favicon.ico`, `/apple-touch-icon.png`, `/icon-192.png`, `/icon-512.png` y
   `/icon-mask.png`: salen de los dos con `node scripts/favicon/generar.mjs`.
   No se editan a mano.
 
-Contraste medido: en modo claro, la tesela contra una pestaña blanca 6,3:1 y
-la E contra la tesela entre 3,6 y 10:1; en modo oscuro, la tesela contra una
-pestaña oscura entre 5,5 y 14,5:1 y la E contra ella entre 6,5 y 7,4:1.
+Contraste medido: en modo claro, la gota contra una pestaña blanca y la E
+contra la gota, entre 5,4 y 7,5:1; en modo oscuro, la gota contra una pestaña
+oscura entre 6,4 y 10,4:1, y la E contra ella entre 5,6 y 6,8:1.
