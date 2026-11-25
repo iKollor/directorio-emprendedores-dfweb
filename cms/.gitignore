@@ -6,3 +6,6 @@ next-env.d.ts
 .env*.local
 # La base de datos y los archivos subidos viven en el servidor, no en el repo.
 /datos
+
+# El favicon se copia de la raíz del repositorio (ver package.json y Dockerfile).
+/public

@@ -163,6 +163,10 @@ export interface Emprendedore {
    */
   telefono?: string | null;
   /**
+   * Lo que ya va escrito cuando alguien pulsa para escribirle. Déjalo vacío para usar el mensaje general, que se cambia para todas las fichas en "Textos y logos" > Ficha. {nombre} se cambia por su nombre.
+   */
+  mensajeWhatsapp?: string | null;
+  /**
    * Una foto donde se le vea bien la cara. Después de subirla, ábrela con "Editar imagen" y arrastra el punto hasta su rostro: el retrato se centra ahí. No subas fotos donde aparezcan menores de edad. Sin foto se muestran sus iniciales.
    */
   foto?: (number | null) | Medio;
@@ -351,6 +355,7 @@ export interface EmprendedoresSelect<T extends boolean = true> {
   oficio?: T;
   descripcion?: T;
   telefono?: T;
+  mensajeWhatsapp?: T;
   foto?: T;
   video?: T;
   videoSonido?: T;

@@ -10,7 +10,9 @@ con correo y contraseña en la dirección del panel, terminada en `/admin`.
    apellido.
 3. Elige la **categoría** y escribe su **oficio** y la **descripción**.
 4. Pon su **teléfono** con el código del país (`+593 99 123 4567`). Es el
-   número al que escribirán por WhatsApp.
+   número al que escribirán por WhatsApp. Debajo está su **mensaje de
+   WhatsApp**: déjalo vacío para que lleve el mensaje general (el de
+   **Textos y logos** > Ficha), o escribe uno solo para esta persona.
 5. Sube su **retrato**. Después ábrelo con **Editar imagen** y arrastra el
    punto hasta su cara: el retrato se centra ahí.
 6. Si hay, sube el **vídeo** y las **fotos de su trabajo**.
@@ -53,8 +55,10 @@ general.
 
 - Lo que pongas entre asteriscos sale destacado: `Conoce a nuestros
   *emprendedores*`.
-- En el mensaje de WhatsApp, `{nombre}` se cambia por el nombre de cada
-  persona.
+- El mensaje de WhatsApp de la pestaña **Ficha** es el que va en todas las
+  fichas, salvo en las que tengan uno propio (se escribe en la ficha de la
+  persona, debajo del teléfono). En los dos, `{nombre}` se cambia por el
+  nombre de cada persona.
 - Si dejas un campo vacío, vuelve el texto original.
 - Los textos que salen en todas las fichas se escriben sin género: el sitio
   no sabe si cada persona es emprendedor o emprendedora. Por eso la llamada

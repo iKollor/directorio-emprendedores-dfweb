@@ -32,7 +32,7 @@
   },
   "ficha": {
     "volver": "Todos los emprendedores",
-    "mensajeWhatsapp": "¡Hola {nombre}! Vi tu emprendimiento en la plataforma de Diseña Futuro y me gustaría saber más.",
+    "mensajeWhatsapp": "¡Hola {nombre}! Vi tu emprendimiento en la plataforma de la Escuela de Emprendimiento y me gustaría saber más.",
     "sinNumero": "Todavía no tenemos el WhatsApp de {nombre}.",
     "sinNumeroBoton": "¡Escríbenos y te conectamos!",
     "sinNumeroUrl": "https://disenafuturo.com",

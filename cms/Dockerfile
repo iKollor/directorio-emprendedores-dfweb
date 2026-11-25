@@ -28,6 +28,8 @@ ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 DATOS_DIR=/app/datos
 RUN mkdir -p /app/datos && chown -R node:node /app
 COPY --from=compilacion --chown=node:node /app/.next/standalone ./
 COPY --from=compilacion --chown=node:node /app/.next/static ./.next/static
+# El favicon es el del sitio: un solo original, en la raíz del repositorio.
+COPY --from=raiz --chown=node:node public/favicon.ico public/icon.svg public/apple-touch-icon.png ./public/
 
 # La semilla va dentro de la imagen: así no hace falta montar carpetas del
 # repositorio (Coolify no puede). Solo se usa con la base vacía.

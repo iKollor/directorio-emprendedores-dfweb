@@ -58,6 +58,11 @@ export type Emprendedor = {
   telefono: string | null;
   whatsapp: string | null;
   /**
+   * El mensaje de WhatsApp propio de esta persona, si lo tiene. Sin él, va el
+   * general ("Textos y logos" > Ficha, `ficha.mensajeWhatsapp`).
+   */
+  mensajeWhatsapp: string | null;
+  /**
    * Dónde está el rostro en la foto y cuánto acercarse a él (ver `ROSTRO`).
    * Sirve para que quede en el centro del retrato y no en el borde.
    */
@@ -221,6 +226,7 @@ function normalizar(crudo: Crudo): Emprendedor | null {
     // Sin ficha no se ofrece contacto: no se manda gente a un negocio sin describir.
     telefono: fichaPendiente ? null : crudo.telefono,
     whatsapp: fichaPendiente ? null : crudo.whatsapp,
+    mensajeWhatsapp: null,
     video: fichaPendiente ? null : buscarVideo(crudo.slug),
     videoSonido: fichaPendiente ? [] : buscarSonido(crudo.slug),
     galeria: fichaPendiente ? [] : buscarGaleria(crudo.slug),
@@ -262,6 +268,7 @@ type DocCms = {
   oficio?: string | null;
   descripcion?: string | null;
   telefono?: string | null;
+  mensajeWhatsapp?: string | null;
   foto?: MedioCms | number | null;
   video?: MedioCms | number | null;
   videoSonido?: (MedioCms | number)[] | null;
@@ -326,6 +333,7 @@ function deCms(doc: DocCms): Emprendedor | null {
     rostro,
     telefono: pendiente ? null : telefono,
     whatsapp: pendiente ? null : whatsappDe(telefono),
+    mensajeWhatsapp: doc.mensajeWhatsapp?.trim() || null,
     video: pendiente || !video ? null : `/medios/${encodeURIComponent(video)}`,
     videoSonido: pendiente
       ? []

@@ -26,7 +26,17 @@ export default buildConfig({
   admin: {
     user: Usuarios.slug,
     importMap: { baseDir: path.resolve(dirname) },
-    meta: { titleSuffix: ' · Directorio de Emprendedores' },
+    meta: {
+      titleSuffix: ' · Directorio de Emprendedores',
+      // El mismo favicon que el sitio (scripts/favicon/ en la raíz del
+      // repositorio): el SVG cambia de color con el modo oscuro. Los archivos
+      // los copia a `public/` el Dockerfile y, en local, `npm run dev`.
+      icons: [
+        { rel: 'icon', url: '/favicon.ico', sizes: '32x32' },
+        { rel: 'icon', type: 'image/svg+xml', url: '/icon.svg' },
+        { rel: 'apple-touch-icon', url: '/apple-touch-icon.png' },
+      ],
+    },
     dateFormat: 'd MMM yyyy, HH:mm',
   },
   // El panel, solo en español.

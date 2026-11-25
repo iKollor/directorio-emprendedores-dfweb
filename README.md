@@ -40,7 +40,7 @@ escribe. No hay cuentas de GitHub ni servidor de base de datos.
 
 | Qué | Cómo |
 |---|---|
-| Fichas | Nombre, oficio, descripción, teléfono, retrato, vídeo y fotos de cada persona |
+| Fichas | Nombre, oficio, descripción, teléfono, mensaje de WhatsApp propio (si hace falta), retrato, vídeo y fotos de cada persona |
 | Categorías | Se crean y se renombran; el color se elige entre los de la marca |
 | Textos y logos | Titulares, botones, mensaje de WhatsApp, pie, el logo de la escuela, y las organizaciones con su logo y su web |
 | Borradores | "Guardar borrador" no toca el sitio; "Publicar" sí |
