@@ -35,7 +35,21 @@ import { CONTORNOS, MUESTRAS_CONTORNO } from "./blob";
 import type { VideoSonido } from "./directorio";
 import { obtenerScroll, sinMovimiento } from "./scroll";
 import { callar, cederVoz, retomarVoz, type EstadoSonido } from "./sonido";
-import { activa, ajustes, aplicar, buscarVoz, fijarNivel, gemela, guardarAjustes, nivel, relevar, vaciar } from "./voz";
+import {
+  activa,
+  ajustes,
+  aplicar,
+  buscarVoz,
+  cruzar,
+  fijarNivel,
+  gemela,
+  guardarAjustes,
+  nivel,
+  relevar,
+  tapar,
+  vaciar,
+  volumenFijo,
+} from "./voz";
 
 gsap.registerPlugin(CustomEase);
 /** Arranca suave y se asienta despacio: la curva de algo grande que se mueve. */
@@ -85,6 +99,10 @@ type Caja = { x: number; y: number; ancho: number; alto: number };
 let dialogo: HTMLDialogElement | null = null;
 let soltarMandos: (() => void) | null = null;
 let ponerSonido: (() => void) | null = null;
+/** Termina ya el relevo de calidad que esté a medias (la imagen aún se cruza). */
+let asentarRelevo: (() => void) | null = null;
+/** Lo que suele tardar un vídeo en echar a andar: el gemelo arranca ese poco antes (s). */
+const ARRANQUE = 0.15;
 let abierto: {
   origen: OrigenPlano;
   desde: Caja;
@@ -233,6 +251,16 @@ function elegirAuto(calidades: VideoSonido[], altoEnPantalla: number): number {
     if (calidades[i]!.alto >= hace) break;
   }
   return elegida;
+}
+
+/**
+ * La calidad con la que se abriría ahora el primer plano. Es la que conviene
+ * que suene ya al pasar el puntero por el retrato: así, al abrirlo, no hay
+ * nada que cambiar y el sonido sigue tal cual.
+ */
+export function calidadDeEntrada(calidades: VideoSonido[]): VideoSonido | null {
+  if (calidades.length === 0) return null;
+  return calidades[elegirAuto(calidades, medirDestino(16 / 9).alto)] ?? calidades[calidades.length - 1]!;
 }
 
 const reloj = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -518,7 +546,6 @@ export function montarPrimerPlano(): void {
       const origen = abierto.origen;
       const r = origen.caja.getBoundingClientRect();
       if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
-      cerrarPrimerPlano(true);
       abrirPrimerPlano(origen);
     },
     { signal, capture: true },
@@ -799,6 +826,7 @@ function cambiarCalidad(indice: number): void {
   const plano = abierto;
   plano.relevo?.();
   plano.relevo = null;
+  asentarRelevo?.();
   const de = activa();
   const a = gemela();
   const calidad = plano.origen.calidades[indice];
@@ -808,14 +836,25 @@ function cambiarCalidad(indice: number): void {
   if (!a || completa(calidad.src) === de.src) return;
 
   fijarNivel(a, 0);
+  // Va a andar un momento a la vez que el otro, sin oírse.
+  tapar(a, true);
   a.loop = false;
+  a.playbackRate = 1;
   a.src = calidad.src;
   a.load();
 
   let adelanto = 0.8;
   let objetivo = -1;
+  /** Desde cuándo anda el gemelo a la par del otro, en silencio (0: aún no). */
+  let aLaPar = 0;
+  /** Desde cuándo va clavado con el otro (0: aún no). */
+  let clavado = 0;
   const quieto = () => de.paused || de.ended || de.readyState < 3;
   const apuntar = () => {
+    if (!a.paused) a.pause();
+    a.playbackRate = 1;
+    aLaPar = 0;
+    clavado = 0;
     const tope = Math.max(0, (Number.isFinite(de.duration) ? de.duration : 1e9) - 0.08);
     objetivo = Math.min(quieto() ? de.currentTime : de.currentTime + adelanto, tope);
     try {
@@ -830,21 +869,51 @@ function cambiarCalidad(indice: number): void {
   const entregar = () => {
     gsap.ticker.remove(paso);
     plano.relevo = null;
+    a.playbackRate = 1;
     const sonando = !de.paused && !de.ended;
-    if (sonando) void a.play().catch(() => {});
-    // El sonido se cruza en un instante (los dos dicen lo mismo a la vez);
-    // la imagen nueva aparece encima de la vieja.
-    fijarNivel(a, sonando ? 0 : 1);
-    if (sonando) nivel(a, 1, 0.14);
-    nivel(de, 0, 0.14, () => vaciar(de));
+    let asentado = false;
+    if (!sonando) {
+      // En pausa no suena nada: el gemelo queda listo, a su nivel.
+      if (!a.paused) a.pause();
+      tapar(a, false);
+      fijarNivel(a, 1);
+    } else if (aLaPar) {
+      // Ya andan los dos a la vez y a la par: el sonido pasa de uno a otro
+      // sin que la suma se mueva.
+      cruzar(de, a, 0.16);
+    } else {
+      // No pudo ponerse a la par antes (el otro estaba atascado, o el aparato
+      // no deja tapar un vídeo que anda): entra cuando ya suena de verdad.
+      tapar(a, false);
+      fijarNivel(a, volumenFijo() ? 1 : 0);
+      void a.play().then(
+        () => {
+          if (asentado) return;
+          if (volumenFijo()) tapar(de, true);
+          else {
+            nivel(a, 1, 0.14);
+            nivel(de, 0, 0.14);
+          }
+        },
+        () => {},
+      );
+    }
     relevar();
     a.style.zIndex = "2";
     de.style.zIndex = "1";
-    gsap.fromTo(
-      a,
-      { opacity: 0 },
-      { opacity: 1, duration: 0.45, ease: "sine.inOut", onComplete: () => void (de.style.opacity = "0") },
-    );
+    // La imagen nueva aparece encima de la vieja, que sigue andando debajo
+    // hasta que deja de verse.
+    const cruce = gsap.fromTo(a, { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "sine.inOut", onComplete: () => asentar() });
+    const asentar = () => {
+      if (asentado) return;
+      asentado = true;
+      if (asentarRelevo === asentar) asentarRelevo = null;
+      cruce.kill();
+      a.style.opacity = "1";
+      de.style.opacity = "0";
+      vaciar(de);
+    };
+    asentarRelevo = asentar;
     ponerSonido?.();
   };
 
@@ -852,17 +921,55 @@ function cambiarCalidad(indice: number): void {
     if (objetivo < 0) return;
     const lista = a.readyState >= 3 && !a.seeking;
     if (quieto()) {
-      if (!lista) return;
       // Parado o atascado: el gemelo entra donde está el otro.
+      if (aLaPar) {
+        a.pause();
+        a.playbackRate = 1;
+        aLaPar = 0;
+      }
+      if (!lista) return;
       if (Math.abs(a.currentTime - de.currentTime) > 0.25 && !de.ended) apuntar();
       else entregar();
-    } else if (objetivo - de.currentTime <= 0.02) {
-      if (lista) entregar();
-      else {
+      return;
+    }
+    if (!aLaPar) {
+      // Arranca un poco antes de que el otro llegue a su punto.
+      if (objetivo - de.currentTime > ARRANQUE) return;
+      if (!lista) {
         adelanto = Math.min(adelanto * 1.8, 5);
         apuntar();
+      } else if (volumenFijo()) {
+        if (objetivo - de.currentTime <= 0.02) entregar();
+      } else {
+        aLaPar = performance.now();
+        void a.play().catch(() => {});
       }
+      return;
     }
+    // LOS DOS ANDAN, y el gemelo no se oye: corre o frena hasta ir clavado
+    // con el otro. Antes arrancaba en el mismo momento del relevo, y lo que
+    // tardaba en echar a andar era un hueco de silencio.
+    const lleva = performance.now() - aLaPar;
+    if (a.paused) void a.play().catch(() => {});
+    const d = a.currentTime - de.currentTime;
+    if (lleva > 500 && (Math.abs(d) > 1.5 || a.readyState < 3)) {
+      // Se ha perdido o se ha quedado cargando: otra vez, más adelante.
+      adelanto = Math.min(adelanto * 1.8, 5);
+      apuntar();
+      return;
+    }
+    // Clavado es ir a menos de dos centésimas (si tarda, a menos de cinco) y
+    // seguir así un momento después: se mide por tiempo, no por fotogramas,
+    // para que valga igual en un aparato lento.
+    const ahora = performance.now();
+    if (Math.abs(d) < (lleva > 1500 ? 0.05 : 0.02)) {
+      a.playbackRate = 1;
+      clavado ||= ahora;
+    } else {
+      clavado = 0;
+      a.playbackRate = Math.min(1.3, Math.max(0.7, 1 - d * 3));
+    }
+    if ((clavado && ahora - clavado >= 60) || lleva > 3000) entregar();
   };
   gsap.ticker.add(paso);
   plano.relevo = () => {
@@ -873,9 +980,20 @@ function cambiarCalidad(indice: number): void {
 
 /** Saca la gota de su retrato. Devuelve si pudo. */
 export function abrirPrimerPlano(origen: OrigenPlano): boolean {
-  // Si aún se estaba cerrando, termina ya: el clic no se pierde.
-  if (abierto?.cerrando) cerrarPrimerPlano(true);
-  if (!dialogo || abierto || origen.calidades.length === 0 || !activa()) return false;
+  // Si aún se estaba cerrando, termina ya: el clic no se pierde. Y si es la
+  // misma persona y su vídeo sigue andando, se abre con él tal como va.
+  let conservada: HTMLVideoElement | null = null;
+  if (abierto?.cerrando) {
+    const v = activa();
+    if (v && abierto.origen.retrato && abierto.origen.retrato === origen.retrato && !v.paused && !v.ended && v.readyState >= 2) {
+      conservada = v;
+    }
+    cerrarPrimerPlano(true, conservada !== null);
+  }
+  if (!dialogo || abierto || origen.calidades.length === 0 || !activa()) {
+    if (conservada) vaciar(conservada);
+    return false;
+  }
   const gota = pieza("gota");
   const velo = pieza("velo");
   const mandos = [pieza("mandos"), pieza("cerrar"), pieza("cartel")];
@@ -884,8 +1002,9 @@ export function abrirPrimerPlano(origen: OrigenPlano): boolean {
   const quieto = sinMovimiento();
 
   // Si este retrato ya sonaba, la gota se abre con ese mismo sonido.
-  const cedida = origen.retrato ? cederVoz(origen.retrato) : null;
-  if (!cedida) callar(0.35);
+  const cedida = (origen.retrato ? cederVoz(origen.retrato) : null) ?? conservada;
+  if (cedida) cedida.loop = false;
+  else callar(0.35);
   const g = gemela();
   if (g) vaciar(g);
 
@@ -987,7 +1106,7 @@ export function abrirPrimerPlano(origen: OrigenPlano): boolean {
     videoListo = true;
     proporcionar();
     pintarCalidad();
-    // Lo que sonaba era la versión más ligera: ya abierta, sube a la que toca.
+    // Si lo que sonaba no era la calidad que toca aquí (cambió la ventana o la red), sube a ella.
     if (quiere !== plano.actual) plano.esperas.push(gsap.delayedCall(1.1, () => cambiarCalidad(quiere)));
   } else {
     v.addEventListener("loadedmetadata", proporcionar, { once: true });
@@ -1023,8 +1142,11 @@ export function abrirPrimerPlano(origen: OrigenPlano): boolean {
   return true;
 }
 
-/** Devuelve la gota a su retrato. `yaMismo`: sin animación (cambio de página). */
-export function cerrarPrimerPlano(yaMismo = false): void {
+/**
+ * Devuelve la gota a su retrato. `yaMismo`: sin animación (cambio de página).
+ * `conservar`: el vídeo se deja como está, porque se va a abrir otra vez.
+ */
+export function cerrarPrimerPlano(yaMismo = false, conservar = false): void {
   if (!abierto || !dialogo) return;
   if (abierto.cerrando && !yaMismo) return;
   const plano = abierto;
@@ -1040,15 +1162,24 @@ export function cerrarPrimerPlano(yaMismo = false): void {
   plano.esperas.forEach((e) => e.kill());
   plano.relevo?.();
   plano.relevo = null;
+  asentarRelevo?.();
   gsap.killTweensOf([estado, plano.hasta, velo, ...mandos]);
   pieza("calidad-lista").hidden = true;
 
   const horaDe = () => (!v || v.ended ? 0 : v.currentTime);
   // Con el puntero sobre el retrato, al volver sigue sonando: la voz pasa a él.
   let sigue = false;
+  let fundido = false;
   const terminar = () => {
     gsap.ticker.remove(plano.pintar);
-    if (v && !sigue) vaciar(v);
+    if (v && !sigue && !conservar) {
+      // Ya en silencio, se queda en pausa CON SU VÍDEO: si el puntero vuelve
+      // al retrato, sigue con esta misma pista en vez de cargar otra.
+      if (fundido) {
+        fijarNivel(v, 0);
+        v.pause();
+      } else vaciar(v);
+    }
     abierto = null;
     if (dialogo?.open) dialogo.close();
     obtenerScroll()?.start();
@@ -1063,6 +1194,7 @@ export function cerrarPrimerPlano(yaMismo = false): void {
 
   sigue = Boolean(v && origen.retrato && !v.paused && !v.ended && !ajustes.mudo && origen.encima?.());
   // Si no sigue, el sonido se va apagando mientras la gota vuelve.
+  fundido = true;
   if (v && !sigue) nivel(v, 0, 0.9);
 
   // El retrato puede haberse movido (cambio de tamaño de la ventana).

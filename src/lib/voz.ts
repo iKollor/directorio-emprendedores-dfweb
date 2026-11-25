@@ -16,6 +16,11 @@
  * NINGÚN CAMBIO DE VOLUMEN ES UN ESCALÓN. Todo entra y sale con `nivel`, que
  * es un fundido. El volumen real es el cuadrado del nivel: así suena igual
  * de gradual al oído, que no percibe el volumen en línea recta.
+ *
+ * EL RELEVO ENTRE LOS DOS ES OTRA COSA (`cruzar`): los dos dicen lo mismo a
+ * la vez, así que lo que se oye es la SUMA de sus volúmenes, y esa suma no
+ * se mueve de 1 en todo el cruce. Fundiendo cada uno por su cuenta, a mitad
+ * de camino la suma bajaba a la mitad: se oía un bache.
  */
 import { gsap } from "gsap";
 
@@ -38,7 +43,7 @@ export function guardarAjustes(): void {
   }
 }
 
-type Pista = { el: HTMLVideoElement; nivel: number };
+type Pista = { el: HTMLVideoElement; nivel: number; tapada: boolean };
 
 let pistas: Pista[] = [];
 let cual = 0;
@@ -46,7 +51,7 @@ let cual = 0;
 /** Se llama una vez por página, con la pieza del primer plano. */
 export function buscarVoz(raiz: ParentNode | null): void {
   for (const pista of pistas) gsap.killTweensOf(pista);
-  pistas = raiz ? [...raiz.querySelectorAll<HTMLVideoElement>("[data-video]")].map((el) => ({ el, nivel: 0 })) : [];
+  pistas = raiz ? [...raiz.querySelectorAll<HTMLVideoElement>("[data-video]")].map((el) => ({ el, nivel: 0, tapada: false })) : [];
   cual = 0;
 }
 
@@ -65,7 +70,7 @@ const pistaDe = (el: HTMLVideoElement) => pistas.find((p) => p.el === el) ?? nul
 export function aplicar(el?: HTMLVideoElement): void {
   for (const pista of pistas) {
     if (el && pista.el !== el) continue;
-    pista.el.muted = ajustes.mudo;
+    pista.el.muted = ajustes.mudo || pista.tapada;
     pista.el.volume = Math.min(1, Math.max(0, pista.nivel * pista.nivel * ajustes.volumen));
   }
 }
@@ -82,7 +87,13 @@ export function fijarNivel(el: HTMLVideoElement, valor: number): void {
 }
 
 /** Funde el nivel hasta `hasta` en `segundos`. Un fundido nuevo sustituye al anterior. */
-export function nivel(el: HTMLVideoElement, hasta: number, segundos: number, alTerminar?: () => void): void {
+export function nivel(
+  el: HTMLVideoElement,
+  hasta: number,
+  segundos: number,
+  alTerminar?: () => void,
+  curva: string | ((t: number) => number) = "sine.inOut",
+): void {
   const pista = pistaDe(el);
   if (!pista) return;
   gsap.killTweensOf(pista);
@@ -90,15 +101,54 @@ export function nivel(el: HTMLVideoElement, hasta: number, segundos: number, alT
     nivel: hasta,
     // Lo que falta por recorrer: un fundido a medias no tarda lo que uno entero.
     duration: Math.max(0.05, segundos * Math.abs(hasta - pista.nivel)),
-    ease: "sine.inOut",
+    ease: curva,
     onUpdate: () => aplicar(el),
     onComplete: alTerminar,
   });
 }
 
+/**
+ * Tapa un vídeo aunque esté andando: es como el segundo se pone a la par del
+ * primero, en silencio, antes de relevarlo.
+ */
+export function tapar(el: HTMLVideoElement, si: boolean): void {
+  const pista = pistaDe(el);
+  if (!pista) return;
+  pista.tapada = si;
+  aplicar(el);
+}
+
+/**
+ * ¿Deja este aparato cambiar el volumen de un vídeo? El iPhone no: ahí manda
+ * el botón del teléfono, y un vídeo o suena entero o no suena.
+ */
+let fijo: boolean | null = null;
+export function volumenFijo(): boolean {
+  if (fijo === null) {
+    const prueba = document.createElement("video");
+    prueba.volume = 0.5;
+    fijo = prueba.volume !== 0.5;
+  }
+  return fijo;
+}
+
+/**
+ * El relevo: `a` entra y `de` sale a la vez, los dos ya andando y a la par.
+ * La suma de los dos volúmenes es 1 de principio a fin.
+ */
+export function cruzar(de: HTMLVideoElement, a: HTMLVideoElement, segundos: number): void {
+  fijarNivel(a, 0);
+  tapar(a, false);
+  // El volumen es el cuadrado del nivel: con la raíz, el volumen va en recta.
+  nivel(a, 1, segundos, undefined, (t) => Math.sqrt(t));
+  nivel(de, 0, segundos, undefined, (t) => 1 - Math.sqrt(1 - t));
+}
+
 /** Deja un vídeo vacío y en silencio. */
 export function vaciar(el: HTMLVideoElement): void {
   fijarNivel(el, 0);
+  tapar(el, false);
+  el.playbackRate = 1;
   el.pause();
   if (el.getAttribute("src")) {
     el.removeAttribute("src");
