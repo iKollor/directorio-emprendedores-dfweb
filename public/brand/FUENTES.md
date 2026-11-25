@@ -72,11 +72,15 @@ que el mensaje se envía por esa aplicación.
 ## Favicon
 
 Es de la Escuela de Emprendimiento: una gota como las formas del sitio
-(`src/lib/blob.ts`, semilla "emprendimiento") con la E de "ESCUELA" y una
-pincelada, recortadas del logo pintado a mano (`escuela-emprendimiento.webp`),
-vectorizadas y engrosadas lo justo para leerse a 16 px. En modo claro, la gota
-es azul con la E blanca y la pincelada amarilla (las dos líneas del logo); en
-modo oscuro, amarilla con la E azul hondo.
+(`src/lib/blob.ts`, semilla "emprendimiento") con la E de "ESCUELA",
+recortada del logo pintado a mano (`escuela-emprendimiento.webp`),
+vectorizada y engrosada con un pincel redondo hasta que a 16 px sus trazos
+miden 2 px (el 20 % del alto de la letra). En modo claro, la gota es azul con
+la E blanca; en modo oscuro, amarilla con la E azul hondo.
+
+Llevó también la pincelada amarilla debajo de la E y se quitó: a tamaño de
+pestaña se leía como una boca y la gota parecía una cara, y la E, más fina,
+casi desaparecía.
 
 Es plana, como el sitio: solo lleva un reflejo difuso arriba a la izquierda,
 que se apaga sin dejar borde, y una sombra leve abajo. Se probaron versiones

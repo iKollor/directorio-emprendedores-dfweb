@@ -60,6 +60,10 @@ general.
   persona, debajo del teléfono). En los dos, `{nombre}` se cambia por el
   nombre de cada persona.
 - Si dejas un campo vacío, vuelve el texto original.
+- En **Pie de página** está el lema de la escuela, que sale a pincel bajo su
+  logo: la primera frase en blanco y la segunda en amarillo.
+- El título del sitio (pestaña **General**) es también el nombre que aparece
+  cuando alguien añade el sitio a la pantalla de inicio de su teléfono.
 - Los textos que salen en todas las fichas se escriben sin género: el sitio
   no sabe si cada persona es emprendedor o emprendedora. Por eso la llamada
   de cada tarjeta dice "¡Conoce su negocio!" y no "¡Conócelo!".

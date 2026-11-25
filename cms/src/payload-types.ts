@@ -545,6 +545,10 @@ export interface Sitio {
      * Lo que pongas entre asteriscos sale destacado: "Conoce a nuestros *emprendedores*".
      */
     lema?: string | null;
+    /**
+     * Sale bajo el logo de la escuela, con su letra a pincel. Dos frases: la primera va en blanco y la segunda en amarillo, como las dos líneas del logo.
+     */
+    lemaEscuela?: string | null;
     textoEscuela?: string | null;
     tituloEnlaces?: string | null;
     /**
@@ -652,6 +656,7 @@ export interface SitioSelect<T extends boolean = true> {
     | T
     | {
         lema?: T;
+        lemaEscuela?: T;
         textoEscuela?: T;
         tituloEnlaces?: T;
         derechos?: T;

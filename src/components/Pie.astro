@@ -12,6 +12,14 @@ const { pie, organizaciones } = await getSitio(Astro.locals);
  * quiera saber más, no a perfiles que mezclan otra actividad.
  */
 const SITIOS = organizaciones.filter((o) => o.url);
+
+/*
+ * EL LEMA DE LA ESCUELA, bajo su logo y con su letra a pincel: dos renglones,
+ * el primero en blanco y el segundo en amarillo, como las dos líneas del
+ * logo. Antes iba al pie de la portada; se quitó de allí para dejarla limpia.
+ */
+const [lemaBlanco, ...resto] = pie.lemaEscuela.split(/(?<=[.!?])\s+/);
+const lemaAmarillo = resto.join(" ");
 ---
 
 <footer class="pie" id="sobre-la-escuela">
@@ -25,6 +33,12 @@ const SITIOS = organizaciones.filter((o) => o.url);
     </div>
     <div class="pie-escuela">
       <NombreEscuela tamano="pie" />
+      {lemaBlanco && (
+        <p class="pie-lema-escuela pincel" data-anim="subir" data-anim-retraso="0.1">
+          <span>{lemaBlanco}</span>
+          {lemaAmarillo && <span class="amarillo">{lemaAmarillo}</span>}
+        </p>
+      )}
       <p data-anim="desenfoque" data-anim-retraso="0.2">{pie.textoEscuela}</p>
     </div>
     {SITIOS.length > 0 && (
@@ -62,6 +76,9 @@ const SITIOS = organizaciones.filter((o) => o.url);
   .pie-lema { margin: 0 0 clamp(3rem, 7vw, 6rem); font-size: var(--txt-xl); font-weight: 300; line-height: 0.98; letter-spacing: -0.03em; }
   .pie-lema strong { display: block; font-weight: 700; }
   .pie-escuela p { max-width: 44ch; font-size: var(--txt-s); margin: 1.25rem 0 0; }
+  /* A pincel y grande, pero por debajo del logo: es su lema, no otro titular. */
+  .pie-escuela .pie-lema-escuela { display: flex; flex-direction: column; margin-top: 1rem; font-size: clamp(1.7rem, 1.3rem + 1.4vw, 2.6rem); }
+  .pie-lema-escuela .amarillo { color: var(--df-yellow); }
   .sitios h2 { font-size: var(--txt-s); font-weight: 500; letter-spacing: 0; margin-bottom: 1rem; line-height: 1.5; }
   .sitios a { position: relative; display: flex; align-items: center; gap: .7rem; min-height: 48px; border-bottom: 1px solid rgb(239 238 237 / .25); font-weight: 600; text-decoration: none; }
   .salida { margin-left: auto; }

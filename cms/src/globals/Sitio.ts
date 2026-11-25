@@ -65,6 +65,7 @@ export const Sitio: GlobalConfig = {
             // dejarla limpia, con el titular, la presentación y el botón. Los
             // campos se quedan, escondidos, para no perder lo que hubiera escrito.
             { name: 'cierre', type: 'text', label: 'Frase de cierre', admin: { hidden: true } },
+            // El lema pasó al pie (Pie de página > Lema de la escuela); este ya no sale.
             { name: 'lema', type: 'text', label: 'Lema', admin: { hidden: true } },
             {
               name: 'palabras',
@@ -165,6 +166,11 @@ export const Sitio: GlobalConfig = {
           label: 'Pie de página',
           fields: [
             texto('lema', 'Lema', NEGRITA),
+            texto(
+              'lemaEscuela',
+              'Lema de la escuela, a pincel',
+              'Sale bajo el logo de la escuela, con su letra a pincel. Dos frases: la primera va en blanco y la segunda en amarillo, como las dos líneas del logo.',
+            ),
             parrafo('textoEscuela', 'Texto sobre la escuela'),
             texto('tituloEnlaces', 'Título de los enlaces'),
             texto('derechos', 'Línea final', 'Va después de "©" y el año.'),
