@@ -871,6 +871,8 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
     /** Espacio libre a cada lado del escenario: el anillo no se sale de la página. */
     let libreIzq = 0;
     let libreDer = 0;
+    /** Lo que hay libre encima del escenario hasta lo que va arriba (el logo, en el teléfono). */
+    let libreArriba = Infinity;
     /** El arco: semiejes, desplazamiento y ángulo del frente, en píxeles y radianes. */
     let rx = 0;
     let ry = 0;
@@ -889,6 +891,14 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         const v = vecino.getBoundingClientRect();
         const mismaFila = v.bottom > caja.top + caja.height * 0.25 && v.top < caja.bottom - caja.height * 0.25;
         if (mismaFila && v.right <= caja.left + 1) libreIzq = caja.left - v.right;
+      }
+      // Lo de encima: en el teléfono, el logo de la escuela va justo encima
+      // del retrato, y una luna de la parte alta de la cola no lo pisa.
+      libreArriba = Infinity;
+      const encima = document.querySelector<HTMLElement>(".hero .con-logo");
+      if (encima) {
+        const e = encima.getBoundingClientRect();
+        if (e.bottom <= caja.top + 1 && e.right > caja.left && e.left < caja.right) libreArriba = caja.top - e.bottom;
       }
 
       // El arco ocupa el ancho que haya: hasta el borde de la página por cada
@@ -1152,16 +1162,28 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
         // Al fundirse entra en la gota grande, sin llegar al centro, donde
         // está la cara; y de ahí mismo sale la que se va.
         const camino = FUSION + (1 - FUSION) * sale;
-        const px = (x + centro) * camino;
-        const py = y * camino;
+        let px = (x + centro) * camino;
+        let py = y * camino;
 
         // PERSPECTIVA: delante, más del doble de grande que al fondo.
         let radio = (RADIO_LEJOS + (RADIO_CERCA - RADIO_LEJOS) * Math.pow(cerca, 1.25)) * tallaLunas * luna.talla;
         if (luna.mirada) radio *= 1.08;
-        // EN EL TELÉFONO, SOLO LA QUE VIENE. Alrededor de un retrato pequeño,
-        // toda la cola a la vez es ruido: se ve la siguiente persona y, si
-        // acaso, asomando, la de después. Las demás nacen al acercarse.
-        if (enTelefono) radio *= suave(0.4, 0.78, cerca);
+        // EN EL TELÉFONO SE VEN TODAS, las del fondo algo más pequeñas. Antes
+        // solo se veían la siguiente y la de después, y las demás nacían al
+        // acercarse: parecía que faltaban personas.
+        if (enTelefono) radio *= 0.8 + 0.2 * cerca;
+
+        // NINGUNA SE SALE DE LA PÁGINA NI PISA EL LOGO. Al crecer para
+        // fundirse, la del frente se pasaba unos píxeles del borde derecho
+        // y quedaba cortada. Se corre hacia dentro, no se encoge.
+        {
+          const r = radio * lado;
+          const margen = 6;
+          const tope = lado / 2;
+          px = Math.min(px, tope + libreDer - margen - r);
+          px = Math.max(px, -(tope + libreIzq - margen - r));
+          if (Number.isFinite(libreArriba)) py = Math.max(py, -(tope + libreArriba - margen - r));
+        }
 
         // PROFUNDIDAD DE CAMPO: delante, enfocada y a color; al fondo,
         // esmerilada y azul. Mirarla la enfoca.
