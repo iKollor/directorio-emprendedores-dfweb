@@ -985,39 +985,91 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       luna.lista = true;
     }
 
-    /** El primer fotograma de un vídeo, para la luna de quien no tiene foto. */
+    /** Pasa un fotograma del vídeo a un lienzo cuadrado, recortado al centro. */
+    function fotogramaCuadrado(v: HTMLVideoElement): HTMLCanvasElement | null {
+      if (!v.videoWidth || !v.videoHeight) return null;
+      const LADO = 720;
+      const lienzo = document.createElement("canvas");
+      lienzo.width = lienzo.height = LADO;
+      const corto = Math.min(v.videoWidth, v.videoHeight);
+      lienzo
+        .getContext("2d")
+        ?.drawImage(v, (v.videoWidth - corto) / 2, (v.videoHeight - corto) / 2, corto, corto, 0, 0, LADO, LADO);
+      return lienzo;
+    }
+
+    /** Avisa cuando el vídeo ha pintado de verdad un fotograma (no basta con que diga que anda). */
+    function alPintar(v: HTMLVideoElement, hecho: () => void, senal: AbortSignal) {
+      const conCallback = v as HTMLVideoElement & {
+        requestVideoFrameCallback?: (cb: () => void) => number;
+      };
+      if (conCallback.requestVideoFrameCallback) {
+        conCallback.requestVideoFrameCallback(() => !senal.aborted && hecho());
+        return;
+      }
+      const mirar = () => {
+        if (v.currentTime > 0 && !v.paused) {
+          v.removeEventListener("timeupdate", mirar);
+          hecho();
+        }
+      };
+      v.addEventListener("timeupdate", mirar, { signal: senal });
+    }
+
+    /**
+     * EL PRIMER FOTOGRAMA DE UN VÍDEO, para la luna (y la imagen fija) de
+     * quien no tiene foto. El iPhone no carga un vídeo que nadie reproduce:
+     * esperando a que tuviera datos, no llegaban nunca, y las lunas de quien
+     * no tiene foto no salían. Así que se reproduce, mudo y sin verse, dentro
+     * de la página (fuera de ella, o con tamaño cero, el iPhone lo pausa), y
+     * en cuanto pinta su primer fotograma se copia y se suelta.
+     */
     function primerFotograma(src: string, senal: AbortSignal): Promise<HTMLCanvasElement | null> {
       return new Promise((resolver) => {
         const v = document.createElement("video");
         v.muted = true;
+        v.defaultMuted = true;
+        v.setAttribute("muted", "");
         v.playsInline = true;
+        v.setAttribute("playsinline", "");
         v.preload = "auto";
-        const soltarVideo = () => {
+        v.setAttribute("aria-hidden", "true");
+        v.tabIndex = -1;
+        Object.assign(v.style, {
+          position: "absolute",
+          left: "0",
+          top: "0",
+          width: "4px",
+          height: "4px",
+          opacity: "0.01",
+          pointerEvents: "none",
+          zIndex: "-1",
+        });
+        let listo = false;
+        const terminar = (lienzo: HTMLCanvasElement | null) => {
+          if (listo) return;
+          listo = true;
+          window.clearTimeout(tope);
+          v.pause();
           v.removeAttribute("src");
           v.load();
+          v.remove();
+          resolver(lienzo);
         };
-        const fallar = () => {
-          soltarVideo();
-          resolver(null);
-        };
-        v.addEventListener(
-          "loadeddata",
-          () => {
-            const LADO = 720;
-            const lienzo = document.createElement("canvas");
-            lienzo.width = lienzo.height = LADO;
-            const corto = Math.min(v.videoWidth, v.videoHeight);
-            lienzo
-              .getContext("2d")
-              ?.drawImage(v, (v.videoWidth - corto) / 2, (v.videoHeight - corto) / 2, corto, corto, 0, 0, LADO, LADO);
-            soltarVideo();
-            resolver(lienzo);
-          },
-          { once: true, signal: senal },
-        );
-        v.addEventListener("error", fallar, { once: true, signal: senal });
-        senal.addEventListener("abort", fallar, { once: true });
+        // Si en un rato no ha pintado nada (red muy lenta, ahorro de batería),
+        // se deja: la luna la pondrá el propio retrato cuando su vídeo ande.
+        const tope = window.setTimeout(() => terminar(null), 20000);
+        v.addEventListener("error", () => terminar(null), { once: true, signal: senal });
+        senal.addEventListener("abort", () => terminar(null), { once: true });
+        alPintar(v, () => terminar(fotogramaCuadrado(v)), senal);
         v.src = src;
+        escenario!.appendChild(v);
+        void v.play().catch(() => {
+          // Sin permiso para reproducir (ahorro de batería): en un navegador
+          // que sí carga datos sin reproducir, basta con el primero.
+          if (v.readyState >= 2) terminar(fotogramaCuadrado(v));
+          else v.addEventListener("loadeddata", () => terminar(fotogramaCuadrado(v)), { once: true, signal: senal });
+        });
       });
     }
 
@@ -1289,6 +1341,23 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
           v.setAttribute("data-listo", "");
           // Con tinta, el vídeo se pinta dentro del mismo material.
           if (i === actual) tinta?.usarVideo(i, v);
+          // DE RESPALDO, LA LUNA SALE DEL PROPIO RETRATO. Si el primer
+          // fotograma no llegó (quien no tiene foto, en un iPhone que no dejó
+          // cargarlo), se toma ahora que su vídeo ya pinta: al soltarla, la
+          // gota sale con su cara.
+          const luna = lunas[i];
+          if (luna && !luna.lista) {
+            alPintar(
+              v,
+              () => {
+                const lienzo = luna.lista ? null : fotogramaCuadrado(v);
+                if (!lienzo) return;
+                tinta?.usarFoto(i, lienzo);
+                montarLuna(luna, lienzo);
+              },
+              eventos.signal,
+            );
+          }
         },
         () => {},
       );
