@@ -27,7 +27,7 @@ const emprendedores = await getEmprendedores();
 // publica por seguridad.
 ---
 
-<Base titulo={sitio.general.tituloSitio} descripcion={sitio.general.descripcion} sinIndexar={vistaPrevia}>
+<Base titulo={sitio.general.tituloSitio} descripcion={sitio.general.descripcion} sinIndexar={vistaPrevia} portada>
   <main>
   <section class="hero" aria-labelledby="titulo-hero">
     <div class="hero-texto" data-junto-al-escenario>
@@ -239,5 +239,19 @@ const emprendedores = await getEmprendedores();
   /* A media pantalla, el titular baja un punto para que quepa junto al blob. */
   @media (min-width: 900px) {
     h1 { font-size: clamp(2.5rem, 4.4vw, 5rem); }
+
+    /*
+     * El logo de la escuela, grande, arranca justo bajo la cabecera: el bloque
+     * de texto va arriba y no centrado, o el logo quedaba flotando a media
+     * altura con un hueco encima.
+     */
+    .hero {
+      align-items: start;
+      padding-block-start: clamp(0.5rem, 2vh, 1.5rem);
+    }
+
+    .hero-escenario {
+      align-self: center;
+    }
   }
 </style>

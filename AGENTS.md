@@ -52,8 +52,8 @@ y lo primero: una persona, grande, con su nombre. Alrededor solo se ve la
 luna de la siguiente persona y, asomando, la de después (toda la cola junto a
 un retrato pequeño era ruido); las demás nacen al acercarse. El cartel no va
 encima del retrato sino colgando de su canto inferior, como el de las
-tarjetas. Debajo van la marca de la escuela, pequeña, el titular, el botón y
-el párrafo (`Portada.astro`). Se probó con la marca y el titular encima del
+tarjetas. Debajo van la marca de la escuela, grande, casi a todo lo ancho, el
+titular, el botón y el párrafo (`Portada.astro`). Se probó con la marca y el titular encima del
 retrato y no gustó: tres títulos apilados antes de ver a nadie. No lleva botones de anterior y siguiente (hubo dos
 flechas amarillas y se pidió quitarlas): se toca lo que se ve. Una luna trae
 a esa persona; arrastrar o deslizar tira de la cola; y con el teclado,
@@ -182,9 +182,13 @@ amarillo). No es para leer ni para la interfaz: titulares, textos,
 botones y filtros siguen en General Sans, con su fino + grueso. No se usa
 para destacar una palabra dentro de un titular. Va siempre grande, en blanco
 o en amarillo (o en azul sobre el cartel claro). El subrayado amarillo es
-una pincelada (`.pincelada`), no una barra recta. En la portada el logo va
-un punto torcido, como el cartel del retrato, pero es la marca de la casa, no
-un segundo titular: va claramente por debajo de él en tamaño.
+una pincelada (`.pincelada`), no una barra recta. En la portada el logo es la
+marca de la casa y va GRANDE: tan ancho como el titular o algo más, recto,
+justo bajo la cabecera, con un tope por la altura para que en pantallas bajas
+no eche el botón de la primera pantalla (`NombreEscuela.astro`). Se pidió
+así; antes era una firma pequeña y torcida encima del titular. En la portada
+los logos de las organizaciones van a la derecha de la cabecera y no hay
+menú (`portada` en `Base.astro`); en las demás páginas, a la izquierda.
 
 **La primera pantalla dice una cosa.** Marca, titular, un párrafo y un botón.
 Llevó además una frase de cierre subrayada y un lema a pincel al pie, y se
