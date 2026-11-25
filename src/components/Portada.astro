@@ -27,13 +27,20 @@ const emprendedores = await getEmprendedores();
 // publica por seguridad.
 ---
 
-<Base titulo={sitio.general.tituloSitio} descripcion={sitio.general.descripcion} sinIndexar={vistaPrevia}>
+<Base titulo={sitio.general.tituloSitio} descripcion={sitio.general.descripcion} sinIndexar={vistaPrevia} portada>
   <main>
   <section class="hero" aria-labelledby="titulo-hero">
     <div class="hero-texto" data-junto-al-escenario>
-      <NombreEscuela retraso={0.1} />
-
-      <h1 id="titulo-hero" data-anim="letras" data-anim-retraso="0.3">{trozos(p.titular).map((t) => (t.destacado ? <strong>{t.texto}</strong> : t.texto))}</h1>
+      {/*
+        EL RÓTULO: el logo de la escuela y el titular, un solo bloque. El logo
+        mide exactamente lo que el titular (sus bordes coinciden), como el
+        rótulo de un negocio con su nombre debajo. Al bajar, el logo se encoge
+        hasta la barra fija (lib/barra.ts).
+      */}
+      <div class="rotulo">
+        <NombreEscuela retraso={0.1} />
+        <h1 id="titulo-hero" data-anim="letras" data-anim-retraso="0.3">{trozos(p.titular).map((t) => (t.destacado ? <strong>{t.texto}</strong> : t.texto))}</h1>
+      </div>
 
       {/*
         UNA COSA CADA VEZ. La primera pantalla dice qué es esto (el titular),
@@ -144,13 +151,25 @@ const emprendedores = await getEmprendedores();
     }
   }
 
+  /*
+   * RITMO: dentro del rótulo (logo y titular) el espacio es corto, porque son
+   * una sola pieza; entre el rótulo, el párrafo y el botón, más largo. Lo que
+   * va junto se lee junto.
+   */
   .hero-texto {
     grid-area: texto;
     width: min(100%, 1120px);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: clamp(1.1rem, 2.2vw, 2rem);
+    gap: clamp(1.5rem, 2.6vw, 2.4rem);
+  }
+
+  .rotulo {
+    display: grid;
+    width: max-content;
+    max-width: 100%;
+    row-gap: clamp(0.9rem, 1.5vw, 1.4rem);
   }
 
   h1 {
@@ -215,15 +234,19 @@ const emprendedores = await getEmprendedores();
     }
 
     /*
-     * La marca, el titular, el botón y, al final, el párrafo. La marca es
-     * otro componente: sin `:global` la regla no le llega (y sin orden,
-     * quedaba la primera, encima del retrato).
+     * Primero el logo de la escuela, después el retrato, el titular, el
+     * botón y, al final, el párrafo. El logo es otro componente: sin
+     * `:global` la regla no le llega.
      */
-    .hero-texto > :global(:first-child) {
-      order: 2;
+    .rotulo {
+      display: contents;
     }
 
-    .hero-texto > h1 {
+    .rotulo > :global(:first-child) {
+      order: 0;
+    }
+
+    .rotulo > h1 {
       order: 3;
     }
 
@@ -238,6 +261,21 @@ const emprendedores = await getEmprendedores();
 
   /* A media pantalla, el titular baja un punto para que quepa junto al blob. */
   @media (min-width: 900px) {
-    h1 { font-size: clamp(2.5rem, 4.4vw, 5rem); }
+    /* También manda la altura: en una pantalla baja el rótulo entero (y el logo, que mide lo que él) se reduce y el botón cabe. */
+    h1 { font-size: clamp(2.5rem, min(4.4vw, 8vh), 5rem); }
+
+    /*
+     * El logo de la escuela, grande, arranca justo bajo la cabecera: el bloque
+     * de texto va arriba y no centrado, o el logo quedaba flotando a media
+     * altura con un hueco encima.
+     */
+    .hero {
+      align-items: start;
+      padding-block-start: clamp(0.5rem, 2vh, 1.5rem);
+    }
+
+    .hero-escenario {
+      align-self: center;
+    }
   }
 </style>

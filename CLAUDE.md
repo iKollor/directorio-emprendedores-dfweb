@@ -58,14 +58,15 @@ siguiente persona llega al frente justo cuando le toca. El arco es abierto
 porque abajo a la izquierda está el cartel: con un anillo cerrado las lunas
 pasaban por debajo de él, tapadas, y se pidió cambiarlo. Su frente se
 calcula con la medida del cartel, y ninguna luna pasa por encima del texto
-de la portada ni se sale de la página. En el teléfono el retrato va centrado
-y lo primero: una persona, grande, con su nombre. Alrededor solo se ve la
+de la portada ni se sale de la página. En el teléfono lo primero es el logo
+de la escuela, grande, casi a todo lo ancho (se pidió así), y justo debajo
+el retrato, centrado: una persona, grande, con su nombre. Alrededor solo se ve la
 luna de la siguiente persona y, asomando, la de después (toda la cola junto a
 un retrato pequeño era ruido); las demás nacen al acercarse. El cartel no va
 encima del retrato sino colgando de su canto inferior, como el de las
-tarjetas. Debajo van la marca de la escuela, pequeña, el titular, el botón y
-el párrafo (`Portada.astro`). Se probó con la marca y el titular encima del
-retrato y no gustó: tres títulos apilados antes de ver a nadie. No lleva botones de anterior y siguiente (hubo dos
+tarjetas. Debajo van el titular, el botón y el párrafo (`Portada.astro`).
+Se probó con la marca Y el titular encima del retrato y no gustó: tres
+títulos apilados antes de ver a nadie. El logo solo, encima, sí. No lleva botones de anterior y siguiente (hubo dos
 flechas amarillas y se pidió quitarlas): se toca lo que se ve. Una luna trae
 a esa persona; arrastrar o deslizar tira de la cola; y con el teclado,
 flechas izquierda y derecha. Pulsar el retrato grande abre su vídeo en
@@ -193,9 +194,28 @@ amarillo). No es para leer ni para la interfaz: titulares, textos,
 botones y filtros siguen en General Sans, con su fino + grueso. No se usa
 para destacar una palabra dentro de un titular. Va siempre grande, en blanco
 o en amarillo (o en azul sobre el cartel claro). El subrayado amarillo es
-una pincelada (`.pincelada`), no una barra recta. En la portada el logo va
-un punto torcido, como el cartel del retrato, pero es la marca de la casa, no
-un segundo titular: va claramente por debajo de él en tamaño.
+una pincelada (`.pincelada`), no una barra recta. En la portada el logo es la
+marca de la casa y va GRANDE, recto, justo bajo la cabecera (se pidió así;
+antes era una firma pequeña y torcida). Con el titular forma un solo bloque,
+el rótulo: el logo mide EXACTAMENTE lo que el titular (`width: 0;
+min-width: 100%` en `NombreEscuela.astro`), así sus bordes coinciden; uno
+casi igual de ancho se lee como un error. El titular, y con él el logo, baja
+con la altura de la pantalla para que el botón quepa en la primera. En la
+portada los logos de las organizaciones van a la derecha de la cabecera y no
+hay menú (`portada` en `Base.astro`); en las demás páginas, a la izquierda.
+
+**La barra: el logo se queda arriba.** Al bajar por la portada, el logo
+grande se encoge con el propio desplazamiento hasta caber en una barra fija
+arriba (`src/lib/barra.ts`): una píldora de vidrio azul, el material de los
+mandos del reproductor, con el logo a la izquierda (lleva al inicio) y, a la
+derecha, los logos de Diseña Futuro e Intervalores, que llevan a sus webs en
+otra pestaña (hubo enlaces de texto a los emprendedores y a la escuela, y se
+pidió cambiarlos por los logos). El logo llega primero y después
+aparece el vidrio a su alrededor: si apareciera antes, lo taparía (la barra
+va por encima de la página). Va atado al desplazamiento, no a un reloj, así
+que se para y vuelve donde se pare la persona. En las demás páginas la barra
+entra al pasar la cabecera, y con movimiento reducido no hay encogido.
+Escondida, no se enfoca ni se pulsa. Una sola imagen del logo a la vez.
 
 **La primera pantalla dice una cosa.** Marca, titular, un párrafo y un botón.
 Llevó además una frase de cierre subrayada y un lema a pincel al pie, y se

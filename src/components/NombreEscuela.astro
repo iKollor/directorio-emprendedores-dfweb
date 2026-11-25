@@ -10,7 +10,8 @@
 import { Image } from "astro:assets";
 import { getSitio } from "../lib/sitio";
 
-type Props = { tamano?: "hero" | "pie"; retraso?: number };
+/** `barra`: el de la barra fija (lib/barra.ts); no hace entrada propia. */
+type Props = { tamano?: "hero" | "pie" | "barra"; retraso?: number };
 const { tamano = "hero", retraso = 0 } = Astro.props;
 const { general, logoEscuela: logo } = await getSitio(Astro.locals);
 const { escuelaLinea1, escuelaLinea2 } = general;
@@ -23,7 +24,7 @@ const alto = logo ? Math.min(logo.height, ALTO_MAXIMO) : 0;
 
 {
   logo ? (
-    <p class:list={["escuela", "con-logo", tamano]} data-anim="subir" data-anim-retraso={retraso}>
+    <p class:list={["escuela", "con-logo", tamano]} data-anim={tamano === "barra" ? undefined : "subir"} data-anim-retraso={tamano === "barra" ? undefined : retraso}>
       {logo.remoto ? (
         <Image
           src={logo.src}
@@ -38,7 +39,7 @@ const alto = logo ? Math.min(logo.height, ALTO_MAXIMO) : 0;
       )}
     </p>
   ) : (
-    <p class:list={["escuela", tamano]} data-anim="letras" data-anim-retraso={retraso}>
+    <p class:list={["escuela", tamano]} data-anim={tamano === "barra" ? undefined : "letras"} data-anim-retraso={tamano === "barra" ? undefined : retraso}>
       <span>{escuelaLinea1}</span>
       <span>{escuelaLinea2}</span>
     </p>
@@ -63,16 +64,26 @@ const alto = logo ? Math.min(logo.height, ALTO_MAXIMO) : 0;
   /* El alto manda, medido en la letra del nombre: así crece con la pantalla igual que él. */
   .con-logo img { display: block; align-self: flex-start; width: auto; max-width: 100%; height: 2.75em; object-fit: contain; object-position: left center; }
   /*
-   * En la portada es el rótulo de la casa: grande y un punto torcido, como
-   * el cartel del retrato. El logo trae su propio aire, así que no lleva el
-   * margen que llevaba el texto.
+   * EN LA PORTADA ES LA MARCA DE LA CASA, Y SE VE: tan ancho como el titular o
+   * un poco más (se pidió así; antes era una firma pequeña encima de él). Lo
+   * manda el ancho, que crece con la ventana, con un tope por la altura para
+   * que en pantallas bajas no eche el botón de la primera pantalla. Recto:
+   * a este tamaño, torcido parecía mal puesto.
    */
-  .con-logo.hero { margin-block-end: 0; rotate: -3deg; transform-origin: 0 100%; }
-  /* Es la marca de la casa, no un segundo titular: va por debajo de él en tamaño. */
-  .con-logo.hero img { height: 2.5em; }
+  .con-logo.hero { width: 100%; }
+  /*
+   * Del ancho exacto del titular (Portada.astro los junta en un bloque): con
+   * `width: 0` el logo no cuenta al medir el bloque, y con `min-width: 100%`
+   * lo llena. Así sus bordes coinciden con los del titular, sin "casi".
+   * Relativo: es el que se encoge hasta la barra y tiene que ir por encima.
+   */
+  .con-logo.hero img { position: relative; z-index: 4; width: 0; min-width: 100%; max-width: none; height: auto; transform-origin: 0 0; will-change: transform; }
   .con-logo.pie img { height: 3.3em; }
-  /* En el teléfono va bajo el retrato, encima del titular: pequeño, como una firma. */
+  /* En la barra: el alto manda y el ancho sale solo (lib/barra.ts encoge el grande hasta aquí). */
+  .con-logo.barra img { width: auto; max-width: none; height: clamp(2rem, 2.7vw, 2.4rem); }
+  .barra { margin: 0; font-size: 1rem; }
+  /* En el teléfono va el primero, arriba, casi a todo lo ancho. */
   @media (max-width: 639px) {
-    .con-logo.hero img { height: 2.1em; }
+    .con-logo.hero img { width: min(80vw, 380px); min-width: 0; }
   }
 </style>

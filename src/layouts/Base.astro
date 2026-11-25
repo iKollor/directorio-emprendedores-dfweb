@@ -2,6 +2,7 @@
 import { ClientRouter } from "astro:transitions";
 import "../styles/tokens.css";
 import Marca from "../components/Marca.astro";
+import NombreEscuela from "../components/NombreEscuela.astro";
 import Pie from "../components/Pie.astro";
 import PrimerPlano from "../components/PrimerPlano.astro";
 import { getSitio } from "../lib/sitio";
@@ -12,9 +13,15 @@ type Props = {
   imagen?: string;
   /** Páginas que no son para buscadores (la vista previa del panel). */
   sinIndexar?: boolean;
+  /**
+   * La portada: allí la marca de la casa es el logo de la escuela, grande,
+   * arriba a la izquierda (Portada.astro), y los logos de las organizaciones
+   * pasan a la derecha, sin menú.
+   */
+  portada?: boolean;
 };
 
-const { titulo, descripcion, imagen, sinIndexar = false } = Astro.props;
+const { titulo, descripcion, imagen, sinIndexar = false, portada = false } = Astro.props;
 
 const { general } = await getSitio(Astro.locals);
 const SITIO = general.tituloSitio;
@@ -73,13 +80,30 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
 
   <body>
     <a class="saltar" href="#contenido">Saltar al contenido</a>
-    <header class="cabecera" id="inicio">
+    <header class:list={["cabecera", { portada }]} id="inicio">
       <Marca />
-      <nav aria-label="Navegación principal">
-        <a href={Astro.url.pathname === "/" ? "#contenido" : "/#contenido"}>{general.menuEmprendedores} <span aria-hidden="true">↗</span></a>
-        <a href="#sobre-la-escuela">{general.menuEscuela}</a>
-      </nav>
+      {!portada && (
+        <nav aria-label="Navegación principal">
+          <a href={Astro.url.pathname === "/" ? "#contenido" : "/#contenido"}>{general.menuEmprendedores} <span aria-hidden="true">↗</span></a>
+          <a href="#sobre-la-escuela">{general.menuEscuela}</a>
+        </nav>
+      )}
     </header>
+    {/*
+      LA BARRA (lib/barra.ts): el logo de la escuela pegado arriba (lleva al
+      inicio) y, a la derecha, los de Diseña Futuro e Intervalores, que llevan
+      a sus webs. Escondida hasta que se baja; en la portada es el logo grande
+      del hero el que se encoge hasta ella. Mientras no se ve, no se enfoca.
+    */}
+    <nav class="barra" data-barra aria-label="Navegación" inert>
+      <a class="barra-logo" data-barra-logo href={portada ? "#inicio" : "/"}>
+        <NombreEscuela tamano="barra" />
+      </a>
+      {/* Las organizaciones: cada logo lleva a su web. */}
+      <div class="barra-enlaces">
+        <Marca barra />
+      </div>
+    </nav>
     <slot />
     <Pie />
     <PrimerPlano />
@@ -100,6 +124,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       import { obtenerTinta, soltarTinta } from "../lib/tinta";
       import { hayAterrizaje, prepararViaje, recibirViaje } from "../lib/viaje";
       import { despegar, sinVuelo, trasAterrizar } from "../lib/aterrizaje";
+      import { montarBarra, soltarBarra } from "../lib/barra";
       import type {
         TransitionBeforePreparationEvent,
         TransitionBeforeSwapEvent,
@@ -269,6 +294,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         subir();
         montarBlobs();
         montarTinta();
+        montarBarra();
         const esta = ++paginas;
         // Textos y formas entran cuando han aterrizado el retrato y el nombre.
         trasAterrizar(() => {
@@ -291,6 +317,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         transicion.finished.then(terminar, terminar);
         blobs?.destruir();
         blobs = null;
+        soltarBarra();
         soltarTextos?.();
         soltarTextos = null;
         soltarRetratos?.();
@@ -332,6 +359,64 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
        * queda sitio para el menú, y el hero ya trae su botón al listado.
        */
       @media (max-width: 640px) { .cabecera nav { display: none; } }
+      /*
+       * EN LA PORTADA, a partir de dos columnas, los logos de las organizaciones
+       * van a la derecha: a la izquierda, justo debajo, está el logo de la
+       * escuela, grande. Sin menú: el botón del hero lleva al listado y el pie
+       * está a un desplazamiento.
+       */
+      @media (min-width: 900px) {
+        .cabecera.portada { justify-content: flex-end; padding-block-end: 0; }
+      }
+
+      /*
+       * LA BARRA: una píldora de vidrio, el material de los mandos del
+       * reproductor, a lo ancho de la página y separada del borde. Lo que se
+       * ve lo gobierna --barra (0 escondida, 1 entera): el vidrio y los
+       * enlaces aparecen con ella; el logo lo pone lib/barra.ts.
+       */
+      .barra {
+        --barra: 0;
+        position: fixed;
+        z-index: 40;
+        top: clamp(0.5rem, 1.4vw, 0.9rem);
+        left: max(calc(var(--gutter) - 1.1rem), 0.5rem);
+        right: max(calc(var(--gutter) - 1.1rem), 0.5rem);
+        isolation: isolate;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        height: clamp(3.25rem, 4.6vw, 3.9rem);
+        padding-inline: 1.1rem 0.6rem;
+        pointer-events: none;
+      }
+      .barra::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset: 0;
+        border-radius: var(--radio-pildora, 999px);
+        background: rgb(65 65 249 / 0.8);
+        -webkit-backdrop-filter: blur(14px) saturate(1.4);
+        backdrop-filter: blur(14px) saturate(1.4);
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.45),
+          inset 0 -0.42em 0.7em -0.36em rgb(0 0 40 / 0.35),
+          0 0.9em 1.8em -0.9em rgb(0 0 40 / 0.6);
+        opacity: var(--barra);
+        scale: calc(0.985 + 0.015 * var(--barra));
+      }
+      .barra[data-activa] { pointer-events: auto; }
+      .barra-logo { display: flex; align-items: center; text-decoration: none; }
+      .barra-enlaces {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        opacity: var(--barra);
+        translate: 0 calc((1 - var(--barra)) * -0.4rem);
+      }
+
       .saltar {
         position: absolute;
         top: -100px;
