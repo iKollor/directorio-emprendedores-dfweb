@@ -149,6 +149,10 @@ Tampoco hay nada que siga al cursor por la página.
 **La misma luz en todo.** La luz viene de arriba a la izquierda. Botones,
 píldoras y puntos llevan el brillo y la sombra interior de una gota
 (`--gota` en `src/styles/tokens.css`), hechos con sombras, no con WebGL.
+El favicon también (`public/icon.svg`): la E y la pincelada del logo de la
+escuela en una tesela con esa luz, azul en modo claro y amarilla en modo
+oscuro. El resto de iconos sale de él con `node scripts/favicon/generar.mjs`;
+ver "Favicon" en `public/brand/FUENTES.md`.
 
 **El fondo es el de Diseña Futuro: plano, con formas.** Su sitio es azul
 liso con formas grandes de color que asoman por los bordes y una estrella

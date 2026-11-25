@@ -5,8 +5,7 @@
 Recuperados del sitio oficial https://disenafuturo.com/ el 14 de septiembre de 2026.
 
 - `disena-futuro.webp`: logo blanco completo, servido por el CDN del sitio. Fuente: https://i-p.rmcdn.net/65317432e28b0a0021a9e424/5023001/image-16cdde07-f2e3-430f-a175-86e8b68066eb.png?w=608&e=webp&nll=true&cX=0&cY=77&cW=774&cH=265
-- `/favicon.png`: icono oficial de 144 px. Fuente: https://c-p.rmcdn.net/66b140ab0894bca6d7b39f44/Favicon-18cad743-794c-4165-843e-0966dfd9f330_144.png
-- `/favicon.ico` y `/favicon.svg`: adaptaciones del PNG oficial para compatibilidad; no contienen la marca de Astro.
+- El favicon ya no es el de Diseña Futuro (su nube): ver "Favicon", más abajo.
 
 El logo se conserva sin redibujarlo. Sigue pendiente recibir el original vectorial y el manual de marca.
 
@@ -69,3 +68,24 @@ un aspa en lugar de las ondas. Los de pausa y cerrar no están en el conjunto
 gratuito: se dibujaron para este sitio con el mismo trazo grueso y redondeado.
 El logotipo de WhatsApp es marca de WhatsApp LLC y se usa solo para indicar
 que el mensaje se envía por esa aplicación.
+
+## Favicon
+
+Es de la Escuela de Emprendimiento: la E de "ESCUELA" y una pincelada,
+recortadas del logo pintado a mano (`escuela-emprendimiento.webp`),
+vectorizadas y engrosadas lo justo para leerse a 16 px. En modo claro es una
+tesela azul con la E blanca y la pincelada amarilla (las dos líneas del
+logo); en modo oscuro, amarilla con la E azul hondo. Lleva la luz de las
+gotas del sitio: velo de gel arriba, filo de luz, sombra interior abajo y la
+E en relieve.
+
+- `/icon.svg`: el original, adaptativo.
+- `scripts/favicon/icono-lleno.svg`: el mismo a sangre y opaco, para el
+  iPhone y Android.
+- `/favicon.ico`, `/apple-touch-icon.png`, `/icon-192.png`, `/icon-512.png` y
+  `/icon-mask.png`: salen de los dos con `node scripts/favicon/generar.mjs`.
+  No se editan a mano.
+
+Contraste medido: en modo claro, la tesela contra una pestaña blanca 6,3:1 y
+la E contra la tesela entre 3,6 y 10:1; en modo oscuro, la tesela contra una
+pestaña oscura entre 5,5 y 14,5:1 y la E contra ella entre 6,5 y 7,4:1.

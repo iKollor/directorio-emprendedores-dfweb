@@ -5,6 +5,7 @@
   "description": "Panel de contenido del Directorio de Emprendedores (Payload + SQLite)",
   "type": "module",
   "scripts": {
+    "predev": "node -e \"const fs=require('fs');fs.mkdirSync('public',{recursive:true});for(const f of ['favicon.ico','icon.svg','apple-touch-icon.png'])fs.copyFileSync('../public/'+f,'public/'+f)\"",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev --port 3000",
     "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=3072\" next build",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start --port 3000",
