@@ -29,15 +29,18 @@ type Props = {
   nombre: string;
   whatsapp: string | null;
   telefono: string | null;
+  /** El suyo propio, si lo tiene en el panel; si no, el general. */
+  mensajePropio?: string | null;
 };
 
-const { nombre, whatsapp, telefono } = Astro.props;
+const { nombre, whatsapp, telefono, mensajePropio = null } = Astro.props;
 
 const primerNombre = nombre.split(/\s+/)[0] ?? nombre;
 
-// El mensaje se escribe en el panel ("Textos y logos" > Ficha).
+// El mensaje se escribe en el panel: el general en "Textos y logos" > Ficha,
+// y el de una persona, si lo necesita, en su propia ficha.
 const textos = (await getSitio(Astro.locals)).ficha;
-const mensaje = conNombre(textos.mensajeWhatsapp, primerNombre);
+const mensaje = conNombre(mensajePropio || textos.mensajeWhatsapp, primerNombre);
 
 const enlace = whatsapp ? `${whatsapp}?text=${encodeURIComponent(mensaje)}` : null;
 ---

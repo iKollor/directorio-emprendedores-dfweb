@@ -5,6 +5,7 @@ import * as migration_20261123_221230_textos_sin_genero from './20261123_221230_
 import * as migration_20261124_024446_sin_franja_videos from './20261124_024446_sin_franja_videos';
 import * as migration_20261124_055331_videos_con_sonido from './20261124_055331_videos_con_sonido';
 import * as migration_20261124_183244_pantalla_completa from './20261124_183244_pantalla_completa';
+import * as migration_20261125_051117_mensaje_whatsapp from './20261125_051117_mensaje_whatsapp';
 
 export const migrations = [
   {
@@ -40,6 +41,11 @@ export const migrations = [
   {
     up: migration_20261124_183244_pantalla_completa.up,
     down: migration_20261124_183244_pantalla_completa.down,
-    name: '20261124_183244_pantalla_completa'
+    name: '20261124_183244_pantalla_completa',
+  },
+  {
+    up: migration_20261125_051117_mensaje_whatsapp.up,
+    down: migration_20261125_051117_mensaje_whatsapp.down,
+    name: '20261125_051117_mensaje_whatsapp'
   },
 ];

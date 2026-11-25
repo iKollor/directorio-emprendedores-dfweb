@@ -131,6 +131,20 @@ export const Emprendedores: CollectionConfig = {
       },
     },
     {
+      // El mensaje general se edita en "Textos y logos" > Ficha. Este es solo
+      // para quien necesite otro (por ejemplo, para nombrar su negocio).
+      name: 'mensajeWhatsapp',
+      type: 'textarea',
+      label: 'Mensaje de WhatsApp',
+      admin: {
+        condition: conFicha,
+        rows: 3,
+        placeholder: 'Vacío: el mensaje general',
+        description:
+          'Lo que ya va escrito cuando alguien pulsa para escribirle. Déjalo vacío para usar el mensaje general, que se cambia para todas las fichas en "Textos y logos" > Ficha. {nombre} se cambia por su nombre.',
+      },
+    },
+    {
       name: 'foto',
       type: 'upload',
       relationTo: 'medios',
