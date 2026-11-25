@@ -480,6 +480,66 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   }
   .vacio h3 { font-size: var(--txt-l); line-height: 1.2; }
   .vacio p { margin: 1rem auto 1.5rem; max-width: 42ch; }
+  /*
+   * EN ESCRITORIO, A TAMAÑO DE LEER. Los filtros y el buscador usaban la
+   * letra pequeña de la interfaz y en una pantalla grande se veían diminutos:
+   * van a la letra del texto, más altos y con más aire. Al final de la hoja
+   * para que pesen más que las reglas generales de arriba.
+   */
+  @media (min-width: 768px) {
+    .buscador {
+      flex-basis: 24rem;
+      max-width: 36rem;
+    }
+
+    .buscador input {
+      min-height: 3.5rem;
+      padding-inline: 3.4rem 3.8rem;
+      font-size: var(--txt-m);
+    }
+
+    .lupa {
+      left: 1.3rem;
+      font-size: 1.3rem;
+    }
+
+    .buscador .borrar {
+      right: 0.4rem;
+      width: 2.8rem;
+      font-size: 0.95rem;
+    }
+
+    legend {
+      margin-bottom: 0.85rem;
+      font-size: var(--txt-m);
+    }
+
+    .opciones {
+      gap: 0.65rem;
+    }
+
+    .filtros button:not(.borrar):not(.limpiar-filtros) {
+      min-height: 3.25rem;
+      padding: 0.55em 1.35em;
+      font-size: var(--txt-m);
+    }
+
+    .conteo,
+    .filtros .limpiar-filtros {
+      font-size: var(--txt-m);
+    }
+  }
+
+  /* En un portátil, un punto menos de aire: que las categorías quepan en una fila sin dejar una sola debajo. */
+  @media (min-width: 768px) and (max-width: 1399px) {
+    .opciones {
+      gap: 0.45rem;
+    }
+
+    .filtros button:not(.borrar):not(.limpiar-filtros) {
+      padding-inline: 1.05em;
+    }
+  }
 </style>
 
 <script>
