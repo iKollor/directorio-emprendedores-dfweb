@@ -54,6 +54,11 @@ luna de la siguiente persona y, asomando, la de después (toda la cola junto a
 un retrato pequeño era ruido); las demás nacen al acercarse. El cartel no va
 encima del retrato sino colgando de su canto inferior, como el de las
 tarjetas. Debajo van el titular, el botón y el párrafo (`Portada.astro`).
+En el teléfono todo va en un solo eje, centrado: los logos de la cabecera,
+el de la escuela, el retrato con su cartel, el titular, el botón y el
+párrafo. Alineado a la izquierda, con el retrato centrado, sobraba aire a
+la derecha y la pantalla se veía torcida. La columna mide el ancho de la
+página y nada la ensancha (si el retrato la pasaba, el eje se corría).
 Se probó con la marca Y el titular encima del retrato y no gustó: tres
 títulos apilados antes de ver a nadie. El logo solo, encima, sí. No lleva botones de anterior y siguiente (hubo dos
 flechas amarillas y se pidió quitarlas): se toca lo que se ve. Una luna trae
@@ -97,9 +102,15 @@ retrato continúa la misma (antes se cargaba otra desde cero y el sonido se
 apagaba y volvía a entrar). Si la voz se queda cargando (red lenta), el retrato NO la
 espera: sigue a su aire y se coloca una sola vez donde va ella cuando vuelve
 a andar; esperándola se quedaba clavado, y parecía que pasar el puntero
-pausaba el vídeo. Una luna que se está fundiendo con la gota grande no es un
-botón: está encima del retrato, medio invisible, y se llevaba su clic. Los mandos son los de cualquier reproductor (reproducir, avance,
-altavoz y nivel, calidad con "Auto", cerrar) vestidos con el material del
+pausaba el vídeo. MIENTRAS EL VÍDEO CARGA no hay mandos: la gota espera en
+la bruma, que es la señal de que carga, y los mandos aparecen (ni se ven ni
+se pulsan antes) cuando la imagen enfoca; el aspa de cerrar está desde el
+principio. En el iPhone un vídeo puede decir que ya anda sin haber pintado
+nada: el material solo lo usa cuando consta que pintó un fotograma, y hasta
+entonces pone su foto (las fotos de las dos personas siguientes se cargan
+por adelantado). Sin eso, el retrato se quedaba en una gota azul vacía. Una luna que se está fundiendo con la gota grande no es un
+botón: está encima del retrato, medio invisible, y se llevaba su clic. Los mandos son los de cualquier reproductor (reproducir, volver al inicio,
+avance, altavoz y nivel, calidad con "Auto", cerrar) vestidos con el material del
 sitio: píldora de vidrio, lo andado es una pincelada amarilla y el tirador,
 una gota. El retrato lleva un altavoz de vidrio (`.boton-icono.vidrio`) que
 dice si suena y ES UN INTERRUPTOR DE SONIDO, como el de cualquier
@@ -139,6 +150,21 @@ fila corta, con las iniciales al lado del cartel.
 **Una curva.** Todo lo que entra sube un poco y se asienta con `expo.out`
 (`CURVA` en `src/lib/animaciones.ts`). Sin rebotes, giros ni desenfoques de
 texto. El único elástico del sitio es el contorno de los blobs.
+
+**La entrada de la portada, en orden.** Nada aparece de golpe ni por su
+cuenta: la portada espera a las fuentes y a las imágenes de arriba (logos y
+primer retrato, con un tope de 1,2 s; `esperarPortada` en
+`src/lib/escritura.ts`) y entra en una sola secuencia: los logos de la
+cabecera, el logo de la escuela escribiéndose, el retrato, el titular, el
+párrafo y el botón (los retrasos están en `Portada.astro`). El logo está
+pintado a mano y se ve pintar: una máscara con la línea central de cada
+pincelada (`src/data/trazo-escuela.json`, sacada con
+`scripts/logo/trazar.py`) lo va destapando trazo a trazo, en el orden de la
+escritura, en 1,6 s; cada trazo arranca y frena como una mano (es lo único
+que no va con `expo.out`). Si se baja mientras se escribe, termina en el
+acto. Solo vale para el logo de partida: si en el panel se sube otro, hay que
+volver a sacar los trazos, y mientras tanto entra subiendo como lo demás.
+Con movimiento reducido no hay escritura ni secuencia.
 
 **El puntero mueve el borde, nunca la imagen.** Pasar por encima de un
 retrato lo enfoca, y al acercarse a su borde la gota responde como una gota:

@@ -81,7 +81,10 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
   <body>
     <a class="saltar" href="#contenido">Saltar al contenido</a>
     <header class:list={["cabecera", { portada }]} id="inicio">
-      <Marca />
+      {/* Los logos entran uno tras otro, los primeros de la página. */}
+      <div class="cabecera-marcas" data-anim="subir" data-anim-hijos=":scope > .marcas > *">
+        <Marca />
+      </div>
       {!portada && (
         <nav aria-label="Navegación principal">
           <a href={Astro.url.pathname === "/" ? "#contenido" : "/#contenido"}>{general.menuEmprendedores} <span aria-hidden="true">↗</span></a>
@@ -125,6 +128,7 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       import { hayAterrizaje, prepararViaje, recibirViaje } from "../lib/viaje";
       import { despegar, sinVuelo, trasAterrizar } from "../lib/aterrizaje";
       import { montarBarra, soltarBarra } from "../lib/barra";
+      import { esperarPortada } from "../lib/escritura";
       import type {
         TransitionBeforePreparationEvent,
         TransitionBeforeSwapEvent,
@@ -297,7 +301,9 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
         montarBarra();
         const esta = ++paginas;
         // Textos y formas entran cuando han aterrizado el retrato y el nombre.
-        trasAterrizar(() => {
+        trasAterrizar(async () => {
+          // En la portada, antes de entrar, fuentes e imágenes de arriba (con tope).
+          await esperarPortada();
           if (esta !== paginas) return;
           montarTextos();
           montarFormas();
@@ -367,6 +373,10 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
        */
       @media (min-width: 900px) {
         .cabecera.portada { justify-content: flex-end; padding-block-end: 0; }
+      }
+      /* En el teléfono, la portada es una columna centrada: los logos, también. */
+      @media (max-width: 639px) {
+        .cabecera.portada { justify-content: center; }
       }
 
       /*

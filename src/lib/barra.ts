@@ -101,7 +101,9 @@ export function montarBarra(): void {
         });
       }
     };
-    logoBarra.style.opacity = "";
+    // El logo aparece con la barra; sin esto se quedaba siempre a la vista
+    // (con movimiento reducido, dos logos a la vez en la portada).
+    logoBarra.style.opacity = "var(--barra)";
     poner(0);
     medir();
     mirar();
@@ -111,6 +113,7 @@ export function montarBarra(): void {
       gsap.killTweensOf(estado);
       window.removeEventListener("scroll", mirar);
       window.removeEventListener("resize", medir);
+      logoBarra.style.opacity = "";
     };
     return;
   }

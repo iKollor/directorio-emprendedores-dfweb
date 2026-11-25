@@ -108,7 +108,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       data-escenario
       data-viaja-ambito
       data-anim="pop"
-      data-anim-retraso="0.2"
+      data-anim-retraso="0.45"
       {...(escenas.length > 1
         ? {
             tabindex: "0",
@@ -669,8 +669,9 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
      */
     @media (max-width: 639px) {
       .rotulos {
-        left: 1%;
+        left: 50%;
         bottom: -19%;
+        translate: -50% 0;
       }
     }
 
@@ -1226,6 +1227,21 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       if (enLiquido && (++fotograma % 2 === 0 || deprisa)) tinta!.lunas(liquido);
     }
 
+    /**
+     * LAS FOTOS DE LAS DOS SIGUIENTES, YA CARGADAS. Son la reserva del vídeo
+     * (mientras carga o si no llega a pintar) y van en diferido: en el iPhone
+     * a veces no habían llegado cuando le tocaba a esa persona, y sin vídeo
+     * ni foto el retrato se quedaba vacío.
+     */
+    function adelantarFotos() {
+      for (const paso of [1, 2]) {
+        const foto = imagen(vecina(paso));
+        if (!foto) continue;
+        if (foto.loading === "lazy") foto.loading = "eager";
+        void foto.decode?.().catch(() => {});
+      }
+    }
+
     // ---- Piezas ------------------------------------------------------------
     function reproducir(i: number) {
       const v = video(i);
@@ -1488,6 +1504,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       // no habrá que esperarlo.
       const proximo = video(vecina(1));
       if (proximo && proximo.preload === "none") proximo.preload = "auto";
+      adelantarFotos();
 
       const terminar = () => {
         entra.setAttribute("data-activa", "");
@@ -1700,6 +1717,7 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       { signal },
     );
     ponerAltavoz();
+    adelantarFotos();
 
     // La cola avanza sola, despacio; el puntero puede tirar de ella y, si no
     // llega a cambiar de persona, al soltarla vuelve a su sitio.

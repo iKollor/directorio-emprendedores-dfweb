@@ -192,7 +192,12 @@ export const Sitio: GlobalConfig = {
             texto('titulo', 'Nombre de la ventana', 'Escribe {nombre} donde va el nombre de la persona.'),
             {
               type: 'row',
-              fields: [texto('reproducir', 'Reproducir'), texto('pausar', 'Pausar'), texto('cerrar', 'Cerrar')],
+              fields: [
+                texto('reproducir', 'Reproducir'),
+                texto('pausar', 'Pausar'),
+                texto('reiniciar', 'Volver al inicio'),
+                texto('cerrar', 'Cerrar'),
+              ],
             },
             {
               type: 'row',

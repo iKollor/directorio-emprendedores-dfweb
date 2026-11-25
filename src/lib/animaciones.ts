@@ -17,6 +17,8 @@
  *   data-anim="revelar"    los hijos se destapan de abajo arriba (clip-path)
  *   data-anim="subrayado"  el subrayado amarillo se dibuja de izquierda a derecha
  *   data-anim="forma"      formas de fondo (Forma.astro): crecen desde su centro
+ *   data-anim="escribir"   el logo de la escuela se escribe a mano (lib/escritura.ts);
+ *                          si no se puede (otro logo, o ya fuera de la vista), sube
  *
  * Modificadores:
  *   data-anim-hijos="sel"  anima los hijos que cumplen el selector, en cascada
@@ -42,6 +44,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 import { sinMovimiento } from "./scroll";
+import { escribirLogo } from "./escritura";
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
@@ -72,6 +75,12 @@ function objetivos(el: HTMLElement): HTMLElement[] {
 const LIMPIAR = "opacity,visibility,transform,filter,clipPath";
 
 const FABRICAS: Record<string, Fabrica> = {
+  escribir(el, retraso) {
+    const img = el.querySelector("img");
+    if (img && aLaVista(el) && img.complete && escribirLogo(img, retraso)) return;
+    FABRICAS.subir!(el, retraso);
+  },
+
   letras(el, retraso) {
     SplitText.create(el, {
       type: "lines,chars",
