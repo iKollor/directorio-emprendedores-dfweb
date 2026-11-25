@@ -146,6 +146,21 @@ fila corta, con las iniciales al lado del cartel.
 (`CURVA` en `src/lib/animaciones.ts`). Sin rebotes, giros ni desenfoques de
 texto. El único elástico del sitio es el contorno de los blobs.
 
+**La entrada de la portada, en orden.** Nada aparece de golpe ni por su
+cuenta: la portada espera a las fuentes y a las imágenes de arriba (logos y
+primer retrato, con un tope de 1,2 s; `esperarPortada` en
+`src/lib/escritura.ts`) y entra en una sola secuencia: los logos de la
+cabecera, el logo de la escuela escribiéndose, el retrato, el titular, el
+párrafo y el botón (los retrasos están en `Portada.astro`). El logo está
+pintado a mano y se ve pintar: una máscara con la línea central de cada
+pincelada (`src/data/trazo-escuela.json`, sacada con
+`scripts/logo/trazar.py`) lo va destapando trazo a trazo, en el orden de la
+escritura, en 1,6 s; cada trazo arranca y frena como una mano (es lo único
+que no va con `expo.out`). Si se baja mientras se escribe, termina en el
+acto. Solo vale para el logo de partida: si en el panel se sube otro, hay que
+volver a sacar los trazos, y mientras tanto entra subiendo como lo demás.
+Con movimiento reducido no hay escritura ni secuencia.
+
 **El puntero mueve el borde, nunca la imagen.** Pasar por encima de un
 retrato lo enfoca, y al acercarse a su borde la gota responde como una gota:
 el borde se estira hacia el puntero, conserva su volumen y tiembla al

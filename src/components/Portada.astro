@@ -38,10 +38,17 @@ const emprendedores = await getEmprendedores();
         hasta la barra fija (lib/barra.ts).
       */}
       <div class="rotulo">
-        <NombreEscuela retraso={0.1} />
-        <h1 id="titulo-hero" data-anim="letras" data-anim-retraso="0.3">{trozos(p.titular).map((t) => (t.destacado ? <strong>{t.texto}</strong> : t.texto))}</h1>
+        <NombreEscuela retraso={0.15} />
+        <h1 id="titulo-hero" data-anim="letras" data-anim-retraso="0.95">{trozos(p.titular).map((t) => (t.destacado ? <strong>{t.texto}</strong> : t.texto))}</h1>
       </div>
 
+      {/*
+        LA ENTRADA, EN ORDEN: los logos de arriba, el de la escuela
+        escribiéndose (lib/escritura.ts), el retrato, el titular, el párrafo
+        y el botón. Los retrasos de cada `data-anim-retraso` son esa
+        secuencia; la página espera a fuentes e imágenes antes de empezar
+        (`esperarPortada`), para que nada aparezca de golpe al llegar tarde.
+      */}
       {/*
         UNA COSA CADA VEZ. La primera pantalla dice qué es esto (el titular),
         lo explica en un párrafo y ofrece un botón. Antes llevaba además la
@@ -49,11 +56,11 @@ const emprendedores = await getEmprendedores();
         cinco textos compitiendo, y se pidió dejarla limpia. Esas palabras
         siguen en la cinta que cruza la página justo debajo.
       */}
-      <div class="intro" data-anim="subir" data-anim-retraso="0.75">
+      <div class="intro" data-anim="subir" data-anim-retraso="1.3">
         <p>{trozos(p.intro).map((t) => (t.destacado ? <strong>{t.texto}</strong> : t.texto))}</p>
       </div>
 
-      <div data-anim="pop" data-anim-retraso="1.05">
+      <div data-anim="pop" data-anim-retraso="1.55">
         <a class="pildora-cta" href="#contenido">
           {p.boton}
           <span class="flecha-cta" aria-hidden="true">↓</span>

@@ -19,12 +19,14 @@ const nombre = `${escuelaLinea1} ${escuelaLinea2}`.trim();
 
 /** Subido al panel: lo optimiza Astro, sin agrandarlo más de lo que mide. */
 const ALTO_MAXIMO = 160;
-const alto = logo ? Math.min(logo.height, ALTO_MAXIMO) : 0;
+// En la portada va grande (hasta 680 px de ancho): ahí, a su tamaño original.
+// Con el tope de 160 px llegaba a 389×160 y se veía ampliado y borroso.
+const alto = logo ? Math.min(logo.height, tamano === "hero" ? 1200 : ALTO_MAXIMO) : 0;
 ---
 
 {
   logo ? (
-    <p class:list={["escuela", "con-logo", tamano]} data-anim={tamano === "barra" ? undefined : "subir"} data-anim-retraso={tamano === "barra" ? undefined : retraso}>
+    <p class:list={["escuela", "con-logo", tamano]} data-anim={tamano === "barra" ? undefined : tamano === "hero" ? "escribir" : "subir"} data-anim-retraso={tamano === "barra" ? undefined : retraso}>
       {logo.remoto ? (
         <Image
           src={logo.src}
@@ -70,7 +72,8 @@ const alto = logo ? Math.min(logo.height, ALTO_MAXIMO) : 0;
    * que en pantallas bajas no eche el botón de la primera pantalla. Recto:
    * a este tamaño, torcido parecía mal puesto.
    */
-  .con-logo.hero { width: 100%; }
+  /* Relativo: encima va, mientras se escribe, el SVG de la escritura (lib/escritura.ts). */
+  .con-logo.hero { position: relative; width: 100%; }
   /*
    * Del ancho exacto del titular (Portada.astro los junta en un bloque): con
    * `width: 0` el logo no cuenta al medir el bloque, y con `min-width: 100%`
