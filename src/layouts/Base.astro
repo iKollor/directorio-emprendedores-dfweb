@@ -374,6 +374,10 @@ const og = imagen ? new URL(imagen, canonica).href : undefined;
       @media (min-width: 900px) {
         .cabecera.portada { justify-content: flex-end; padding-block-end: 0; }
       }
+      /* En el teléfono, la portada es una columna centrada: los logos, también. */
+      @media (max-width: 639px) {
+        .cabecera.portada { justify-content: center; }
+      }
 
       /*
        * LA BARRA: una píldora de vidrio, el material de los mandos del

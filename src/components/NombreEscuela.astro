@@ -87,6 +87,6 @@ const alto = logo ? Math.min(logo.height, tamano === "hero" ? 1200 : ALTO_MAXIMO
   .barra { margin: 0; font-size: 1rem; }
   /* En el teléfono va el primero, arriba, casi a todo lo ancho. */
   @media (max-width: 639px) {
-    .con-logo.hero img { width: min(80vw, 380px); min-width: 0; }
+    .con-logo.hero img { display: block; width: min(80vw, 380px); min-width: 0; margin-inline: auto; }
   }
 </style>

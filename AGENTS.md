@@ -54,6 +54,11 @@ luna de la siguiente persona y, asomando, la de después (toda la cola junto a
 un retrato pequeño era ruido); las demás nacen al acercarse. El cartel no va
 encima del retrato sino colgando de su canto inferior, como el de las
 tarjetas. Debajo van el titular, el botón y el párrafo (`Portada.astro`).
+En el teléfono todo va en un solo eje, centrado: los logos de la cabecera,
+el de la escuela, el retrato con su cartel, el titular, el botón y el
+párrafo. Alineado a la izquierda, con el retrato centrado, sobraba aire a
+la derecha y la pantalla se veía torcida. La columna mide el ancho de la
+página y nada la ensancha (si el retrato la pasaba, el eje se corría).
 Se probó con la marca Y el titular encima del retrato y no gustó: tres
 títulos apilados antes de ver a nadie. El logo solo, encima, sí. No lleva botones de anterior y siguiente (hubo dos
 flechas amarillas y se pidió quitarlas): se toca lo que se ve. Una luna trae

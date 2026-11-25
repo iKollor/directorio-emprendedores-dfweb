@@ -218,20 +218,32 @@ const emprendedores = await getEmprendedores();
    * (`display: contents`) para poder ordenar sus piezas una a una.
    */
   @media (max-width: 639px) {
+    /*
+     * Y TODO AL CENTRO. Es una sola columna con el retrato en medio: el logo,
+     * el titular, el botón y el párrafo van centrados en su eje. Alineados a
+     * la izquierda dejaban más aire a la derecha que a la izquierda y la
+     * pantalla se veía torcida.
+     */
     .hero {
       grid-template-areas: none;
+      /* Una columna del ancho de la página, ni un píxel más: si el retrato
+         la ensanchaba, el eje de todo se corría a la derecha. */
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: center;
       row-gap: 1.15rem;
       padding-block-start: 0.25rem;
     }
 
+    /* Solo los textos: el cartel del retrato sigue alineado como el de las tarjetas. */
     .hero-texto {
       display: contents;
+      text-align: center;
     }
 
     .hero-escenario {
       grid-area: auto;
       order: 1;
-      width: min(92vw, 430px);
+      width: min(100%, 430px);
       /* El cartel cuelga por debajo del retrato: se le deja su sitio. */
       margin-block: 0 5.3rem;
     }
