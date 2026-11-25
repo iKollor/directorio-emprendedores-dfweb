@@ -521,6 +521,14 @@ export interface Sitio {
     conocelo?: string | null;
     proximamente?: string | null;
     notaProximamente?: string | null;
+    /**
+     * Sale dentro del campo de búsqueda. Se busca en el nombre, el negocio, la categoría y la descripción de cada persona.
+     */
+    buscar?: string | null;
+    /**
+     * No se ve: lo oyen los lectores de pantalla.
+     */
+    borrarBusqueda?: string | null;
     vacioTitulo?: string | null;
     vacioTexto?: string | null;
     vacioBoton?: string | null;
@@ -637,6 +645,8 @@ export interface SitioSelect<T extends boolean = true> {
         conocelo?: T;
         proximamente?: T;
         notaProximamente?: T;
+        buscar?: T;
+        borrarBusqueda?: T;
         vacioTitulo?: T;
         vacioTexto?: T;
         vacioBoton?: T;

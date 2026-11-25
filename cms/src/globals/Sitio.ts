@@ -138,6 +138,12 @@ export const Sitio: GlobalConfig = {
             ),
             texto('proximamente', 'Etiqueta de quien aún no tiene ficha'),
             texto('notaProximamente', 'Nota de quien aún no tiene ficha'),
+            texto(
+              'buscar',
+              'Buscador: texto de ayuda',
+              'Sale dentro del campo de búsqueda. Se busca en el nombre, el negocio, la categoría y la descripción de cada persona.',
+            ),
+            texto('borrarBusqueda', 'Buscador: nombre del botón de borrar', 'No se ve: lo oyen los lectores de pantalla.'),
             texto('vacioTitulo', 'Sin resultados: titular'),
             texto('vacioTexto', 'Sin resultados: texto'),
             texto('vacioBoton', 'Sin resultados: botón'),

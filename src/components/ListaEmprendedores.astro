@@ -16,6 +16,7 @@
  * quien navegaba.
  */
 import Forma from "./Forma.astro";
+import Icono from "./Icono.astro";
 import TarjetaEmprendedor from "./TarjetaEmprendedor.astro";
 import {
   clavesCategoriaReales,
@@ -36,6 +37,17 @@ const textos = (await getSitio(Astro.locals)).listado;
 const categoriasPresentes = clavesCategoriaReales().filter((c) =>
   emprendedores.some((e) => e.categoria === c),
 );
+/**
+ * LO QUE SE BUSCA de cada persona: su nombre, su negocio, su categoría y su
+ * descripción, en minúsculas y sin tildes (así "peluqueria" encuentra
+ * "peluquería"). La comunidad no: la ubicación no se publica.
+ */
+const sinTildes = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const textoDe = (e: Emprendedor) =>
+  sinTildes([e.nombre, e.emprendimiento ?? "", categoria(e.categoria).etiqueta, ...e.parrafos].join(" "))
+    .replace(/\s+/g, " ")
+    .trim();
+
 const comunidadesPresentes = MOSTRAR_COMUNIDAD
   ? COMUNIDADES.filter((c) => emprendedores.some((e) => e.comunidad === c))
   : [];
@@ -59,7 +71,47 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     <p data-anim="lectura">{lineas(textos.bajada).map((l, i) => (<>{i > 0 && <br />}{l}</>))}</p>
   </div>
 
-  <div class="filtros" data-filtros data-anim="pop" data-anim-hijos="legend, button">
+  <div class="filtros" data-filtros data-anim="pop" data-anim-hijos="legend, button, .buscador">
+    {/*
+      LA BARRA DE HERRAMIENTAS, como en cualquier directorio: el buscador a
+      la izquierda y, en la misma línea, lo que responde a él: cuántos hay y
+      el botón de limpiar. Debajo, las categorías. (El buscador solo, en su
+      fila, dejaba un hueco a la derecha, y la cuenta iba en otra fila suelta
+      debajo de las categorías.)
+    */}
+    <div class="herramientas">
+    {/*
+      EL BUSCADOR: el campo de búsqueda de siempre, con su lupa y su botón de
+      borrar. Filtra mientras se escribe y se suma a la categoría elegida.
+    */}
+    <div class="buscador" role="search">
+      <label class="solo-lectores" for="buscar-emprendedores">{textos.buscar}</label>
+      <span class="lupa" aria-hidden="true"><Icono nombre="buscar" /></span>
+      <input
+        id="buscar-emprendedores"
+        type="search"
+        data-buscar
+        placeholder={textos.buscar}
+        autocomplete="off"
+        spellcheck="false"
+        enterkeyhint="search"
+      />
+      <button class="borrar boton-icono vidrio" type="button" data-borrar-busqueda aria-label={textos.borrarBusqueda} hidden>
+        <Icono nombre="cerrar" />
+      </button>
+    </div>
+
+    <div class="resultados">
+      <p class="conteo" data-conteo role="status" aria-live="polite" aria-atomic="true">
+        <!-- El número visible cuenta hacia el nuevo valor; el lector de pantalla
+             solo oye el resultado final, no cada paso intermedio. -->
+        <span aria-hidden="true" data-conteo-visible>{emprendedores.length} emprendimientos</span>
+        <span class="solo-lectores" data-conteo-lector>{emprendedores.length} emprendimientos</span>
+      </p>
+      <button class="limpiar-filtros" type="button" data-limpiar hidden>Limpiar filtros <span aria-hidden="true">↺</span></button>
+    </div>
+    </div>
+
     {comunidadesPresentes.length > 0 && (
     <fieldset>
       <legend>Comunidad</legend>
@@ -101,20 +153,11 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     </fieldset>
   </div>
 
-  <div class="resultados">
-  <p class="conteo" data-conteo role="status" aria-live="polite" aria-atomic="true">
-    <!-- El número visible cuenta hacia el nuevo valor; el lector de pantalla
-         solo oye el resultado final, no cada paso intermedio. -->
-    <span aria-hidden="true" data-conteo-visible>{emprendedores.length} emprendimientos</span>
-    <span class="solo-lectores" data-conteo-lector>{emprendedores.length} emprendimientos</span>
-  </p>
-  <button class="limpiar-filtros" type="button" data-limpiar hidden>Limpiar filtros <span aria-hidden="true">↺</span></button>
-  </div>
 
   <div class="grid" data-grid>
     {
       emprendedores.map((e, i) => (
-        <div class="celda" data-columna={i % 2 === 0 ? "izq" : "der"}>
+        <div class="celda" data-columna={i % 2 === 0 ? "izq" : "der"} data-texto={textoDe(e)}>
           <div class="flota">
             <TarjetaEmprendedor emprendedor={e} indice={i} acento={acentoDe(i)} />
           </div>
@@ -172,9 +215,18 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     display: flex;
     flex-wrap: wrap;
     gap: clamp(1rem, 3vw, 2.5rem);
-    margin-bottom: 1.5rem;
+    margin-bottom: clamp(1.5rem, 4vw, 3rem);
     padding-block: 1.5rem;
     border-block: 1px solid rgb(239 238 237 / .3);
+  }
+
+  .herramientas {
+    flex: 1 1 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem 2rem;
   }
 
   fieldset {
@@ -191,6 +243,75 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     padding: 0;
     font-size: var(--txt-s);
     opacity: 0.9;
+  }
+
+  /* El buscador va el primero, en su propia fila: es lo que más se usa. */
+  .buscador {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 20rem;
+    max-width: 30rem;
+  }
+
+  .buscador input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 3.2rem 0 2.9rem;
+    border: 1.5px solid var(--df-bone);
+    border-radius: var(--radio-pildora);
+    background: rgb(239 238 237 / 0.08);
+    color: var(--df-bone);
+    font: inherit;
+    font-size: var(--txt-s);
+    font-weight: 500;
+    appearance: none;
+    transition: background var(--dur-rapida) var(--ease-suave);
+  }
+
+  .buscador input::placeholder {
+    color: rgb(239 238 237 / 0.78);
+    font-weight: 400;
+  }
+
+  .buscador input:hover,
+  .buscador input:focus {
+    background: rgb(239 238 237 / 0.15);
+  }
+
+  .buscador input:focus-visible {
+    outline: 3px solid var(--df-yellow);
+    outline-offset: 3px;
+  }
+
+  /* El aspa propia del navegador no se ve sobre el azul: va la del sitio. */
+  .buscador input::-webkit-search-cancel-button,
+  .buscador input::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .lupa {
+    position: absolute;
+    left: 1.05rem;
+    font-size: 1.05rem;
+    pointer-events: none;
+  }
+
+  /* Dentro de los filtros: no lleva el estilo de las píldoras de categoría. */
+  .buscador .borrar {
+    position: absolute;
+    right: 0.3rem;
+    width: 2.4rem;
+    min-height: 0;
+    padding: 0;
+    font-size: 0.8rem;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .buscador .borrar[hidden] {
+    display: none;
   }
 
   .opciones {
@@ -217,6 +338,30 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     /* Un fieldset en una columna flexible se estira hasta su contenido: se le fija el ancho de la fila. */
     .filtros > fieldset {
       width: 100%;
+    }
+
+    .buscador {
+      max-width: none;
+    }
+
+    /* En el teléfono, en columna: buscador, categorías y, al final, la cuenta. */
+    .herramientas {
+      display: contents;
+    }
+
+    /* En columna, su ancho base de escritorio se volvería alto: aquí no crece. */
+    .filtros .buscador {
+      flex: none;
+      order: 1;
+    }
+
+    .filtros > fieldset {
+      order: 2;
+    }
+
+    .filtros .resultados {
+      order: 3;
+      justify-content: space-between;
     }
 
     .opciones {
@@ -286,8 +431,10 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     font-size: var(--txt-s);
     opacity: 0.9;
   }
-  .resultados { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 44px; margin-bottom: clamp(1.5rem, 4vw, 3rem); }
-  .limpiar-filtros { min-height: 44px; padding: .5rem 0; background: none; border: 0; color: var(--df-yellow); font: inherit; font-size: var(--txt-s); cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+  .resultados { position: relative; z-index: 2; display: flex; align-items: center; justify-content: flex-end; gap: 1.5rem; min-height: 44px; }
+  /* Un enlace de texto, no una píldora: dentro de los filtros, sin el estilo de las categorías. */
+  .filtros .limpiar-filtros { min-height: 44px; padding: .5rem 0; background: none; border: 0; border-radius: 0; color: var(--df-yellow); font: inherit; font-size: var(--txt-s); cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+  .filtros .limpiar-filtros:hover { background: none; }
 
   .grid {
     position: relative;
@@ -333,6 +480,66 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
   }
   .vacio h3 { font-size: var(--txt-l); line-height: 1.2; }
   .vacio p { margin: 1rem auto 1.5rem; max-width: 42ch; }
+  /*
+   * EN ESCRITORIO, A TAMAÑO DE LEER. Los filtros y el buscador usaban la
+   * letra pequeña de la interfaz y en una pantalla grande se veían diminutos:
+   * van a la letra del texto, más altos y con más aire. Al final de la hoja
+   * para que pesen más que las reglas generales de arriba.
+   */
+  @media (min-width: 768px) {
+    .buscador {
+      flex-basis: 24rem;
+      max-width: 36rem;
+    }
+
+    .buscador input {
+      min-height: 3.5rem;
+      padding-inline: 3.4rem 3.8rem;
+      font-size: var(--txt-m);
+    }
+
+    .lupa {
+      left: 1.3rem;
+      font-size: 1.3rem;
+    }
+
+    .buscador .borrar {
+      right: 0.4rem;
+      width: 2.8rem;
+      font-size: 0.95rem;
+    }
+
+    legend {
+      margin-bottom: 0.85rem;
+      font-size: var(--txt-m);
+    }
+
+    .opciones {
+      gap: 0.65rem;
+    }
+
+    .filtros button:not(.borrar):not(.limpiar-filtros) {
+      min-height: 3.25rem;
+      padding: 0.55em 1.35em;
+      font-size: var(--txt-m);
+    }
+
+    .conteo,
+    .filtros .limpiar-filtros {
+      font-size: var(--txt-m);
+    }
+  }
+
+  /* En un portátil, un punto menos de aire: que las categorías quepan en una fila sin dejar una sola debajo. */
+  @media (min-width: 768px) and (max-width: 1399px) {
+    .opciones {
+      gap: 0.45rem;
+    }
+
+    .filtros button:not(.borrar):not(.limpiar-filtros) {
+      padding-inline: 1.05em;
+    }
+  }
 </style>
 
 <script>
@@ -518,17 +725,26 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     }
 
     // ---- Filtros ---------------------------------------------------------
+    const campo = seccion.querySelector<HTMLInputElement>("[data-buscar]");
+    const borrar = seccion.querySelector<HTMLButtonElement>("[data-borrar-busqueda]");
+    const sinTildes = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
     const activos = {
       comunidad: seccion.querySelector<HTMLElement>('[data-filtro="comunidad"][aria-pressed="true"]')?.dataset.valor ?? "todas",
       categoria: seccion.querySelector<HTMLElement>('[data-filtro="categoria"][aria-pressed="true"]')?.dataset.valor ?? "todas",
+      // Lo escrito, en palabras sueltas: tienen que estar todas.
+      palabras: campo ? sinTildes(campo.value).split(/\s+/).filter(Boolean) : ([] as string[]),
     };
+    const hayFiltro = () => activos.comunidad !== "todas" || activos.categoria !== "todas" || activos.palabras.length > 0;
 
     const coincide = (celda: HTMLElement) => {
       const t = celda.querySelector<HTMLElement>("[data-tarjeta]");
       if (!t) return false;
+      const texto = celda.dataset.texto ?? "";
       return (
         (activos.comunidad === "todas" || t.dataset.comunidad === activos.comunidad) &&
-        (activos.categoria === "todas" || t.dataset.categoria === activos.categoria)
+        (activos.categoria === "todas" || t.dataset.categoria === activos.categoria) &&
+        activos.palabras.every((p) => texto.includes(p))
       );
     };
 
@@ -576,7 +792,7 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
         // de los retratos (lib/retratos.ts): entran ya enfocados o en tinta
         // según les toque, sin cambiar de golpe después.
         ScrollTrigger.refresh();
-        limpiarBoton?.toggleAttribute("hidden", activos.comunidad === "todas" && activos.categoria === "todas");
+        limpiarBoton?.toggleAttribute("hidden", !hayFiltro());
       };
 
       const rematar = () => {
@@ -656,9 +872,51 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
       }, { signal });
     });
 
+    /*
+     * BUSCAR MIENTRAS SE ESCRIBE, con un respiro: el listado cambia cuando se
+     * deja de teclear un momento, no con cada letra (cada cambio apaga y
+     * enciende las tarjetas).
+     */
+    let espera = 0;
+    const buscar = () => {
+      window.clearTimeout(espera);
+      const palabras = campo ? sinTildes(campo.value).split(/\s+/).filter(Boolean) : [];
+      if (palabras.join(" ") === activos.palabras.join(" ")) return;
+      activos.palabras = palabras;
+      contexto?.add(aplicarFiltros);
+    };
+    const vaciarCampo = () => {
+      if (!campo) return;
+      campo.value = "";
+      borrar?.setAttribute("hidden", "");
+    };
+    campo?.addEventListener("input", () => {
+      borrar?.toggleAttribute("hidden", campo.value === "");
+      window.clearTimeout(espera);
+      espera = window.setTimeout(buscar, 220);
+    }, { signal });
+    campo?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        buscar();
+      } else if (e.key === "Escape" && campo.value) {
+        e.preventDefault();
+        vaciarCampo();
+        buscar();
+      }
+    }, { signal });
+    borrar?.addEventListener("click", () => {
+      vaciarCampo();
+      buscar();
+      campo?.focus();
+    }, { signal });
+    signal.addEventListener("abort", () => window.clearTimeout(espera), { once: true });
+
     seccion.querySelectorAll<HTMLButtonElement>("[data-limpiar], [data-restablecer]").forEach(boton => {
       boton.addEventListener("click", () => {
         activos.comunidad = activos.categoria = "todas";
+        vaciarCampo();
+        activos.palabras = [];
         seccion.querySelectorAll<HTMLButtonElement>("[data-filtro]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.valor === "todas")));
         seccion.querySelectorAll<HTMLElement>("[data-opciones]").forEach((fila) => fila.scrollTo({ left: 0, behavior: sinMovimiento() ? "auto" : "smooth" }));
         contexto?.add(aplicarFiltros);

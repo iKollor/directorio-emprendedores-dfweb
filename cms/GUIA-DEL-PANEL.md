@@ -60,6 +60,10 @@ general.
   persona, debajo del teléfono). En los dos, `{nombre}` se cambia por el
   nombre de cada persona.
 - Si dejas un campo vacío, vuelve el texto original.
+- En **Listado** están el texto de ayuda del buscador ("Busca por nombre,
+  negocio o servicio") y el aviso de cuando no hay resultados. El buscador
+  mira el nombre, el negocio, la categoría y la descripción de cada ficha: lo
+  que se escriba en la descripción también sirve para encontrarla.
 - En **Pie de página** está el lema de la escuela, que sale a pincel bajo su
   logo: la primera frase en blanco y la segunda en amarillo.
 - El título del sitio (pestaña **General**) es también el nombre que aparece

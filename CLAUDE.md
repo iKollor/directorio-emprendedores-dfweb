@@ -246,6 +246,12 @@ Antes eran tres piezas: el mensaje, una línea que lo explicaba y un botón
 - No se quita el texto que pidió Diseña Futuro (la llamada de cada tarjeta,
   "¡Conoce a los emprendedores!"), aunque un icono pudiera sustituirlo.
 - Para acciones redondas de icono hay una sola pieza: `.boton-icono`.
+- Buscar es el campo de búsqueda de siempre: la lupa dentro, el texto de
+  ayuda y un aspa para borrar (`.boton-icono.vidrio`), encima de las
+  categorías del listado. Busca en el nombre, el negocio, la categoría y la
+  descripción, sin tildes ni mayúsculas, y si hay varias palabras tienen que
+  estar todas; se suma a la categoría elegida. La comunidad no se busca: la
+  ubicación no se publica.
 
 **Sin género al hablar de una persona.** El sitio no sabe si cada quien es
 emprendedor o emprendedora, y no se le pregunta. Todo lo que se refiere a
