@@ -149,8 +149,9 @@ Tampoco hay nada que siga al cursor por la página.
 **La misma luz en todo.** La luz viene de arriba a la izquierda. Botones,
 píldoras y puntos llevan el brillo y la sombra interior de una gota
 (`--gota` en `src/styles/tokens.css`), hechos con sombras, no con WebGL.
-El favicon también (`public/icon.svg`): una gota plana con la E y la
-pincelada del logo de la escuela, azul en modo claro y amarilla en modo
+El favicon también (`public/icon.svg`): una gota plana con la E del
+logo de la escuela, gruesa para leerse a 16 px y sin pincelada (debajo se
+leía como una boca), azul en modo claro y amarilla en modo
 oscuro, con solo un reflejo difuso (se rechazaron las versiones con brillos y
 bordes de luz por exageradas). El resto de iconos sale de él con `node scripts/favicon/generar.mjs`;
 ver "Favicon" en `public/brand/FUENTES.md`.
@@ -175,7 +176,9 @@ amarillo, como el rótulo de un negocio de barrio. La clase `.pincel`
 (`src/styles/tokens.css`, tipografía Amatic SC, elegida por Diseña Futuro)
 escribe con esa letra las pocas frases que el sitio dice en voz alta: la
 cinta de palabras (un renglón blanco y otro amarillo, como el logo), la
-llamada de cada tarjeta y "Conoce también a". No es para leer ni para la interfaz: titulares, textos,
+llamada de cada tarjeta, "Conoce también a" y el lema de la escuela en el pie
+("Ideas locales. Nuevas oportunidades.", bajo su logo, también en blanco y
+amarillo). No es para leer ni para la interfaz: titulares, textos,
 botones y filtros siguen en General Sans, con su fino + grueso. No se usa
 para destacar una palabra dentro de un titular. Va siempre grande, en blanco
 o en amarillo (o en azul sobre el cartel claro). El subrayado amarillo es
@@ -185,7 +188,8 @@ un segundo titular: va claramente por debajo de él en tamaño.
 
 **La primera pantalla dice una cosa.** Marca, titular, un párrafo y un botón.
 Llevó además una frase de cierre subrayada y un lema a pincel al pie, y se
-pidió limpiarla: eran cinco textos compitiendo. No le añadas frases; si hay
+pidió limpiarla: eran cinco textos compitiendo. El lema volvió, pero al pie
+de página, bajo el logo de la escuela. No le añadas frases; si hay
 algo más que decir, va más abajo.
 
 **Patrones conocidos antes que rótulos (Ley de Jakob).** La gente pasa casi
@@ -256,6 +260,9 @@ No usar:
 - Mezclar una imagen nítida con otra, aunque sea dentro del vidrio. Cuando
   una luna se funde con la gota grande o se suelta de ella, esa zona se
   desenfoca primero y después cambia de imagen: es otro cambio de foco.
+- Filtros del listado que bajan en varias líneas en el teléfono: allí cada
+  grupo es una fila que se desliza de lado hasta el borde de la pantalla, y
+  el botón elegido se corre a la vista.
 - Hacer volar las tarjetas al filtrar. El listado cambia como en una
   herramienta de trabajo: lo que hay se apaga, la lista cambia sin que se
   vea y lo nuevo entra subiendo un poco. Con cada tarjeta viajando a su
