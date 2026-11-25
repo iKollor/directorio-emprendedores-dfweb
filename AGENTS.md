@@ -49,9 +49,11 @@ pasaban por debajo de él, tapadas, y se pidió cambiarlo. Su frente se
 calcula con la medida del cartel, y ninguna luna pasa por encima del texto
 de la portada ni se sale de la página. En el teléfono lo primero es el logo
 de la escuela, grande, casi a todo lo ancho (se pidió así), y justo debajo
-el retrato, centrado: una persona, grande, con su nombre. Alrededor solo se ve la
-luna de la siguiente persona y, asomando, la de después (toda la cola junto a
-un retrato pequeño era ruido); las demás nacen al acercarse. El cartel no va
+el retrato, centrado: una persona, grande, con su nombre. Alrededor se ven las lunas de todas las demás
+personas, las del fondo algo más pequeñas (antes solo se veían la siguiente
+y la de después, y parecía que faltaba gente). Ninguna se sale de la
+página ni pisa el logo de encima: si al crecer para fundirse se pasaría,
+se corre hacia dentro. El cartel no va
 encima del retrato sino colgando de su canto inferior, como el de las
 tarjetas. Debajo van el titular, el botón y el párrafo (`Portada.astro`).
 En el teléfono todo va en un solo eje, centrado: los logos de la cabecera,
