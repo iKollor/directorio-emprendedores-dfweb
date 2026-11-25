@@ -73,6 +73,14 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
 
   <div class="filtros" data-filtros data-anim="pop" data-anim-hijos="legend, button, .buscador">
     {/*
+      LA BARRA DE HERRAMIENTAS, como en cualquier directorio: el buscador a
+      la izquierda y, en la misma línea, lo que responde a él: cuántos hay y
+      el botón de limpiar. Debajo, las categorías. (El buscador solo, en su
+      fila, dejaba un hueco a la derecha, y la cuenta iba en otra fila suelta
+      debajo de las categorías.)
+    */}
+    <div class="herramientas">
+    {/*
       EL BUSCADOR: el campo de búsqueda de siempre, con su lupa y su botón de
       borrar. Filtra mientras se escribe y se suma a la categoría elegida.
     */}
@@ -91,6 +99,17 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
       <button class="borrar boton-icono vidrio" type="button" data-borrar-busqueda aria-label={textos.borrarBusqueda} hidden>
         <Icono nombre="cerrar" />
       </button>
+    </div>
+
+    <div class="resultados">
+      <p class="conteo" data-conteo role="status" aria-live="polite" aria-atomic="true">
+        <!-- El número visible cuenta hacia el nuevo valor; el lector de pantalla
+             solo oye el resultado final, no cada paso intermedio. -->
+        <span aria-hidden="true" data-conteo-visible>{emprendedores.length} emprendimientos</span>
+        <span class="solo-lectores" data-conteo-lector>{emprendedores.length} emprendimientos</span>
+      </p>
+      <button class="limpiar-filtros" type="button" data-limpiar hidden>Limpiar filtros <span aria-hidden="true">↺</span></button>
+    </div>
     </div>
 
     {comunidadesPresentes.length > 0 && (
@@ -134,15 +153,6 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     </fieldset>
   </div>
 
-  <div class="resultados">
-  <p class="conteo" data-conteo role="status" aria-live="polite" aria-atomic="true">
-    <!-- El número visible cuenta hacia el nuevo valor; el lector de pantalla
-         solo oye el resultado final, no cada paso intermedio. -->
-    <span aria-hidden="true" data-conteo-visible>{emprendedores.length} emprendimientos</span>
-    <span class="solo-lectores" data-conteo-lector>{emprendedores.length} emprendimientos</span>
-  </p>
-  <button class="limpiar-filtros" type="button" data-limpiar hidden>Limpiar filtros <span aria-hidden="true">↺</span></button>
-  </div>
 
   <div class="grid" data-grid>
     {
@@ -205,9 +215,18 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     display: flex;
     flex-wrap: wrap;
     gap: clamp(1rem, 3vw, 2.5rem);
-    margin-bottom: 1.5rem;
+    margin-bottom: clamp(1.5rem, 4vw, 3rem);
     padding-block: 1.5rem;
     border-block: 1px solid rgb(239 238 237 / .3);
+  }
+
+  .herramientas {
+    flex: 1 1 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem 2rem;
   }
 
   fieldset {
@@ -231,7 +250,7 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     position: relative;
     display: flex;
     align-items: center;
-    flex: 1 1 100%;
+    flex: 1 1 20rem;
     max-width: 30rem;
   }
 
@@ -279,10 +298,13 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     pointer-events: none;
   }
 
+  /* Dentro de los filtros: no lleva el estilo de las píldoras de categoría. */
   .buscador .borrar {
     position: absolute;
     right: 0.3rem;
     width: 2.4rem;
+    min-height: 0;
+    padding: 0;
     font-size: 0.8rem;
     border: 0;
     cursor: pointer;
@@ -320,6 +342,26 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
 
     .buscador {
       max-width: none;
+    }
+
+    /* En el teléfono, en columna: buscador, categorías y, al final, la cuenta. */
+    .herramientas {
+      display: contents;
+    }
+
+    /* En columna, su ancho base de escritorio se volvería alto: aquí no crece. */
+    .filtros .buscador {
+      flex: none;
+      order: 1;
+    }
+
+    .filtros > fieldset {
+      order: 2;
+    }
+
+    .filtros .resultados {
+      order: 3;
+      justify-content: space-between;
     }
 
     .opciones {
@@ -389,8 +431,10 @@ const comunidadesPresentes = MOSTRAR_COMUNIDAD
     font-size: var(--txt-s);
     opacity: 0.9;
   }
-  .resultados { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 44px; margin-bottom: clamp(1.5rem, 4vw, 3rem); }
-  .limpiar-filtros { min-height: 44px; padding: .5rem 0; background: none; border: 0; color: var(--df-yellow); font: inherit; font-size: var(--txt-s); cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+  .resultados { position: relative; z-index: 2; display: flex; align-items: center; justify-content: flex-end; gap: 1.5rem; min-height: 44px; }
+  /* Un enlace de texto, no una píldora: dentro de los filtros, sin el estilo de las categorías. */
+  .filtros .limpiar-filtros { min-height: 44px; padding: .5rem 0; background: none; border: 0; border-radius: 0; color: var(--df-yellow); font: inherit; font-size: var(--txt-s); cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+  .filtros .limpiar-filtros:hover { background: none; }
 
   .grid {
     position: relative;
