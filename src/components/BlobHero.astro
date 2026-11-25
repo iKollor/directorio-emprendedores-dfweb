@@ -737,6 +737,17 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
   const DESLIZAR = 40;
   let soltar: (() => void) | null = null;
 
+  /** Dónde empieza un elemento en la página, sin contar transformaciones. */
+  function arribaEnPagina(el: HTMLElement): number {
+    let arriba = 0;
+    let nodo: HTMLElement | null = el;
+    while (nodo) {
+      arriba += nodo.offsetTop;
+      nodo = nodo.offsetParent as HTMLElement | null;
+    }
+    return arriba;
+  }
+
   function iniciar() {
     soltar?.();
     soltar = null;
@@ -894,11 +905,15 @@ const lunas = escenas.map(({ e }) => generarBlob(`luna-${e.slug}`, { lados: 7, i
       }
       // Lo de encima: en el teléfono, el logo de la escuela va justo encima
       // del retrato, y una luna de la parte alta de la cola no lo pisa.
+      // Medido por la maquetación, no por getBoundingClientRect: el retrato
+      // entra subiendo y, medido a media entrada, el hueco salía más grande y
+      // la luna de arriba acababa pisando el logo.
       libreArriba = Infinity;
       const encima = document.querySelector<HTMLElement>(".hero .con-logo");
       if (encima) {
         const e = encima.getBoundingClientRect();
-        if (e.bottom <= caja.top + 1 && e.right > caja.left && e.left < caja.right) libreArriba = caja.top - e.bottom;
+        const hueco = arribaEnPagina(escenario) - (arribaEnPagina(encima) + encima.offsetHeight);
+        if (hueco >= -1 && e.right > caja.left && e.left < caja.right) libreArriba = hueco;
       }
 
       // El arco ocupa el ancho que haya: hasta el borde de la página por cada
