@@ -110,7 +110,12 @@ se pulsan antes) cuando la imagen enfoca; el aspa de cerrar está desde el
 principio. En el iPhone un vídeo puede decir que ya anda sin haber pintado
 nada: el material solo lo usa cuando consta que pintó un fotograma, y hasta
 entonces pone su foto (las fotos de las dos personas siguientes se cargan
-por adelantado). Sin eso, el retrato se quedaba en una gota azul vacía. Una luna que se está fundiendo con la gota grande no es un
+por adelantado). Sin eso, el retrato se quedaba en una gota azul vacía. Quien no tiene foto usa
+el primer fotograma de su vídeo (su luna y su imagen fija), y el iPhone no
+carga un vídeo que nadie reproduce: se reproduce mudo y sin verse dentro
+del escenario y se copia en cuanto pinta; si ni así llega, se toma del
+retrato cuando su vídeo ya anda. Sin eso, en el iPhone esas lunas no
+salían nunca. Una luna que se está fundiendo con la gota grande no es un
 botón: está encima del retrato, medio invisible, y se llevaba su clic. Los mandos son los de cualquier reproductor (reproducir, volver al inicio,
 avance, altavoz y nivel, calidad con "Auto", cerrar) vestidos con el material del
 sitio: píldora de vidrio, lo andado es una pincelada amarilla y el tirador,
