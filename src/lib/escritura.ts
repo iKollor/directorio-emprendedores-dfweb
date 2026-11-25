@@ -100,14 +100,38 @@ export function escribirLogo(img: HTMLImageElement, retraso = 0): gsap.core.Time
   const escala = DURACION / (fin || 1);
   const linea = gsap.timeline({ delay: retraso });
   caminos.forEach((camino, i) => {
-    const largo = largos[i]!;
+    // Un píxel de más: si el navegador mide el trazo algo más corto de lo
+    // que lo pinta, no queda un hueco al final.
+    const largo = largos[i]! + 1;
     camino.style.strokeDasharray = `${largo} ${largo}`;
     camino.style.strokeDashoffset = String(largo);
+    // Un trazo que aún no ha empezado no está: el iPhone pinta el remate
+    // redondo de un tramo de largo cero, y cada trazo pendiente salía como
+    // un punto suelto.
+    camino.style.display = "none";
     // Cada trazo arranca y frena, como una mano.
-    linea.to(camino, { strokeDashoffset: 0, duration: plan[i]!.dura * escala, ease: "sine.inOut" }, plan[i]!.inicio * escala);
+    linea.to(
+      camino,
+      {
+        strokeDashoffset: 0,
+        duration: plan[i]!.dura * escala,
+        ease: "sine.inOut",
+        // Aparece cuando ya tiene algo de largo, no al arrancar: en el primer
+        // fotograma aún mide cero y volvería a ser un punto.
+        onUpdate: () => {
+          if (camino.style.display && parseFloat(camino.style.strokeDashoffset) < largo - 0.5) camino.style.display = "";
+        },
+      },
+      plan[i]!.inicio * escala,
+    );
   });
 
+  // UN SEGURO. Si algo frena la línea (una pestaña en segundo plano, un
+  // teléfono atascado mientras arrancan los retratos), el logo no se queda a
+  // medio escribir: pasado un tiempo de sobra, se termina.
+  const seguro = window.setTimeout(() => linea.progress(1), (retraso + DURACION) * 1000 + 3000);
   const terminar = () => {
+    window.clearTimeout(seguro);
     window.removeEventListener("scroll", siBaja);
     img.style.opacity = "";
     svg.remove();
