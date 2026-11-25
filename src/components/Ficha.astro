@@ -89,6 +89,8 @@ const datosEstructurados = {
             e.video
               ? {
                   etiqueta: conNombre(reproductor.abrir, e.nombre),
+                  activar: reproductor.sonido,
+                  silenciar: reproductor.silenciar,
                   nombre: e.nombre,
                   sonido: e.videoSonido,
                   categoria: cat.etiqueta,

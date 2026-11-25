@@ -360,17 +360,24 @@ además el mismo vídeo entero y con sonido, en una o varias calidades:
 `-480`). Con eso, en el hero y en la ficha:
 
 - **Al pasar el puntero** por un retrato con vídeo (hero, ficha y tarjetas
-  del listado), suena, y el carrusel espera. El
-  sonido sale de la versión más ligera y va a la par de la imagen (es el
-  retrato, mudo, el que se ajusta a él), así que las dos versiones tienen que
-  durar lo mismo. Entra y sale fundido.
+  del listado), suena, y el carrusel espera. En el hero y en la ficha suena
+  ya la calidad con la que se abriría el reproductor (así, al abrirlo, es la
+  misma pista y no cambia nada); en el listado, la más ligera. El sonido va a
+  la par de la imagen (es el retrato, mudo, el que se ajusta a él), así que
+  las dos versiones tienen que durar lo mismo. Entra y sale fundido.
+- **El altavoz del retrato** pone o quita el sonido, como el de cualquier
+  reproductor; no abre nada. En el teléfono (donde no hay puntero) es la
+  manera de oír a la persona sin abrir el vídeo: suena hasta que se vuelve a
+  tocar, se cambia de persona o el retrato sale de la pantalla.
 - **Al pulsarlo**, su gota sale de su sitio y crece hasta casi llenar la
   ventana, con un reproductor propio: reproducir y pausar, barra de avance,
   volumen y silencio, y calidad ("Auto" elige según el tamaño en pantalla y
   la conexión, y baja un escalón si el vídeo se queda parado cargando; el
   cambio de calidad no corta la imagen ni el sonido). Se cierra con el aspa,
   con Escape o pulsando fuera. Si el retrato ya sonaba, se abre con ese mismo
-  sonido, sin corte. Lleva además un botón de pantalla completa de verdad:
+  sonido, sin corte; al cerrar, la pista no se descarga, y si el puntero
+  vuelve al retrato sigue la misma. Con el teclado se abre con Intro sobre el
+  retrato. Lleva además un botón de pantalla completa de verdad:
   en el iPhone la pone el reproductor del sistema; en el resto, la pieza
   entera con sus mandos.
 - **En el teléfono, de pie**, la gota es alta y recorta el vídeo con la

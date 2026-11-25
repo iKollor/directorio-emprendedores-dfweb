@@ -22,9 +22,15 @@
  * LOS NAVEGADORES NO DEJAN SONAR NADA SIN UN GESTO. Pasar el puntero no cuenta
  * como gesto: hasta que la persona pulsa o toca algo de la página, pedir
  * sonido falla. Por eso `sonar` avisa de cómo quedó (`suena` o `bloqueado`) y
- * quien lo llama enseña el altavoz tachado: pulsar el retrato sí es un gesto.
+ * quien lo llama enseña el altavoz tachado: pulsarlo, o pulsar el retrato, sí es un gesto.
  * En el primer gesto se "despiertan" los vídeos de la voz, que es lo que pide
  * Safari para dejarlos sonar después sin otro gesto.
+ *
+ * UNA PERSONA, UNA PISTA. Cada persona tiene su vídeo con sonido en varias
+ * calidades (su "familia"). Si la voz ya tiene cargada cualquiera de ellas,
+ * se sigue con esa: no se vuelve a cargar otra. Antes, al cerrar el primer
+ * plano y volver al retrato, se descargaba lo que sonaba y se cargaba la
+ * versión ligera desde cero: el sonido se apagaba y volvía a entrar.
  */
 import { activa, ajustes, fijarNivel, gemela, nivel } from "./voz";
 
@@ -98,10 +104,22 @@ if (typeof window !== "undefined") {
 export function punteroSobre(caja: Element): boolean {
   if (!puntero.raton) return false;
   const r = caja.getBoundingClientRect();
-  const dx = (puntero.x - (r.left + r.width / 2)) / (r.width * 0.45);
-  const dy = (puntero.y - (r.top + r.height / 2)) / (r.height * 0.45);
+  const dx = (puntero.x - (r.left + r.width / 2)) / (r.width * 0.47);
+  const dy = (puntero.y - (r.top + r.height / 2)) / (r.height * 0.47);
   return dx * dx + dy * dy < 1;
 }
+
+/** Lo mismo para una pieza rectangular (el cartel, el altavoz). */
+export function punteroEn(caja: Element | null | undefined): boolean {
+  if (!puntero.raton || !caja) return false;
+  const r = caja.getBoundingClientRect();
+  return puntero.x >= r.left && puntero.x <= r.right && puntero.y >= r.top && puntero.y <= r.bottom;
+}
+
+const entera = (src: string) => new URL(src, location.href).href;
+/** ¿Tiene la voz cargado ya el vídeo de esta persona, en la calidad que sea? */
+const esSuya = (el: HTMLVideoElement, destino: string, familia: string[]) =>
+  el.src === destino || familia.some((src) => entera(src) === el.src);
 
 /** El retrato, mudo, sigue a la voz: acelera o frena un poco, sin que se note. */
 function acompasar(mio: Turno): void {
@@ -162,11 +180,11 @@ function seguir(mio: Turno): void {
  * Va cargando el sonido de un retrato antes de que haga falta (cuando el
  * puntero se acerca): así, al llegar, entra sin espera. No suena nada.
  */
-export function preparar(src: string | null): void {
+export function preparar(src: string | null, familia: string[] = []): void {
   const el = activa();
   if (!el || !src || turno || ajustes.mudo || !el.paused) return;
-  const destino = new URL(src, location.href).href;
-  if (el.src === destino) return;
+  const destino = entera(src);
+  if (esSuya(el, destino, familia)) return;
   fijarNivel(el, 0);
   el.preload = "auto";
   el.src = destino;
@@ -174,9 +192,15 @@ export function preparar(src: string | null): void {
 
 /**
  * Hace sonar un retrato. `src` es su versión con sonido; sin ella, suena el
- * propio archivo. `avisar` recibe cómo quedó.
+ * propio archivo. `familia` son todas las calidades de esa persona: si la voz
+ * ya tiene una, sigue con ella. `avisar` recibe cómo quedó.
  */
-export function sonar(retrato: HTMLVideoElement, src: string | null, avisar: (estado: EstadoSonido) => void): void {
+export function sonar(
+  retrato: HTMLVideoElement,
+  src: string | null,
+  avisar: (estado: EstadoSonido) => void,
+  familia: string[] = [],
+): void {
   if (turno?.retrato === retrato) return;
   callar();
   const el = activa();
@@ -184,16 +208,18 @@ export function sonar(retrato: HTMLVideoElement, src: string | null, avisar: (es
     avisar("bloqueado");
     return;
   }
-  const destino = new URL(src ?? (retrato.currentSrc || retrato.src), location.href).href;
+  const destino = entera(src ?? (retrato.currentSrc || retrato.src));
   const mio: Turno = { retrato, el, avisar, vigia: 0, ultimo: -1, anda: false };
   turno = mio;
 
   // Si es la misma pista y aún se estaba apagando, sube otra vez desde donde iba.
-  const yaSuena = el.src === destino && !el.paused && !el.ended;
+  const suya = esSuya(el, destino, familia);
+  const yaSuena = suya && !el.paused && !el.ended;
   el.loop = true;
+  el.playbackRate = 1;
   if (!yaSuena) {
     fijarNivel(el, 0);
-    if (el.src !== destino) el.src = destino;
+    if (!suya) el.src = destino;
     const situar = () => {
       if (Number.isFinite(el.duration) && el.duration > 0) el.currentTime = (retrato.currentTime + ADELANTO) % el.duration;
     };
@@ -255,10 +281,15 @@ export function retomarVoz(retrato: HTMLVideoElement, el: HTMLVideoElement, avis
 
 /**
  * Tras volver del primer plano el navegador no avisa de que el puntero "sale"
- * de un retrato en el que nunca le vio entrar. Se mira el primer movimiento:
- * si ya no está encima, se llama a `alSalir`.
+ * de un retrato en el que nunca le vio entrar. Se mira ya, y otra vez en el
+ * primer movimiento: si no está encima, se llama a `alSalir`.
  */
 export function vigilarSalida(dentro: (nodo: EventTarget | null) => boolean, alSalir: () => void): void {
+  // Ya sin la pieza encima, la página sí sabe qué hay bajo el puntero.
+  if (puntero.raton && !dentro(document.elementFromPoint(puntero.x, puntero.y))) {
+    alSalir();
+    return;
+  }
   window.addEventListener(
     "pointermove",
     (e) => {

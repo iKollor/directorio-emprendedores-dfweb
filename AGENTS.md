@@ -83,8 +83,17 @@ retrato que ya suena no se corta ni vuelve a empezar, y al cerrar con el
 puntero encima sigue sonando. Todo cambio de volumen es un fundido, nunca un
 escalón. Para ir a la par, el sonido no se recoloca nunca (cada recolocación
 es un corte): es el retrato, que es mudo, el que acelera o frena un poco.
-Cambiar de calidad tampoco corta: la nueva carga en un segundo vídeo y entra
-justo donde va el primero. Si la voz se queda cargando (red lenta), el retrato NO la
+Cambiar de calidad tampoco corta: la nueva carga en un segundo vídeo, que
+echa a andar EN SILENCIO a la par del primero y, cuando ya van clavados, se
+cruzan con la suma de volúmenes siempre en 1 (`cruzar`). Arrancarlo en el
+mismo instante del relevo dejaba un hueco: lo que tarda un vídeo en echar a
+andar. Por lo mismo, al pasar el puntero por el hero o la ficha suena ya la
+calidad con la que se abriría el primer plano (`calidadDeEntrada`), no la
+más ligera: al abrir no hay nada que cambiar. Y UNA PERSONA, UNA PISTA: si
+la voz ya tiene cargada cualquier calidad de esa persona, se sigue con esa.
+Al cerrar no se descarga: se queda en pausa, y si el puntero vuelve al
+retrato continúa la misma (antes se cargaba otra desde cero y el sonido se
+apagaba y volvía a entrar). Si la voz se queda cargando (red lenta), el retrato NO la
 espera: sigue a su aire y se coloca una sola vez donde va ella cuando vuelve
 a andar; esperándola se quedaba clavado, y parecía que pasar el puntero
 pausaba el vídeo. Una luna que se está fundiendo con la gota grande no es un
@@ -92,7 +101,15 @@ botón: está encima del retrato, medio invisible, y se llevaba su clic. Los man
 altavoz y nivel, calidad con "Auto", cerrar) vestidos con el material del
 sitio: píldora de vidrio, lo andado es una pincelada amarilla y el tirador,
 una gota. El retrato lleva un altavoz de vidrio (`.boton-icono.vidrio`) que
-dice si suena y es el botón que abre el primer plano. Dos cosas que no se
+dice si suena y ES UN INTERRUPTOR DE SONIDO, como el de cualquier
+reproductor: pulsarlo lo pone o lo quita. NO abre el primer plano (lo hacía,
+y quien lo pulsaba para habilitar el sonido se encontraba con el
+reproductor); abrirlo es pulsar el retrato, que es un botón también para el
+teclado (Intro). Con el dedo o el teclado no hay "pasar por encima": lo que
+se pone con el altavoz suena hasta que se quita, se cambia de persona o el
+retrato sale de la pantalla, y mientras tanto el carrusel espera. Quitarlo
+con el puntero encima silencia de verdad (el mismo silencio del reproductor,
+que se recuerda), porque si no volvería a sonar al momento. Dos cosas que no se
 pueden saltar: el navegador no deja sonar nada antes del primer gesto de la
 persona (hasta entonces el altavoz sale tachado), y el vídeo con sonido
 (`videoSonido`, en `src/assets/videos/sonido/` o en la ficha del panel) tiene
